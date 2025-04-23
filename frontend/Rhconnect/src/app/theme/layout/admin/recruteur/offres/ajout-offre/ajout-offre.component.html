@@ -1,0 +1,68 @@
+<h5 class="mt-5">Ajout d'une offre</h5>
+<hr />
+<form (ngSubmit)="onSubmit()" #offreForm="ngForm">
+  <div class="row">
+    <!-- Titre -->
+    <div class="col-md-4 mb-3">
+      <label for="titre">Titre</label>
+      <input
+        type="text"
+        name="titre"
+        [(ngModel)]="offre.titre"
+        id="titre"
+        class="form-control"
+        placeholder="Ex : Développeur Web"
+        required
+      />
+    </div>
+
+    <!-- Description -->
+    <div class="col-md-8 mb-3">
+      <label for="description">Description</label>
+      <textarea
+        name="description"
+        [(ngModel)]="offre.description"
+        id="description"
+        rows="4"
+        class="form-control"
+        placeholder="Description de l’offre"
+        required
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Salaire -->
+    <div class="col-md-4 mb-3">
+      <label for="salaire">Salaire (TND)</label>
+      <input
+        type="number"
+        name="salaire"
+        [(ngModel)]="offre.salaire"
+        id="salaire"
+        class="form-control"
+        placeholder="Ex : 1500"
+        required
+        min="0"
+      />
+    </div>
+  </div>
+  <div class="row">
+    <!-- Compétences -->
+    <div class="col-md-4 mb-3">
+      <label for="competences">Compétences</label>
+      <input
+        type="text"
+        name="competences"
+        [(ngModel)]="offre.competences"
+        id="competences"
+        class="form-control"
+        placeholder="Ex : python, django"
+        required
+        min="0"
+      />
+    </div>
+  </div>
+
+  <button class="btn btn-primary" type="submit">Valider</button>
+</form>

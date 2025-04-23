@@ -1,0 +1,72 @@
+.pcoded-navbar {
+  background: linear-gradient(
+      rgba(239, 41, 66, 0.9),
+      rgba(239, 41, 66, 0.9)
+    ),
+    url('/assets/images/offre.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center 40px;
+  color: white;
+
+  box-shadow: none;
+  border-right: none;
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    padding: 12px 20px;
+    color: white;
+    text-decoration: none;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .pcoded-mtext {
+      white-space: nowrap;
+      font-size: 15px;
+    }
+
+    i.feather {
+      vertical-align: middle;
+      margin-right: 10px;
+      font-size: 18px;
+    }
+  }
+
+  .pcoded-menu-item {
+    .nav-link {
+      padding: 12px 20px;
+
+      .pcoded-mtext {
+        font-size: 15px;
+      }
+    }
+  }
+
+  .nav-label {
+    font-size: 20px;
+    font-weight: 600;
+    padding: 20px 20px 10px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    a {
+      display: flex;
+      align-items: center;
+      font-size: 16px;
+      padding: 12px 20px;
+      color: white;
+      font-weight: 500;
+
+      .pcoded-micon {
+        font-size: 20px;
+        margin-right: 12px;
+      }
+    }
+  }
+}

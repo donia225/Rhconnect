@@ -1,0 +1,41 @@
+<app-card cardTitle="Liste des Offres d'emploi" [options]="false" blockClass="table-border-style">
+  <div class="text-end mb-3">
+    <a [routerLink]="['/admin/offres/ajout']" class="btn btn-primary">
+      <i class="feather icon-plus"></i> Publier une offre
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-styling" *ngIf="offres.length > 0; else noOffre">
+      <thead>
+        <tr class="table-primary">
+          <th>Titre</th>
+          <th>Description</th>
+          <th>Salaire</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let offre of offres; let i = index">
+          <td>{{ offre.titre }}</td>
+          <td>{{ offre.description }}</td>
+          <td>{{ offre.salaire }} TND</td>
+          <td>
+            <!-- 🔄 Modifier -->
+            <a [routerLink]="['/admin/offres/modifier', offre.id]" class="btn btn-sm btn-warning me-2">
+              <i class="feather icon-edit"></i>
+            </a>
+            <!-- ❌ Supprimer -->
+            <button (click)="supprimerOffre(offre.id)" class="btn btn-sm btn-outline-danger" title="Supprimer">
+              <i class="feather icon-trash-2"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #noOffre>
+      <p class="text-center">Aucune offre d'emploi disponible.</p>
+    </ng-template>
+  </div>
+</app-card>

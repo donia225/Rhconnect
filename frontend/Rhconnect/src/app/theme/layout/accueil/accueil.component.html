@@ -1,0 +1,197 @@
+<!-- <header class="header">
+    <img class="logo" src="assets/images/rh.png" alt="rhconnect" >
+  
+    <nav>
+      <ul>
+        <li><a href="/" class="nav-link" [class.active]="activeTab === 'accueil'" (click)="setActiveTab('accueil')">Page d'accueil</a></li>
+        <li><a href="#" class="nav-link" [class.active]="activeTab === 'offres'" (click)="setActiveTab('offres')">Offres d'emploi</a></li>
+        <li><a href="#" class="nav-link" [class.active]="activeTab === 'formations'" (click)="setActiveTab('formations')">Formations</a></li>
+      </ul>
+    </nav>
+    
+      <div class="profile-section">
+        <i class="fas fa-comment"></i>
+        <i class="fas fa-bell">
+          <span class="notification-badge">1</span>
+        </i>
+        <i class="fas fa-user"></i>
+        <a href="#">Espace entreprise</a>
+        <a href="/auth/register" class="nav-link" [class.active]="activeTab === 'inscription'" (click)="setActiveTab('inscription')">S'inscrire</a>
+        <a href="/auth/login" class="nav-link" [class.active]="activeTab === 'connexion'" (click)="setActiveTab('connexion')">Se connecter</a>
+      </div>
+    </header>
+    
+    <div class="search-container">
+      <input type="text" placeholder="Intitulé de poste, mots-clés ou entreprise">
+      <input type="text" placeholder="Localisation">
+      <button>Rechercher</button>
+    </div>
+    <div class="cv-upload-container">
+      <label for="cvUpload" class="cv-upload-btn">Déposer votre CV</label>
+      <input type="file" id="cvUpload" accept="application/pdf" (change)="onFileSelected($event)">
+    </div>
+    
+   -->
+  <!-- ======= Header ======= -->
+<header id="header" class="header d-flex align-items-center fixed-top">
+  <div class="container-fluid container-xl d-flex align-items-center justify-content-between">
+
+    <a class="logo d-flex align-items-center" routerLink="/">
+      <img src="assets/images/rh.png" alt="">
+     
+    </a>
+
+    <nav id="navbar" class="navbar">
+      <ul>
+        <li><a class="nav-link scrollto " href="/">Accueil</a></li>
+        <li><a class="nav-link scrollto" href="#about">À propos</a></li>
+        <li><a class="nav-link scrollto " href="#offres">Offres</a></li>
+        <li><a class="nav-link scrollto" href="#portfolio">Formations</a></li>
+        <li><a class="nav-link scrollto" href="#contact">Contact</a></li>
+        <li *ngIf="!isLoggedIn"><a href="/auth/register" class="nav-link" [class.active]="activeTab === 'inscription'" (click)="setActiveTab('inscription')">S'inscrire</a></li>
+        <li *ngIf="!isLoggedIn"><a href="/auth/login" class="nav-link" [class.active]="activeTab === 'connexion'" (click)="setActiveTab('connexion')">Se connecter</a></li>
+        <li *ngIf="isLoggedIn && user">
+          <i class="bi bi-person-circle"></i>
+          {{ user?.prenom }} {{ user?.nom }}
+          <button (click)="logout()">Déconnexion</button>
+        </li>
+        
+      </ul>
+    
+    </nav>
+
+  </div>
+</header>
+
+<!-- ======= Hero Section ======= -->
+<section id="hero" class="hero d-flex align-items-center">
+  <div class="container">
+    <div class="row gy-4 d-flex justify-content-between">
+      <div class="col-lg-6 order-2 order-lg-1 d-flex flex-column justify-content-center">
+        <h1 data-aos="fade-up">Une plateforme RH intelligente pour simplifier et automatiser votre recrutement</h1>
+
+        <div class="d-flex justify-content-start" data-aos="fade-up" data-aos-delay="200">
+          <a href="#offres" class="btn-get-started">Rechercher une offre</a>
+
+        </div>
+      </div>
+      <div class="col-lg-6 order-1 order-lg-2 hero-img" data-aos="zoom-out">
+        <img src="assets/images/Recrutement.png" class="img-fluid hero-image" alt="Recrutement">
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= About Section ======= -->
+<section id="about" class="about">
+  <div class="container" data-aos="fade-up">
+    <div class="row gx-0">
+      <div class="col-lg-6 d-flex flex-column justify-content-center" data-aos="fade-up" data-aos-delay="200">
+        <div class="content">
+          <h3>Qui sommes-nous ?</h3>
+          <h2>L’UIB vous propose une nouvelle ère du recrutement intelligent</h2>
+          <p>
+            Grâce à notre plateforme innovante, nous accompagnons les entreprises dans la digitalisation de leurs processus RH. Dotée d’outils d’intelligence artificielle, notre solution optimise la gestion des candidatures, automatise le tri des CV et facilite le suivi de carrière, pour un recrutement plus rapide, plus juste et plus efficace.
+          </p>
+          <div class="text-center text-lg-start">
+            <a href="#" class="btn-read-more d-inline-flex align-items-center justify-content-center align-self-center">
+              <span>En savoir plus</span>
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 d-flex align-items-center" data-aos="zoom-out" data-aos-delay="200">
+        <img src="assets/images/ia-recru.png" class="img-fluid" alt="">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= Offres Section ======= -->
+<section id="offres" class="offres-container">
+  <div class="offers-list">
+    <div 
+      class="offer-card" 
+      *ngFor="let offer of offres; let i = index" 
+      (click)="selectOffer(i)" 
+      [class.active]="selectedOfferIndex === i">
+      <h3>{{ offer.titre }}</h3>
+      <p>UIB - Tunis</p>
+    </div>
+  </div>
+
+  <div class="offer-detail" *ngIf="selectedOfferIndex !== null">
+    <h2>{{ offres[selectedOfferIndex].titre }}</h2>
+    <p><strong>Lieu :</strong> UIB - Tunis</p>
+    <p><strong>Description :</strong> {{ offres[selectedOfferIndex].description }}</p>
+
+    <div class="button-group">
+      <button class="apply-btn">Postuler</button>
+      <label for="cvUpload" class="apply-btn upload-btn">Déposer votre CV</label>
+      <input 
+      type="file" 
+      id="cvUpload" 
+      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
+      (change)="onFileSelected($event)">
+    
+    </div>
+  </div>
+</section>
+
+
+
+  
+
+
+<!-- ======= Contact Section ======= -->
+<section id="contact" class="contact">
+  <div class="container" data-aos="fade-up">
+    <div class="section-title">
+      <h2>Contact</h2>
+      <p>Nous contacter</p>
+    </div>
+    <div class="row gy-4">
+      <div class="col-lg-6">
+        <div class="info-box">
+          <i class="bi bi-geo-alt"></i>
+          <h3>Adresse</h3>
+          <p>Avenue de l’indépendance, Tunis</p>
+        </div>
+        <div class="info-box">
+          <i class="bi bi-envelope"></i>
+          <h3>Email</h3>
+         
+        </div>
+        <div class="info-box">
+          <i class="bi bi-phone"></i>
+          <h3>Téléphone</h3>
+          <p>+216 20 123 456</p>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <form class="php-email-form">
+          <div class="row gy-4">
+            <div class="col-md-6">
+              <input type="text" class="form-control" placeholder="Votre nom" required>
+            </div>
+            <div class="col-md-6">
+              <input type="email" class="form-control" placeholder="Votre email" required>
+            </div>
+            <div class="col-12">
+              <input type="text" class="form-control" placeholder="Sujet" required>
+            </div>
+            <div class="col-12">
+              <textarea class="form-control" rows="6" placeholder="Message" required></textarea>
+            </div>
+            <div class="col-12 text-center">
+              <button type="submit">Envoyer</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+

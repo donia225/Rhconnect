@@ -1,0 +1,88 @@
+<div class="auth-wrapper">
+  <div class="auth-content">
+    <div class="auth-bg">
+      <span class="r"></span>
+      <span class="r s"></span>
+      <span class="r s"></span>
+      <span class="r"></span>
+    </div>
+    <div class="card">
+      <div class="card-body text-center">
+        <div class="mb-4">
+          <i class="feather icon-user-plus auth-icon"></i>
+        </div>
+        <h3 class="mb-4">Inscription</h3>
+
+        <form #registerForm="ngForm" (ngSubmit)="register()" novalidate>
+          <!-- Nom -->
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" [(ngModel)]="user.nom" name="nom"
+              required pattern="^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$"
+              placeholder="Nom" #nom="ngModel">
+          </div>
+          <small *ngIf="nom?.errors?.['required'] && nom?.touched" class="text-danger">
+            Le nom est obligatoire.
+          </small>
+          <small *ngIf="nom?.errors?.['pattern'] && nom?.touched" class="text-danger">
+            Le nom ne doit contenir que des lettres.
+          </small>
+        
+          <!-- Prénom -->
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" [(ngModel)]="user.prenom" name="prenom"
+              required pattern="^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$"
+              placeholder="Prénom" #prenom="ngModel">
+          </div>
+          <small *ngIf="prenom?.errors?.['required'] && prenom?.touched" class="text-danger">
+            Le prénom est obligatoire.
+          </small>
+          <small *ngIf="prenom?.errors?.['pattern'] && prenom?.touched" class="text-danger">
+            Le prénom ne doit contenir que des lettres.
+          </small>
+        
+          <!-- Email -->
+          <div class="input-group mb-3">
+            <input type="email" class="form-control" [(ngModel)]="user.email" name="email"
+              required placeholder="Email" #email="ngModel">
+          </div>
+          <small *ngIf="email?.errors?.['required'] && email?.touched" class="text-danger">
+            L'email est obligatoire.
+          </small>
+         <small *ngIf="email?.errors?.['pattern'] && email?.touched" class="text-danger">
+         Veuillez entrer une adresse email valide.
+                  </small>
+        
+            <!-- Mot de passe -->
+            <div class="input-group mb-4">
+              <input type="password" class="form-control" [(ngModel)]="user.password" name="password"
+                pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+                required placeholder="Mot de passe" #password="ngModel">
+            </div>
+            
+            <!-- Error for empty password field -->
+            <small *ngIf="password?.errors?.['required'] && password?.touched" class="text-danger">
+              Le mot de passe est obligatoire.
+            </small>
+            
+            <!-- Error for invalid password format -->
+            <small *ngIf="password?.errors?.['pattern'] && password?.touched" class="text-danger">
+              Le mot de passe doit contenir au moins 8 caractères, incluant une lettre, un chiffre et un caractère spécial.
+            </small>
+            
+                
+          <!-- Submit Button -->
+          <button type="submit" class="btn btn-primary shadow-2 mb-4" [disabled]="registerForm.invalid">
+            Accepter et s'inscrire
+          </button>
+        </form>
+        
+        
+
+        <p class="mb-0 text-muted">
+          Déjà inscrit(e) ?
+          <a [routerLink]="['/auth/login']">S’identifier</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

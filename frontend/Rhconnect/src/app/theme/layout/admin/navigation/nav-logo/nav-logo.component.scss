@@ -1,0 +1,17 @@
+.navbar-brand {
+  background-color: #ffffff; // ✅ fond blanc
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0; // optionnel : fine bordure
+}
+
+  
+  .navbar-logo {
+    width: 120px;  /* Ajuste la taille */
+    height: auto;
+    max-height: 50px; /* Empêche d’être trop grand */
+    object-fit: contain;
+  }
+  

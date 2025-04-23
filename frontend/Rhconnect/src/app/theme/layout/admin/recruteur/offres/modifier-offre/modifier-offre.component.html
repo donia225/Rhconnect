@@ -1,0 +1,41 @@
+<h5 class="mt-5">Modifier une offre</h5>
+<hr />
+<form (ngSubmit)="onSubmit()" #offreForm="ngForm">
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label for="titre">Titre</label>
+      <input
+        type="text"
+        name="titre"
+        [(ngModel)]="offre.titre"
+        id="titre"
+        class="form-control"
+        required
+      />
+    </div>
+
+    <div class="col-md-8 mb-3">
+      <label for="description">Description</label>
+      <textarea
+        name="description"
+        [(ngModel)]="offre.description"
+        id="description"
+        class="form-control"
+        required
+      ></textarea>
+    </div>
+
+    <div class="col-md-3 mb-3">
+      <label for="salaire">Salaire</label>
+      <input
+        type="number"
+        name="salaire"
+        [(ngModel)]="offre.salaire"
+        id="salaire"
+        class="form-control"
+        required
+      />
+    </div>
+  </div>
+  <button type="submit" class="btn btn-success">Modifier l'offre</button>
+</form>

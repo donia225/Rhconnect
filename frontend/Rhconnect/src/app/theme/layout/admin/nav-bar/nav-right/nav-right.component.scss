@@ -1,0 +1,17 @@
+.logout-btn {
+    cursor: pointer; /* Change le curseur en main */
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .logout-btn:hover {
+    transform: scale(1.1); /* Effet léger au survol */
+  }
+  .pro-head {
+    background-color: rgba(239, 41, 66, 0.9) !important; /* ✅ rouge transparent */
+    color: white;
+  
+    a, span {
+      color: white !important;  // pour s'assurer que le texte reste visible
+    }
+  }
+  

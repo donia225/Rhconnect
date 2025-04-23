@@ -1,0 +1,31 @@
+<nav class="pcoded-navbar">
+  <div class="pcoded-inner-navbar main-menu">
+    <app-nav-logo></app-nav-logo>
+
+    <ul class="pcoded-item pcoded-left-item">
+
+      <!-- 🎯 Gestionnaire RH -->
+      <ng-container *ngIf="isGestionnaireRH()">
+        <li class="nav-label">Espace Gestionnaire RH</li>
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="['/admin/gestion-carriere']">
+            <!-- <span class="pcoded-micon"><i class="feather icon-bar-chart-2"></i></span> -->
+            <span class="pcoded-mtext">Gestion de carrière</span>
+          </a>
+        </li>
+      </ng-container>
+
+      <!-- 🎯 Recruteur -->
+      <ng-container *ngIf="isRecruteur()">
+        <li class="nav-label">Espace Recruteur</li>
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="['/admin/offres/liste']">
+            <!-- <span class="pcoded-micon"><i class="feather icon-briefcase"></i></span> -->
+            <span class="pcoded-mtext">Offres d'emploi</span>
+          </a>
+        </li>
+      </ng-container>
+
+    </ul>
+  </div>
+</nav>
