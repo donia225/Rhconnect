@@ -5,10 +5,11 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 // project import
 import { SpinnerComponent } from './theme/shared/components/spinner/spinner.component';
 import { NavigationComponent } from './theme/layout/admin/navigation/navigation.component';
+import { NavbarComponent } from "./theme/layout/accueil/navbar/navbar.component";
 
 @Component({
   selector: 'app-root',
-  imports: [SpinnerComponent, RouterModule],
+  imports: [SpinnerComponent, RouterModule, NavbarComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })

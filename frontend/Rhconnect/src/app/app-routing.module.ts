@@ -11,14 +11,23 @@ import { ListeOffreComponent } from './theme/layout/admin/recruteur/offres/liste
 import { ModifierOffreComponent } from './theme/layout/admin/recruteur/offres/modifier-offre/modifier-offre.component';
 import { ListeCarriereComponent } from './theme/layout/admin/recruteur/gestion-carriere/liste-carriere/liste-carriere.component';
 import { AjoutCarriereComponent } from './theme/layout/admin/recruteur/gestion-carriere/ajout-carriere/ajout-carriere.component';
+import { AboutComponent } from './theme/layout/accueil/about/about.component';
+import { OffresComponent } from './theme/layout/accueil/offres/offres.component';
+import { NavbarComponent } from './theme/layout/accueil/navbar/navbar.component';
+import { PublicLayoutComponent } from './theme/layout/public-layout/public-layout.component';
 
 
 
 
 export const routes: Routes = [
   {
-    path: '',
-    component: AccueilComponent // candidat layout
+  path: '',
+    component: PublicLayoutComponent,   // Ton layout public avec navbar
+    children: [
+      { path: '', component: AccueilComponent },
+      { path: 'about', component: AboutComponent },
+      { path: 'offres', component: OffresComponent },
+    ]
   },
   {
     path: 'auth',

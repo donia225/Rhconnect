@@ -1,0 +1,30 @@
+<!-- ======= Offres Section ======= -->
+<section id="offres" class="offres-container">
+    <div class="offers-list">
+      <div 
+        class="offer-card" 
+        *ngFor="let offer of offres; let i = index" 
+        (click)="selectOffer(i)" 
+        [class.active]="selectedOfferIndex === i">
+        <h3>{{ offer.titre }}</h3>
+        <p>UIB - Tunis</p>
+      </div>
+    </div>
+  
+    <div class="offer-detail" *ngIf="selectedOfferIndex !== null">
+      <h2>{{ offres[selectedOfferIndex].titre }}</h2>
+      <p><strong>Lieu :</strong> UIB - Tunis</p>
+      <p><strong>Description :</strong> {{ offres[selectedOfferIndex].description }}</p>
+  
+      <div class="button-group">
+        <button class="apply-btn">Postuler</button>
+        <label for="cvUpload" class="apply-btn upload-btn">Déposer votre CV</label>
+        <input 
+          type="file" 
+          id="cvUpload" 
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
+          (change)="onFileSelected($event)">
+      </div>
+    </div>
+  </section>
+  
