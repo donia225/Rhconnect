@@ -212,3 +212,18 @@ def get_candidat_id(request):
     except Candidat.DoesNotExist:
         return Response({'error': 'Candidat introuvable'}, status=404)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mes_candidatures(request):
+    user = request.user
+    # Filtrer les candidatures du candidat connecté
+    candidatures = Candidature.objects.filter(candidat__user=user).select_related('offre')
+    data = [
+        {
+            'offre_titre': c.offre.titre,
+            'statut': c.statut,
+            'date_postulation': c.date_postulation,
+        }
+        for c in candidatures
+    ]
+    return Response(data)

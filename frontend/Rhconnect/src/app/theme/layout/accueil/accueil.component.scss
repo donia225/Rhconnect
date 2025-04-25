@@ -4,14 +4,35 @@ body {
   margin: 0;
   padding: 0;
 }
+.hero {
+  padding-top: 10px;
+  padding-bottom: 0;
+}
+
+.hero .container {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.hero .col-lg-6.order-2.order-lg-1,
+.hero .col-lg-6.order-1.order-lg-2 {
+  margin-top: 0 !important;         /* retire l’espace au-dessus */
+  align-self: flex-start !important; /* colle les colonnes vers le haut */
+}
+
+.hero h1 {
+  font-size: 2.8rem;  /* ou essaye 2.8rem, à ajuster selon ton goût */
+  line-height: 1.16;
+  margin-top: 10px; 
+}
 
 /* Hero Section (image + titre) */
 .hero-image {
-  width: 130%;
-  max-width: 800px;
+  width: 100%;
+  max-width: 600px;
   height: auto;
   display: block;
   margin: 0 auto;
+  margin-left: 100px;
 }
 
 /* Section Contact */

@@ -71,6 +71,10 @@
       background-color: #2f3ee6;
     }
   }
+  input[type="file"] {
+    display: none !important;
+  }
+  
   
   @keyframes fadeIn {
     from {

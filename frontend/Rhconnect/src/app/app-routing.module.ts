@@ -15,6 +15,7 @@ import { AboutComponent } from './theme/layout/accueil/about/about.component';
 import { OffresComponent } from './theme/layout/accueil/offres/offres.component';
 import { NavbarComponent } from './theme/layout/accueil/navbar/navbar.component';
 import { PublicLayoutComponent } from './theme/layout/public-layout/public-layout.component';
+import { MescandidaturesComponent } from './theme/layout/accueil/candidat/mescandidatures/mescandidatures.component';
 
 
 
@@ -27,6 +28,8 @@ export const routes: Routes = [
       { path: '', component: AccueilComponent },
       { path: 'about', component: AboutComponent },
       { path: 'offres', component: OffresComponent },
+      { path: 'mes-candidatures', component: MescandidaturesComponent }
+
     ]
   },
   {

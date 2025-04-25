@@ -1,0 +1,31 @@
+<div class="candidatures-container">
+    <h2>Mes Candidatures</h2>
+  
+    <div *ngIf="loading" class="loading">Chargement...</div>
+  
+    <table *ngIf="!loading && candidatures.length > 0" class="candidature-table">
+      <thead>
+        <tr>
+          <th>Offre</th>
+          <th>Date de postulation</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of candidatures">
+          <td>{{ c.offre_titre }}</td>
+          <td>{{ c.date_postulation | date: 'longDate' }}</td>
+          <td>
+            <span [ngClass]="{'en-attente': c.statut === 'EN_ATTENTE', 'acceptee': c.statut === 'ACCEPTEE', 'refusee': c.statut === 'REFUSEE'}">
+              {{ c.statut }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  
+    <div *ngIf="!loading && candidatures.length === 0" class="aucune-candidature">
+      Aucune candidature trouvée.
+    </div>
+  </div>
+  

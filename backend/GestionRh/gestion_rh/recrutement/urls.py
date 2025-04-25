@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from .views import ajouter_offre, get_candidat_id, liste_offres, login_user, modifier_offre, register_user, supprimer_offre, upload_cv
+from .views import ajouter_offre, get_candidat_id, liste_offres, login_user, mes_candidatures, modifier_offre, register_user, supprimer_offre, upload_cv
 from rest_framework_simplejwt.views import TokenRefreshView
 
 
@@ -17,6 +17,7 @@ urlpatterns = [
     path('offres/modifier/<int:id>/', modifier_offre, name='modifier_offre'),
     path('upload-cv/', upload_cv, name='upload_cv'),
     path('get-candidat-id/', get_candidat_id, name='get_candidat_id'),
+    path('mes-candidatures/', mes_candidatures, name='mes_candidatures'),
 
 
 ]
