@@ -1,31 +1,74 @@
 <!-- ======= Offres Section ======= -->
+
 <section id="offres" class="offres-container">
-    <div class="offers-list">
-      <div 
-        class="offer-card" 
-        *ngFor="let offer of offres; let i = index" 
-        (click)="selectOffer(i)" 
-        [class.active]="selectedOfferIndex === i">
-        <h3>{{ offer.titre }}</h3>
-        <p>UIB - Tunis</p>
-      </div>
-    </div>
-  
-    <div class="offer-detail" *ngIf="selectedOfferIndex !== null">
-      <h2>{{ offres[selectedOfferIndex].titre }}</h2>
-      <p><strong>Lieu :</strong> UIB - Tunis</p>
-      <p><strong>Description :</strong> {{ offres[selectedOfferIndex].description }}</p>
-      <p><strong>Compétences requises :</strong> {{offres[selectedOfferIndex].competences }}</p>
-  
-      <div class="button-group">
-        <button class="apply-btn">Postuler</button>
-        <label for="cvUpload" class="apply-btn upload-btn">Déposer votre CV</label>
+  <div class="top-bar">
+    <div class="search-bar">
+      <div class="search-wrapper">
         <input 
-          type="file" 
-          id="cvUpload" 
-          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
-          (change)="onFileSelected($event)">
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="filterOffres()" 
+          placeholder="Search . . ." 
+          class="search-input"
+        />
+        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">×</button>
+        <button class="search-btn" disabled>
+          <i class="feather icon-search"></i>
+        </button>
       </div>
     </div>
-  </section>
+  </div>
+
+
+
+
+  <div class="offers-list">
+    <div 
+      class="offer-card" 
+      *ngFor="let offer of paginatedOffres; let i = index" 
+      (click)="selectOffer(offer)"
+      [class.active]="selectedOffer === offer">
+      <h3>{{ offer.titre }}</h3>
+      <p>UIB - Tunis</p>
+    </div>
+
+    <!-- ✅ Pagination déplacée ici, visible seulement si une offre est sélectionnée -->
+    <nav *ngIf="totalPages > 1 && selectedOffer" class="pagination-container mt-3" aria-label="Pagination">
+      <ul class="pagination pagination-sm">
+        <li class="page-item" [class.disabled]="page === 1">
+          <a class="page-link" href="#" (click)="goToPage(page - 1, $event)">&laquo;</a>
+        </li>
+        <li class="page-item" *ngFor="let p of pages" [class.active]="p === page">
+          <a class="page-link" href="#" (click)="goToPage(p, $event)">{{ p }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="page === totalPages">
+          <a class="page-link" href="#" (click)="goToPage(page + 1, $event)">&raquo;</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Détail de l'offre -->
+ <div class="offer-detail" *ngIf="selectedOffer">
+  <h2>{{ selectedOffer.titre }}</h2>
+  <p><strong>📍 Lieu :</strong> UIB - Tunis</p>
+  <p><strong>📝 Description :</strong> {{ selectedOffer.description }}</p>
+  <p><strong>🧠 Compétences requises :</strong> {{ selectedOffer.competences }}</p>
+  <p><strong>💼 Type de poste :</strong> {{ selectedOffer.type_poste }}</p>
+  <p><strong>⏳ Expérience :</strong> {{ selectedOffer.experience }}</p>
+  <p><strong>🎓 Niveau d’étude :</strong> {{ selectedOffer.niveau_etude }}</p>
+  <p><strong>🕒 Disponibilité :</strong> {{ selectedOffer.disponibilite }}</p>
+  <p><strong>🌍 Langues :</strong> {{ selectedOffer.langues }}</p>
+    <div class="button-group">
+      <button class="apply-btn">Postuler</button>
+      <label for="cvUpload" class="apply-btn upload-btn">Déposer votre CV</label>
+      <input 
+        type="file" 
+        id="cvUpload" 
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
+        (change)="onFileSelected($event)">
+    </div>
+  </div>
+</section>
+
   

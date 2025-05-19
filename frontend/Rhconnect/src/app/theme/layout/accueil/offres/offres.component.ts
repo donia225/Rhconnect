@@ -6,21 +6,28 @@ import { environment } from 'src/environments/environment';
 import { UploadService } from 'src/app/services/upload/upload.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-offres',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './offres.component.html',
   styleUrls: ['./offres.component.scss']
 })
 export class OffresComponent implements OnInit {
   offres: any[] = [];
-  selectedOfferIndex: number | null = null;
   selectedOffer: any = null;
   selectedFile: File | null = null;
   candidatId: number | null = null;
   isLoggedIn: boolean = false;
   user: DecodedToken | null = null;
+  page = 1;
+  pageSize = 4;
+  totalPages = 1;
+  pages: number[] = [];
+  paginatedOffres: any[] = [];
+  searchTerm: string = '';
+  filteredOffres: any[] = [];
 
   constructor(
     private offreService: OffreService,
@@ -50,12 +57,15 @@ export class OffresComponent implements OnInit {
     }
 
     this.chargerOffres();
+    this.filteredOffres = [...this.offres];
+    this.updatePagination();
   }
 
   chargerOffres() {
     this.offreService.getAllOffres().subscribe({
       next: (data) => {
         this.offres = data;
+         this.updatePagination();
       },
       error: (err) => {
         console.error('Erreur lors du chargement des offres', err);
@@ -63,9 +73,10 @@ export class OffresComponent implements OnInit {
     });
   }
 
-  selectOffer(index: number) {
-    this.selectedOfferIndex = index;
-  }
+selectOffer(offer: any) {
+  this.selectedOffer = offer;
+}
+
 
   onFileSelected(event: any) {
     const file: File = event.target.files[0];
@@ -80,12 +91,12 @@ export class OffresComponent implements OnInit {
       return;
     }
 
-    if (this.selectedOfferIndex === null || !this.candidatId) {
+    if (!this.selectedOffer || !this.candidatId)  {
       alert("Veuillez d'abord sélectionner une offre et vous connecter.");
       return;
     }
 
-    const offreId = this.offres[this.selectedOfferIndex].id;
+      const offreId = this.selectedOffer.id;
 
     this.uploadService.uploadCV(file, offreId, this.candidatId).subscribe({
       next: () => {
@@ -97,4 +108,42 @@ export class OffresComponent implements OnInit {
       }
     });
   }
+  filterOffres() {
+  const term = this.searchTerm.trim().toLowerCase();
+
+  if (!term) {
+    this.filteredOffres = [...this.offres];
+  } else {
+    this.filteredOffres = this.offres.filter(offre =>
+      offre.titre.toLowerCase().includes(term) ||
+      offre.description.toLowerCase().includes(term)
+    );
+  }
+  this.selectedOffer = null;
+  this.page = 1;
+  this.updatePagination();
+}
+ updatePagination() {
+  const source = this.filteredOffres.length ? this.filteredOffres : this.offres;
+
+  this.totalPages = Math.ceil(source.length / this.pageSize);
+  this.pages = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  const start = (this.page - 1) * this.pageSize;
+  const end = start + this.pageSize;
+
+  this.paginatedOffres = source.slice(start, end);
+}
+
+goToPage(p: number, event?: Event) {
+  if (event) event.preventDefault(); // 🔒 empêche le rechargement
+  if (p < 1 || p > this.totalPages) return;
+  this.page = p;
+  this.updatePagination();
+}
+clearSearch() {
+  this.searchTerm = '';
+  this.filterOffres();
+}
+
+
 }

@@ -11,6 +11,8 @@ declare const AmCharts;
 
 import dataJson from 'src/fake-data/map_data';
 import mapColor from 'src/fake-data/map-color-data.json';
+import { OffreService } from 'src/app/services/offre/offre.service';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,8 +21,15 @@ import mapColor from 'src/fake-data/map-color-data.json';
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
+  candidatures: any[] = [];
+  filtrerEnAttente: boolean = true;
+  constructor(private offreService: OffreService, private toastr:ToastrService){}
   // life cycle event
   ngOnInit() {
+     this.offreService.getCandidatures().subscribe(data => {
+      this.candidatures = data.sort((a: any, b: any) => b.score - a.score);
+  });
+
     setTimeout(() => {
       const latlong = dataJson;
 
@@ -226,6 +235,8 @@ export class DashboardComponent implements OnInit {
     }, 500);
   }
 
+
+
   // public method
   sales = [
     {
@@ -383,4 +394,21 @@ export class DashboardComponent implements OnInit {
       color: 'text-c-green'
     }
   ];
+
+ updateStatut(id: number, statut: string): void {
+    this.offreService.updateStatut(id, statut).subscribe(() => {
+      const index = this.candidatures.findIndex(c => c.id === id);
+      if (index !== -1) this.candidatures[index].statut = statut;
+    });
+  }
+ get candidaturesFiltrees(): any[] {
+    return this.filtrerEnAttente
+      ? this.candidatures.filter(c => c.statut === 'EN_ATTENTE')
+      : this.candidatures;
+  }
+    getScoreClass(score: number): string {
+    if (score >= 60) return 'badge bg-success';
+    if (score >= 40) return 'badge bg-warning text-dark';
+    return 'badge bg-danger';
+  }
 }

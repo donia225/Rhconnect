@@ -4,13 +4,15 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 from .models import OffreEmploi, Candidature
-from .serializers import OffreEmploiSerializer
+from .serializers import CandidatureSerializer, OffreEmploiSerializer
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Candidat
 from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
 from .ia_tests.analyse_cv import analyser_cv
+from PyPDF2 import PdfReader, PdfWriter
+
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
 
@@ -169,6 +171,15 @@ def upload_cv(request):
         from django.core.files.storage import default_storage
         path_temp = default_storage.save(f'temp_cv/{file.name}', file)
         path_complet = default_storage.path(path_temp)
+        
+         # ✅ 1.b Modifier les métadonnées du PDF (titre affiché)
+        reader = PdfReader(path_complet)
+        writer = PdfWriter()
+        writer.append_pages_from_reader(reader)
+        writer.add_metadata({'/Title': file.name})
+
+        with open(path_complet, 'wb') as f:
+            writer.write(f)
 
         # 2. Récupérer les compétences attendues de l’offre
         competences_attendues = []
@@ -212,6 +223,50 @@ def get_candidat_id(request):
     except Candidat.DoesNotExist:
         return Response({'error': 'Candidat introuvable'}, status=404)
 
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def candidat_profil(request):
+    user = request.user
+    try:
+        candidat = Candidat.objects.get(user=user)
+    except Candidat.DoesNotExist:
+        return Response({'error': 'Profil candidat introuvable'}, status=404)
+
+    if request.method == 'GET':
+        data = {
+            'nom': user.last_name,
+            'prenom': user.first_name,
+            'date_naissance': candidat.date_naissance,
+            'niveau_etude': candidat.niveau_etude,
+            'niveau_experience': candidat.niveau_experience,
+            'numero_tel': candidat.numero_tel,
+            'adresse': candidat.adresse,
+            'cv': candidat.cv.url if candidat.cv else None,
+        }
+        return Response(data)
+
+    elif request.method == 'PUT':
+        # Maj données utilisateur (si autorisé)
+        user.first_name = request.data.get('prenom', user.first_name)
+        user.last_name = request.data.get('nom', user.last_name)
+        user.save()
+
+        # Maj données candidat
+        candidat.date_naissance = request.data.get('date_naissance')
+        candidat.niveau_etude = request.data.get('niveau_etude')
+        candidat.niveau_experience = request.data.get('niveau_experience')
+        candidat.numero_tel = request.data.get('numero_tel')
+        candidat.adresse = request.data.get('adresse')
+
+        # Upload fichier CV si envoyé
+        if 'cv' in request.FILES:
+            candidat.cv = request.FILES['cv']
+
+        candidat.save()
+
+        return Response({'message': 'Profil mis à jour'})
+
+    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def mes_candidatures(request):
@@ -227,3 +282,40 @@ def mes_candidatures(request):
         for c in candidatures
     ]
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_candidatures_recruteur(request):
+    user = request.user
+    candidatures = Candidature.objects.filter(offre__recruteur=user).order_by('-score_matching')  # trie par score
+    result = []
+    for c in candidatures:
+        cv_url = request.build_absolute_uri(c.candidat.cv.url) if hasattr(c.candidat, 'cv') and c.candidat.cv else None
+        result.append({
+            'id': c.id,
+            'candidat': c.candidat.user.last_name,
+            'offre': c.offre.titre,
+            'score': c.score_matching if c.score_matching is not None else 0,
+            'analyse_effectuee': c.analyse_effectuee,
+            'statut': c.statut,
+            'cv_link': cv_url,
+            'tag_ia': "Matching IA détecté" if c.analyse_effectuee else "Analyse manuelle requise"
+        })
+    return Response(result)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_statut_candidature(request, id):
+    try:
+        candidature = Candidature.objects.get(id=id, offre__recruteur=request.user)
+    except Candidature.DoesNotExist:
+        return Response({'error': 'Candidature introuvable'}, status=404)
+
+    statut = request.data.get('statut')
+    if statut not in ['EN_ATTENTE', 'ACCEPTEE', 'REJETEE']:
+        return Response({'error': 'Statut invalide'}, status=400)
+
+    candidature.statut = statut
+    candidature.save()
+    return Response({'success': 'Statut mis à jour'})

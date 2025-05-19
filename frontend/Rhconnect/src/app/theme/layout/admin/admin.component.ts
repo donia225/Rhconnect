@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common';
 // project import
 import { NavBarComponent } from './nav-bar/nav-bar.component';
 import { NavigationComponent } from './navigation/navigation.component';
-import { ConfigurationComponent } from 'src/app/theme/layout/admin/configuration/configuration.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { NavRightComponent } from './nav-bar/nav-right/nav-right.component';
 
@@ -14,7 +13,7 @@ import { NavRightComponent } from './nav-bar/nav-right/nav-right.component';
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [NavBarComponent,NavRightComponent, SidebarComponent, RouterModule, CommonModule, ConfigurationComponent],
+  imports: [NavBarComponent,NavRightComponent, SidebarComponent, RouterModule, CommonModule],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.scss']
 })

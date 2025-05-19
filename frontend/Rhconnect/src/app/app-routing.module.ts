@@ -1,4 +1,6 @@
-import { NgModule } from '@angular/core';
+import { LOCALE_ID, NgModule } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
 import { Routes, RouterModule } from '@angular/router';
 import { AdminComponent } from './theme/layout/admin/admin.component';
 import { AccueilComponent } from './theme/layout/accueil/accueil.component';
@@ -16,7 +18,9 @@ import { OffresComponent } from './theme/layout/accueil/offres/offres.component'
 import { NavbarComponent } from './theme/layout/accueil/navbar/navbar.component';
 import { PublicLayoutComponent } from './theme/layout/public-layout/public-layout.component';
 import { MescandidaturesComponent } from './theme/layout/accueil/candidat/mescandidatures/mescandidatures.component';
+import { MonProfilComponent } from './theme/layout/accueil/candidat/mon-profil/mon-profil.component';
 
+registerLocaleData(localeFr);
 
 
 
@@ -28,7 +32,8 @@ export const routes: Routes = [
       { path: '', component: AccueilComponent },
       { path: 'about', component: AboutComponent },
       { path: 'offres', component: OffresComponent },
-      { path: 'mes-candidatures', component: MescandidaturesComponent }
+      { path: 'mes-candidatures', component: MescandidaturesComponent },
+      { path: 'mon-profil', component:MonProfilComponent}
 
     ]
   },
@@ -75,6 +80,10 @@ export const routes: Routes = [
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+  exports: [RouterModule],
+  providers: [
+  { provide: LOCALE_ID, useValue: 'fr-FR' }
+],
+
 })
 export class AppRoutingModule {}

@@ -4,11 +4,10 @@ import { Component, output } from '@angular/core';
 // project import
 import { SharedModule } from 'src/app/theme/shared/shared.module';
 
-import { NavContentComponent } from './nav-content/nav-content.component';
 
 @Component({
   selector: 'app-navigation',
-  imports: [SharedModule, NavContentComponent],
+  imports: [SharedModule],
   templateUrl: './navigation.component.html',
   styleUrls: ['./navigation.component.scss']
 })

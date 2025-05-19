@@ -10,25 +10,41 @@
       <thead>
         <tr class="table-primary">
           <th>Titre</th>
-          <th>Description</th>
-          <th>Salaire</th>
+          <th>Type de poste</th>
+          <th>Expérience</th>
+          <th>Compétences</th>
+          <th>📅 Publiée le</th>
+          <th>📥 Candidatures</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let offre of offres; let i = index">
           <td>{{ offre.titre }}</td>
-          <td>{{ offre.description }}</td>
-          <td>{{ offre.salaire }} TND</td>
+          <td>{{ offre.type_poste}}</td>
+          <td>{{ offre.experience}}</td>
           <td>
-            <!-- 🔄 Modifier -->
-            <a [routerLink]="['/admin/offres/modifier', offre.id]" class="btn btn-sm btn-warning me-2">
-              <i class="feather icon-edit"></i>
-            </a>
+          <ng-container *ngFor="let comp of offre.competences.split(',')">
+          <span class="badge-skill">{{ comp.trim() }}</span>
+          </ng-container>
+          </td>
+
+         <td>{{ offre.date_publication | date: 'd MMMM y':'':'fr-FR' }}</td>
+         <td>{{ offre.nb_candidatures }}</td>
+
+          <td>
+            <!-- 🔄 Modifier  -->
+          <a [routerLink]="['/admin/offres/modifier', offre.id]" class="btn-icon text-warning me-2" title="Modifier">
+          <i class="feather icon-edit"></i>
+          </a>
             <!-- ❌ Supprimer -->
-            <button (click)="supprimerOffre(offre.id)" class="btn btn-sm btn-outline-danger" title="Supprimer">
-              <i class="feather icon-trash-2"></i>
+            <button (click)="supprimerOffre(offre.id)" class="btn-icon text-danger me-2" title="Supprimer">
+            <i class="feather icon-trash-2"></i>
             </button>
+            <!-- 👁️ Voir -->
+            <a [routerLink]="['/admin/offres/detail', offre.id]" class="btn-icon text-primary" title="Voir">
+            <i class="feather icon-eye"></i>
+            </a>
           </td>
         </tr>
       </tbody>
@@ -39,3 +55,4 @@
     </ng-template>
   </div>
 </app-card>
+  

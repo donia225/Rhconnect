@@ -24,6 +24,28 @@ class Candidat(models.Model):
     numero_tel = models.CharField(max_length=8, blank=True, null=True)
     adresse = models.TextField(blank=True, null=True)
     cv = models.FileField(upload_to='uploads/cv/', blank=True, null=True)
+    date_naissance = models.DateField(blank=True, null=True)
+    
+    NIVEAU_ETUDE_CHOICES = [
+    ('licence', 'Licence'),
+    ('master', 'Master'),
+    ('ingénierie', 'Ingénierie'),
+    ('doctorat', 'Doctorat'),
+    ('expert', 'Expert'),
+    ('recherche', 'Chercheur/Recherche'),
+    ]
+    niveau_etude = models.CharField(max_length=20, choices=NIVEAU_ETUDE_CHOICES, blank=True, null=True)
+    NIVEAU_EXPERIENCE_CHOICES = [
+    ('aucune', "Aucune expérience"),
+    ('moins_1_an', "Moins d'un an"),
+    ('entre_1_2_ans', "Entre 1 et 2 ans"),
+    ('entre_2_5_ans', "Entre 2 et 5 ans"),
+    ('entre_5_10_ans', "Entre 5 et 10 ans"),
+    ('plus_10_ans', "Plus que 10 ans"),
+]
+    niveau_experience = models.CharField(
+    max_length=20, choices=NIVEAU_EXPERIENCE_CHOICES, blank=True, null=True
+)
 
     def __str__(self):
         return f"Candidat: {self.user.username}"
@@ -34,7 +56,18 @@ class OffreEmploi(models.Model):
     description = models.TextField()
     salaire = models.FloatField()
     competences = models.TextField(blank=True, null=True)
-    # ✅ Référence au modèle `User` défini ci-dessus
+
+    # ✅ Nouveaux champs structurés
+    type_poste = models.CharField(max_length=100, blank=True, null=True)  # Ex: CDI, CDD, SIVP
+    experience = models.CharField(max_length=100, blank=True, null=True)  # Ex: Moins d’un an
+    niveau_etude = models.CharField(max_length=100, blank=True, null=True)  # Ex: Bac, Bac+3
+    disponibilite = models.CharField(max_length=100, blank=True, null=True)  # Ex: Plein temps
+    langues = models.TextField(blank=True, null=True)  # Ex: Français, Anglais
+
+    # ✅ Publication
+    date_publication = models.DateField(auto_now_add=True, blank=True)
+
+    # ✅ Lien avec l'utilisateur recruteur
     recruteur = models.ForeignKey(User, on_delete=models.CASCADE, related_name="offres")
 
     def __str__(self):

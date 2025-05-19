@@ -1,0 +1,48 @@
+.profil-container {
+    max-width: 600px;
+    margin: 50px auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #002b7f;
+    }
+  
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+  
+      label {
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+  
+      input,
+      select {
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+    }
+  
+    .save-btn {
+      background-color: #3f51ff;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      width: 100%;
+      cursor: pointer;
+  
+      &:hover {
+        background-color: #2f3ee6;
+      }
+    }
+  }
+  

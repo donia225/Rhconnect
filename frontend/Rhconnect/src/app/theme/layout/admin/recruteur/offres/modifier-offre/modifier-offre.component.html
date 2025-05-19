@@ -1,41 +1,128 @@
-<h5 class="mt-5">Modifier une offre</h5>
-<hr />
-<form (ngSubmit)="onSubmit()" #offreForm="ngForm">
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <label for="titre">Titre</label>
-      <input
-        type="text"
-        name="titre"
-        [(ngModel)]="offre.titre"
-        id="titre"
-        class="form-control"
-        required
-      />
-    </div>
+<app-card cardTitle="Modifier une offre" [options]="false">
+  <form (ngSubmit)="onSubmit()" #offreForm="ngForm">
+    <h5>Modifier une offre</h5>
+    <hr />
+    <div class="row">
+      <!-- Colonne gauche -->
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="titre">Titre</label>
+          <input
+            type="text"
+            name="titre"
+            [(ngModel)]="offre.titre"
+            id="titre"
+            class="form-control"
+            required
+          />
+        </div>
 
-    <div class="col-md-8 mb-3">
-      <label for="description">Description</label>
-      <textarea
-        name="description"
-        [(ngModel)]="offre.description"
-        id="description"
-        class="form-control"
-        required
-      ></textarea>
-    </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea
+            name="description"
+            [(ngModel)]="offre.description"
+            id="description"
+            rows="4"
+            class="form-control"
+            required
+          ></textarea>
+        </div>
 
-    <div class="col-md-3 mb-3">
-      <label for="salaire">Salaire</label>
-      <input
-        type="number"
-        name="salaire"
-        [(ngModel)]="offre.salaire"
-        id="salaire"
-        class="form-control"
-        required
-      />
+        <div class="form-group">
+          <label for="type_poste">Type de poste</label>
+          <input
+            type="text"
+            name="type_poste"
+            [(ngModel)]="offre.type_poste"
+            id="type_poste"
+            class="form-control"
+             required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="experience">Expérience</label>
+          <input
+            type="text"
+            name="experience"
+            [(ngModel)]="offre.experience"
+            id="experience"
+            class="form-control"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Colonne droite -->
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="competences">Compétences</label>
+          <input
+            type="text"
+            name="competences"
+            [(ngModel)]="offre.competences"
+            id="competences"
+            class="form-control"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="salaire">Salaire (TND)</label>
+          <input
+            type="number"
+            name="salaire"
+            [(ngModel)]="offre.salaire"
+            id="salaire"
+            class="form-control"
+            required
+            min="0"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="niveau_etude">Niveau d'étude</label>
+          <input
+            type="text"
+            name="niveau_etude"
+            [(ngModel)]="offre.niveau_etude"
+            id="niveau_etude"
+            class="form-control"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="disponibilite">Disponibilité</label>
+          <input
+            type="text"
+            name="disponibilite"
+            [(ngModel)]="offre.disponibilite"
+            id="disponibilite"
+            class="form-control"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="langues">Langues</label>
+          <input
+            type="text"
+            name="langues"
+            [(ngModel)]="offre.langues"
+            id="langues"
+            class="form-control"
+            required
+          />
+        </div>
+
+        <!-- ✅ Bouton aligné à droite -->
+        <div class="text-end mt-3">
+           <button type="button" class="btn btn-secondary me-2" (click)="annuler()">Annuler</button>
+          <button type="submit" class="btn btn-primary">Modifier</button>
+        </div>
+      </div>
     </div>
-  </div>
-  <button type="submit" class="btn btn-success">Modifier l'offre</button>
-</form>
+  </form>
+</app-card>

@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { OffreService } from 'src/app/services/offre/offre.service';
+import { SharedModule } from 'src/app/theme/shared/shared.module';
 
 @Component({
   selector: 'app-modifier-offre',
-  imports: [FormsModule],
+  imports: [FormsModule,SharedModule],
   templateUrl: './modifier-offre.component.html',
   styleUrls: ['./modifier-offre.component.scss']
 })
@@ -13,14 +15,20 @@ export class ModifierOffreComponent implements OnInit {
   offreId!: number;
   offre = {
     titre: '',
+    type_poste: '',
+    experience: '',
+    niveau_etude: '',
+    disponibilite: '',
+    langues: '',
     description: '',
-    salaire: ''
+    salaire: null,
+    competences:''
   };
 
   constructor(
     private route: ActivatedRoute,
     private offreService: OffreService,
-    private router: Router
+    private router: Router, private toastr: ToastrService
   ) {}
 
   ngOnInit(): void {
@@ -40,7 +48,7 @@ export class ModifierOffreComponent implements OnInit {
 
     this.offreService.modifierOffre(this.offreId, data).subscribe({
       next: () => {
-        alert('Offre modifiée avec succès');
+        this.toastr.success("Offre modifiée avec succès !");
         this.router.navigate(['/admin/offres/liste']);
       },
       error: () => {
@@ -48,4 +56,7 @@ export class ModifierOffreComponent implements OnInit {
       }
     });
   }
+    annuler() {
+  this.router.navigate(['/admin/offres/liste']); // redirection vers la liste des offres
+}
 }

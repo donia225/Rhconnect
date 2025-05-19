@@ -20,3 +20,20 @@
 @import 'scss/plugins/plugins';
 
 @import 'scss/custom';
+@import 'ngx-toastr/toastr';
+
+
+/*cards des ajout et modifier d'une offre en blanc */
+ body {
+  background-color: #f4f7fa !important;
+} 
+
+.card {
+  background-color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+}
+
+
+

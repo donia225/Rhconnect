@@ -1,0 +1,53 @@
+<div class="profil-container">
+    <h2>Compléter votre inscription</h2>
+    <form [formGroup]="profilForm" (ngSubmit)="onSubmit()">
+      <div class="form-row">
+        <label>Nom</label>
+        <input formControlName="nom" type="text"  />
+      </div>
+  
+      <div class="form-row">
+        <label>Prénom</label>
+        <input formControlName="prenom" type="text"  />
+      </div>
+  
+      <div class="form-row">
+        <label>Date de naissance</label>
+        <input formControlName="date_naissance" type="date" />
+      </div>
+      <div class="form-row">
+        <label>Adresse</label>
+        <input formControlName="adresse" type="text" />
+      </div>
+      <div class="form-row">
+        <label>Téléphone</label>
+        <input formControlName="numero_tel" type="text" />
+      </div>
+      <div class="form-row">
+        <label>Niveau d’étude</label>
+        <select formControlName="niveau_etude">
+          <option value="">-- Sélectionner --</option>
+          <option value="Licence">Licence</option>
+          <option value="Master">Master</option>
+          <option value="Ingénierie">Ingénierie</option>
+          <option value="Doctorat">Doctorat</option>
+        </select>
+      </div>
+  
+      <div class="form-row">
+        <label>Niveau d’expérience</label>
+        <select formControlName="niveau_experience">
+          <option value="">-- Sélectionner --</option>
+          <option value="Aucune expérience">Aucune expérience</option>
+          <option value="Moins d’un an">Moins d’un an</option>
+          <option value="Entre 1 et 2 ans">Entre 1 et 2 ans</option>
+          <option value="Entre 2 et 5 ans">Entre 2 et 5 ans</option>
+          <option value="Entre 5 et 10 ans">Entre 5 et 10 ans</option>
+          <option value="Plus que 10 ans">Plus que 10 ans</option>
+        </select>
+      </div>
+  
+      <button type="submit" class="save-btn">Enregistrer</button>
+    </form>
+  </div>
+  

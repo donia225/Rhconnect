@@ -1,4 +1,52 @@
 <div class="row">
+  <app-card cardTitle="Liste des candidatures">
+  <div class="table-responsive">
+    <table class="table table-bordered text-center">
+      <thead>
+        <tr>
+          <th>Candidat</th>
+          <th>Offre</th>
+          <th>Score</th>
+          <th>Tag IA</th>
+          <th>Statut</th>
+          <th>CV</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of candidaturesFiltrees">
+          <td>{{ c.candidat }}</td>
+          <td>{{ c.offre }}</td>
+          <td>
+            <span [ngClass]="getScoreClass(c.score)">
+              {{ c.score }}%
+            </span>
+          </td>
+          <td>
+            <span class="badge bg-info text-dark">
+              {{ c.analyse_effectuee ? 'Matching IA détecté' : 'Analyse manuelle requise' }}
+            </span>
+          </td>
+          <td>{{ c.statut }}</td>
+          <td>
+            <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">
+              📄 Voir CV
+            </a>
+          </td>
+          <td>
+            <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
+            <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="btn btn-primary mt-2" (click)="filtrerEnAttente = !filtrerEnAttente">
+      {{ filtrerEnAttente ? 'Voir toutes' : 'Afficher seulement EN_ATTENTE' }}
+    </button>
+  </div>
+</app-card>
+
+
     @for (sale of sales; track sale) {
       <div class="{{ sale.design }} col-xl-4">
         <app-card [hidHeader]="true">

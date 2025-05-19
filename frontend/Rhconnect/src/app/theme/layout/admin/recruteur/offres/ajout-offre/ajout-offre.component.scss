@@ -1,0 +1,14 @@
+.card {
+  border: none !important;
+  box-shadow: none !important;
+}
+::placeholder {
+  color: #adb5bd !important;  /* Couleur placeholder Bootstrap 5 */
+  opacity: 1; /* pour éviter les problèmes avec certains navigateurs */
+}
+
+input.form-control,
+textarea.form-control {
+  background-color: #f8f9fa !important; /* gris clair */
+  border: 1px solid #ced4da;
+}

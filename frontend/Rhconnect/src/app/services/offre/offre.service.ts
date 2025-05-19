@@ -1,6 +1,6 @@
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
@@ -45,4 +45,23 @@ export class OffreService {
     };
   return this.http.get<any[]>(`${this.apiUrl}/mes-candidatures/`,  headers);
 }
+getCandidatures(): Observable<any> {
+  const token = localStorage.getItem('access_token'); // ou 'token'
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+
+  return this.http.get(`${this.apiUrl}/candidatures-recruteur`, { headers });
+}
+
+
+updateStatut(id: number, statut: string) {
+  const token = localStorage.getItem('access_token'); // ou 'token' selon ton projet
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+
+  return this.http.put(`${this.apiUrl}/candidature/${id}/update-statut`, { statut }, { headers });
+}
+
 }
