@@ -1,8 +1,11 @@
+import os
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
+
+from gestion_rh import settings
 from .models import OffreEmploi, Candidature
 from .serializers import CandidatureSerializer, OffreEmploiSerializer
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -10,8 +13,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Candidat
 from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
-from .ia_tests.analyse_cv import analyser_cv
+from .ia_tests.analyse_cv import analyser_cv, extract_skills_from_cv
 from PyPDF2 import PdfReader, PdfWriter
+import joblib
+from sklearn.svm import SVC
 
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
@@ -152,6 +157,8 @@ def modifier_offre(request, id):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])
@@ -167,47 +174,58 @@ def upload_cv(request):
         candidat_obj = Candidat.objects.get(pk=candidat_id)
         offre_obj = OffreEmploi.objects.get(pk=offre_id)
 
-        # 1. Enregistrement temporaire du fichier
         from django.core.files.storage import default_storage
         path_temp = default_storage.save(f'temp_cv/{file.name}', file)
         path_complet = default_storage.path(path_temp)
-        
-         # ✅ 1.b Modifier les métadonnées du PDF (titre affiché)
-        reader = PdfReader(path_complet)
-        writer = PdfWriter()
-        writer.append_pages_from_reader(reader)
-        writer.add_metadata({'/Title': file.name})
 
-        with open(path_complet, 'wb') as f:
-            writer.write(f)
+        # ✅ Charger modèle et vectorizer
+        model_path = os.path.join(settings.BASE_DIR, 'ml_model/svm_model.joblib')
+        vectorizer_path = os.path.join(settings.BASE_DIR, 'ml_model/vectorizer.joblib')
+        svm_model = joblib.load(model_path)
+        vectorizer = joblib.load(vectorizer_path)
 
-        # 2. Récupérer les compétences attendues de l’offre
+        # ✅ Extraire les compétences du CV
+        competences_extraites = extract_skills_from_cv(path_complet)
+        texte_cv = " ".join(competences_extraites)
+        cv_vect = vectorizer.transform([texte_cv])
+        prediction = svm_model.predict(cv_vect)[0]
+
+        # ✅ Calcul du score basé sur les compétences attendues de l'offre
         competences_attendues = []
         if offre_obj.competences:
             competences_attendues = [c.strip().lower() for c in offre_obj.competences.split(',') if c.strip()]
+        
+        score_matching = analyser_cv(path_complet, competences_attendues)
 
-        # 3. Analyse IA
-        score = analyser_cv(path_complet, competences_attendues)
-
-        # 4. Création de la candidature avec score
+        # ✅ Créer la candidature
         candidature = Candidature.objects.create(
             candidat=candidat_obj,
             offre=offre_obj,
             statut='EN_ATTENTE',
             analyse_effectuee=True,
-            score_matching=score
+            score_matching=score_matching
         )
 
-        # 5. Sauvegarder le CV dans le profil du candidat
         candidat_obj.cv = file
         candidat_obj.save()
+        # ✅ Entraînement automatique du modèle IA (commande Django)
+        from django.core.management import call_command
+        try:
+            if Candidature.objects.filter(analyse_effectuee=True).count() % 3 == 0:
+                call_command('train_model_from_db')
+        except Exception as e:
+            print(f"Erreur IA auto : {e}")
+        return Response({
+            "message": "CV analysé",
+            "prediction": "Correspond" if prediction == 1 else "Ne correspond pas",
+            "score_matching": score_matching,
+            "competences_attendues": competences_attendues,
+            "competences_extraites": list(set(competences_extraites))
+        })
 
-        return Response({"message": "CV enregistré et analysé", "score_matching": score})
-    
     except Exception as e:
         import traceback
         return Response({"error": str(e), "trace": traceback.format_exc()}, status=500)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -287,10 +305,36 @@ def mes_candidatures(request):
 @permission_classes([IsAuthenticated])
 def get_candidatures_recruteur(request):
     user = request.user
-    candidatures = Candidature.objects.filter(offre__recruteur=user).order_by('-score_matching')  # trie par score
+    candidatures = Candidature.objects.filter(offre__recruteur=user).order_by('-score_matching')
+
+    # Charger le modèle ML
+    model_path = os.path.join(settings.BASE_DIR, 'ml_model/svm_model.joblib')
+    vectorizer_path = os.path.join(settings.BASE_DIR, 'ml_model/vectorizer.joblib')
+
+    try:
+        svm_model = joblib.load(model_path)
+        vectorizer = joblib.load(vectorizer_path)
+    except Exception as e:
+        return Response({"error": f"Erreur de chargement du modèle : {e}"}, status=500)
+
     result = []
     for c in candidatures:
-        cv_url = request.build_absolute_uri(c.candidat.cv.url) if hasattr(c.candidat, 'cv') and c.candidat.cv else None
+        cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
+        prediction = "Non analysé"
+
+        if c.analyse_effectuee and c.candidat.cv:
+            try:
+                cv_path = c.candidat.cv.path
+                skills = extract_skills_from_cv(cv_path)
+                vect_text = " ".join(skills)
+                vect_input = vectorizer.transform([vect_text])
+                pred = svm_model.predict(vect_input)[0]  # 0 ou 1
+
+                # ✅ Aligné avec train_model_from_db
+                prediction = "Correspond" if pred == 1 else "Ne correspond pas"
+            except Exception as e:
+                prediction = "Erreur prédiction"
+
         result.append({
             'id': c.id,
             'candidat': c.candidat.user.last_name,
@@ -299,9 +343,12 @@ def get_candidatures_recruteur(request):
             'analyse_effectuee': c.analyse_effectuee,
             'statut': c.statut,
             'cv_link': cv_url,
+            'prediction': prediction,
             'tag_ia': "Matching IA détecté" if c.analyse_effectuee else "Analyse manuelle requise"
         })
+
     return Response(result)
+
 
 
 @api_view(['PUT'])

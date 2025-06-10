@@ -3,16 +3,18 @@
   <div class="table-responsive">
     <table class="table table-bordered text-center">
       <thead>
-        <tr>
-          <th>Candidat</th>
-          <th>Offre</th>
-          <th>Score</th>
-          <th>Tag IA</th>
-          <th>Statut</th>
-          <th>CV</th>
-          <th>Action</th>
-        </tr>
-      </thead>
+  <tr>
+    <th>Candidat</th>
+    <th>Offre</th>
+    <th>Score</th>
+    <th>Tag IA</th>
+    <th>Prédiction</th> <!-- ✅ Nouvelle colonne -->
+    <th>Statut</th>
+    <th>CV</th>
+    <th>Action</th>
+  </tr>
+</thead>
+
       <tbody>
         <tr *ngFor="let c of candidaturesFiltrees">
           <td>{{ c.candidat }}</td>
@@ -27,6 +29,17 @@
               {{ c.analyse_effectuee ? 'Matching IA détecté' : 'Analyse manuelle requise' }}
             </span>
           </td>
+              <!-- ✅ Nouvelle cellule : affichage prédiction -->
+  <td>
+  <span class="badge" [ngClass]="{
+    'bg-success': c.prediction === 'Correspond',
+    'bg-danger': c.prediction === 'Ne correspond pas',
+    'bg-secondary': c.prediction === 'Non analysé'
+  }">
+    {{ c.prediction }}
+  </span>
+</td>
+
           <td>{{ c.statut }}</td>
           <td>
             <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">

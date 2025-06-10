@@ -11,14 +11,13 @@ import { DashboardComponent } from './theme/layout/admin/dashboard/dashboard.com
 import { AjoutOffreComponent } from './theme/layout/admin/recruteur/offres/ajout-offre/ajout-offre.component';
 import { ListeOffreComponent } from './theme/layout/admin/recruteur/offres/liste-offre/liste-offre.component';
 import { ModifierOffreComponent } from './theme/layout/admin/recruteur/offres/modifier-offre/modifier-offre.component';
-import { ListeCarriereComponent } from './theme/layout/admin/recruteur/gestion-carriere/liste-carriere/liste-carriere.component';
-import { AjoutCarriereComponent } from './theme/layout/admin/recruteur/gestion-carriere/ajout-carriere/ajout-carriere.component';
 import { AboutComponent } from './theme/layout/accueil/about/about.component';
 import { OffresComponent } from './theme/layout/accueil/offres/offres.component';
 import { NavbarComponent } from './theme/layout/accueil/navbar/navbar.component';
 import { PublicLayoutComponent } from './theme/layout/public-layout/public-layout.component';
 import { MescandidaturesComponent } from './theme/layout/accueil/candidat/mescandidatures/mescandidatures.component';
 import { MonProfilComponent } from './theme/layout/accueil/candidat/mon-profil/mon-profil.component';
+import { GestionCarriereComponent } from './theme/layout/admin/gestionnaire/gestion-carriere/gestion-carriere.component';
 
 registerLocaleData(localeFr);
 
@@ -62,8 +61,7 @@ export const routes: Routes = [
       {
         path: 'gestion-carriere',
         children: [
-          { path: '', component: ListeCarriereComponent },
-          { path: 'ajout', component: AjoutCarriereComponent }
+          { path: '', component: GestionCarriereComponent }
         ]
       },
       {path: 'logo', loadComponent: () => import('./theme/layout/admin/navigation/nav-logo/nav-logo.component').then((c) => c.NavLogoComponent) },
