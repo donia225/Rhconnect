@@ -11,6 +11,8 @@ import { RouterModule } from '@angular/router';
 })
 export class ListeOffreComponent implements OnInit {
   offres: any[] = [];
+  selectedOffre: any = null;
+  modalVisible = false;
 
   constructor(private offreService: OffreService) {}
 
@@ -37,6 +39,15 @@ export class ListeOffreComponent implements OnInit {
       });
     }
   }
+  ouvrirModal(offre: any): void {
+  this.selectedOffre = offre;
+  this.modalVisible = true;
+}
+
+fermerModal(): void {
+  this.modalVisible = false;
+  this.selectedOffre = null;
+}
   
 }
 

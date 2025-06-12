@@ -36,6 +36,12 @@ class Command(BaseCommand):
         if len(X_text) < 2:
             self.stdout.write("❌ Pas assez de données pour entraîner un modèle.")
             return
+          # ✅ Affichage temporaire pour debug
+        print("🟡 Données pour entraînement")
+        print("y =", y)
+        print("X_text =", X_text)
+        from collections import Counter
+        print("Répartition y :", Counter(y))
 
         vectorizer = TfidfVectorizer(stop_words='english')
         X_vect = vectorizer.fit_transform(X_text)

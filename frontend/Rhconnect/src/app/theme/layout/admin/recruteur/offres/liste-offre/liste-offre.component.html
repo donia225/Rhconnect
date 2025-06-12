@@ -42,13 +42,47 @@
             <i class="feather icon-trash-2"></i>
             </button>
             <!-- 👁️ Voir -->
-            <a [routerLink]="['/admin/offres/detail', offre.id]" class="btn-icon text-primary" title="Voir">
+          <button (click)="ouvrirModal(offre)" class="btn-icon text-primary" title="Voir">
             <i class="feather icon-eye"></i>
-            </a>
+          </button>
+
           </td>
         </tr>
       </tbody>
     </table>
+
+  <!--   modal "détail d'une offre" -->
+<ng-template [ngIf]="modalVisible">
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Détail de l'offre : {{ selectedOffre?.titre }}</h5>
+          <button type="button" class="btn-close" (click)="fermerModal()"></button>
+        </div>
+        <div class="modal-body">
+            <p><strong>Description :</strong> {{ selectedOffre?.description }}</p>
+             <p><strong>Salaire :</strong> {{ selectedOffre?.salaire }}</p>
+             <p><strong>Disponibilité :</strong> {{ selectedOffre?.disponibilite }}</p>
+             <p><strong>Niveau d'études :</strong> {{ selectedOffre?.niveau_etude }}</p>
+          <p><strong>Type de poste :</strong> {{ selectedOffre?.type_poste }}</p>
+          <p><strong>Expérience :</strong> {{ selectedOffre?.experience }}</p>
+          <p><strong>Compétences :</strong>
+            <ng-container *ngFor="let comp of selectedOffre?.competences.split(',')">
+              <span class="badge bg-secondary me-1">{{ comp.trim() }}</span>
+            </ng-container>
+          </p>
+          <p><strong>Langues :</strong> {{ selectedOffre?.langues }}</p>
+          <p><strong>Publié le :</strong> {{ selectedOffre?.date_publication | date:'d MMMM y' }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="fermerModal()">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
 
     <ng-template #noOffre>
       <p class="text-center">Aucune offre d'emploi disponible.</p>

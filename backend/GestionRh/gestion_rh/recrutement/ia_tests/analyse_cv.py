@@ -12,12 +12,17 @@ nlp = spacy.load("fr_core_news_sm")
 # extraire les compétences et calculer le score 
 def analyser_cv(path_pdf: str, competences_attendues: list[str]) -> float:
     with pdfplumber.open(path_pdf) as pdf:
-        texte = ''.join([page.extract_text() for page in pdf.pages if page.extract_text()])
+        texte = ' '.join([page.extract_text() for page in pdf.pages if page.extract_text()])
+
     doc = nlp(texte.lower())
-    tokens = set([token.lemma_ for token in doc if token.is_alpha])
-    nb_matchs = len(set(competences_attendues) & tokens)
+    tokens = [token.lemma_ for token in doc if token.is_alpha]
+
+    texte_cv = " ".join(tokens)
+    nb_matchs = sum(1 for comp in competences_attendues if comp.lower() in texte_cv)
+
     score = round((nb_matchs / len(competences_attendues)) * 100, 2)
     return score
+
 
 # Extraire uniquement les compétences d'un CV
 def extract_skills_from_cv(path_pdf: str) -> list:

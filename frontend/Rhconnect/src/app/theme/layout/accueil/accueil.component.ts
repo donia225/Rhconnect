@@ -11,9 +11,16 @@ declare var AOS: any;
   styleUrls: ['./accueil.component.scss']
 })
 export class AccueilComponent implements AfterViewInit, OnInit {
-  ngAfterViewInit(): void {
-    AOS.init();
-  }
+ngAfterViewInit(): void {
+  setTimeout(() => {
+    AOS.init({
+      once: true,      // animations ne se répètent pas
+      delay: 100,      // délai d’init
+      duration: 600,   // durée de transition
+    });
+  }, 100); // ← laisse Angular finir de rendre la vue
+}
+
 
   ngOnInit(): void {
  
