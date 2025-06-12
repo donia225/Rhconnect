@@ -30,7 +30,7 @@ export class RegisterComponent {
   register() {
     // Validation regex
     const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  /*   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; */
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     
     // Check if any field is empty
@@ -48,11 +48,11 @@ export class RegisterComponent {
       return;
     }
 
-    // Email validation
+/*     // Email validation
     if (!emailRegex.test(this.user.email)) {
       alert("Veuillez entrer une adresse email valide.");
       return;
-    }
+    } */
 
     // Password validation
     if (!passwordRegex.test(this.user.password)) {

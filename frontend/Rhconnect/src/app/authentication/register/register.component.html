@@ -39,19 +39,26 @@
           <small *ngIf="prenom?.errors?.['pattern'] && prenom?.touched" class="text-danger">
             Le prénom ne doit contenir que des lettres.
           </small>
-        
-          <!-- Email -->
-          <div class="input-group mb-3">
-            <input type="email" class="form-control" [(ngModel)]="user.email" name="email"
-              required placeholder="Email" #email="ngModel">
-          </div>
-          <small *ngIf="email?.errors?.['required'] && email?.touched" class="text-danger">
-            L'email est obligatoire.
-          </small>
-         <small *ngIf="email?.errors?.['pattern'] && email?.touched" class="text-danger">
-         Veuillez entrer une adresse email valide.
-                  </small>
-        
+       
+        <!-- Email -->
+       <div class="input-group mb-3">
+      <input 
+      type="email" 
+      class="form-control" 
+      [(ngModel)]="user.email" 
+      name="email"
+      required 
+      placeholder="Email" 
+      pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+      #email="ngModel">
+      </div>
+      <small *ngIf="email?.errors?.['required'] && email?.touched" class="text-danger">
+      L'email est obligatoire.
+    </small>
+    <small *ngIf="email?.errors?.['pattern'] && email?.touched" class="text-danger">
+    Veuillez entrer une adresse email valide.
+    </small>
+
             <!-- Mot de passe -->
             <div class="input-group mb-4">
               <input type="password" class="form-control" [(ngModel)]="user.password" name="password"

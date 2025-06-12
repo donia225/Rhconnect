@@ -1,3 +1,4 @@
+import json
 import os
 from django.contrib.auth.models import User
 from rest_framework.response import Response
@@ -17,6 +18,12 @@ from .ia_tests.analyse_cv import analyser_cv, extract_skills_from_cv
 from PyPDF2 import PdfReader, PdfWriter
 import joblib
 from sklearn.svm import SVC
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.tokens import default_token_generator
 
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
@@ -113,6 +120,48 @@ def login_user(request):
         }, status=status.HTTP_200_OK)
     
     return Response({'message': 'Email ou mot de passe incorrect.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+@csrf_exempt
+def request_password_reset(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email')
+        try:
+            user = User.objects.get(email=email)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"http://localhost:4200/auth/reset-password/{uid}/{token}"
+            send_mail(
+                'Réinitialisez votre mot de passe',
+                f'Bonjour,\n\nCliquez ici pour changer votre mot de passe : {reset_url}',
+                'noreply@votresite.com',
+                [email],
+                fail_silently=False
+            )
+        except User.DoesNotExist:
+            pass  # Pour des raisons de sécurité, on ne signale pas si l'utilisateur n'existe pas
+        return JsonResponse({'message': 'Si cet email existe, un lien de réinitialisation a été envoyé.'})
+
+@csrf_exempt
+def reset_password(request, uidb64, token):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+        if password != confirm_password:
+            return JsonResponse({'error': 'Les mots de passe ne correspondent pas.'}, status=400)
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+            if default_token_generator.check_token(user, token):
+                user.set_password(password)
+                user.save()
+                return JsonResponse({'message': 'Mot de passe mis à jour avec succès.'})
+            else:
+                return JsonResponse({'error': 'Lien invalide ou expiré.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

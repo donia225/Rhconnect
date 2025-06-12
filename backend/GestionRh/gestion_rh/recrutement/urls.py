@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from .views import ajouter_offre, candidat_profil, get_candidat_id, liste_offres, login_user, mes_candidatures, modifier_offre, register_user, supprimer_offre, update_statut_candidature, upload_cv, get_candidatures_recruteur
+from .views import ajouter_offre, candidat_profil, get_candidat_id, liste_offres, login_user, mes_candidatures, modifier_offre, register_user, request_password_reset, reset_password, supprimer_offre, update_statut_candidature, upload_cv, get_candidatures_recruteur
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -8,9 +8,13 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('register/', register_user, name='register'),
-     path('login/', login_user, name='login'),
+    path('login/', login_user, name='login'),
+
+    path('request-password-reset/', request_password_reset),
+    path('reset-password/<uidb64>/<token>/', reset_password),
+
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-     path('api/auth/', include('dj_rest_auth.urls')),
+    path('api/auth/', include('dj_rest_auth.urls')),
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
     path('api/auth/social/', include('allauth.socialaccount.urls')),
     path('offres/', liste_offres, name='liste_offres'),

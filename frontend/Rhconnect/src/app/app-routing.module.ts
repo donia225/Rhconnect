@@ -18,6 +18,7 @@ import { PublicLayoutComponent } from './theme/layout/public-layout/public-layou
 import { MescandidaturesComponent } from './theme/layout/accueil/candidat/mescandidatures/mescandidatures.component';
 import { MonProfilComponent } from './theme/layout/accueil/candidat/mon-profil/mon-profil.component';
 import { GestionCarriereComponent } from './theme/layout/admin/gestionnaire/gestion-carriere/gestion-carriere.component';
+import { ResetPasswordComponent } from './authentication/reset-password/reset-password.component';
 
 registerLocaleData(localeFr);
 
@@ -40,7 +41,9 @@ export const routes: Routes = [
     path: 'auth',
     children: [
       { path: 'login', component: LoginComponent },
-      { path: 'register', component: RegisterComponent }
+      { path: 'register', component: RegisterComponent },
+      {path: 'reset-password', component:ResetPasswordComponent},
+      { path: 'reset-password/:uid/:token', component: ResetPasswordComponent },
     ]
   },
   {
