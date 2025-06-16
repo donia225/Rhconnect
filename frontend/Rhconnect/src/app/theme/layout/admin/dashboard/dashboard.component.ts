@@ -13,6 +13,8 @@ import dataJson from 'src/fake-data/map_data';
 import mapColor from 'src/fake-data/map-color-data.json';
 import { OffreService } from 'src/app/services/offre/offre.service';
 import { ToastrService } from 'ngx-toastr';
+import { AuthService } from 'src/app/services/auth/auth.service';
+import { EmployeService } from 'src/app/services/employe/employe.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,12 +25,23 @@ import { ToastrService } from 'ngx-toastr';
 export class DashboardComponent implements OnInit {
   candidatures: any[] = [];
   filtrerEnAttente: boolean = true;
-  constructor(private offreService: OffreService, private toastr:ToastrService){}
+  role: string = '';
+  constructor(private offreService: OffreService, private toastr:ToastrService,  private authService: AuthService,  private employeService: EmployeService,){}
   // life cycle event
-  ngOnInit() {
-     this.offreService.getCandidatures().subscribe(data => {
-      this.candidatures = data.sort((a: any, b: any) => b.score - a.score);
-  });
+  ngOnInit(): void {
+    // ✅ récupère rôle connecté
+    const userInfo = this.authService.getUserInfo();
+    this.role = userInfo?.role || '';
+
+    // ✅ Appelle la bonne API selon le rôle
+    if (this.role === 'gestionnaire_rh') {
+      this.offreService.getCandidaturesGestionnaire().subscribe(data => {
+        this.candidatures = data.sort((a: any, b: any) => b.score - a.score);
+      });
+    } else {
+      this.offreService.getCandidatures().subscribe(data => {
+        this.candidatures = data.sort((a: any, b: any) => b.score - a.score);
+      });}
 
     setTimeout(() => {
       const latlong = dataJson;
@@ -411,4 +424,20 @@ export class DashboardComponent implements OnInit {
     if (score >= 40) return 'badge bg-warning text-dark';
     return 'badge bg-danger';
   }
+confirmerEmbauche(id: number): void {
+  this.offreService.confirmerEmbauche(id).subscribe({
+    next: (res: any) => {
+      // ✅ Affiche le message de succès
+      this.toastr.success(res.message || 'Candidat embauché.');
+
+      // ✅ Retire le candidat de la liste affichée
+      this.candidatures = this.candidatures.filter(c => c.id !== id);
+      this.employeService.triggerReload();
+    },
+    error: (err) => this.toastr.error(err.error?.error || 'Erreur')
+  });
+}
+
+
+
 }

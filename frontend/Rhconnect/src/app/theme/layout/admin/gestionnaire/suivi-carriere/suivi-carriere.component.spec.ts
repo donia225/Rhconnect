@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GestionCarriereComponent } from './gestion-carriere.component';
+import { SuiviCarriereComponent } from './suivi-carriere.component';
 
-describe('GestionCarriereComponent', () => {
-  let component: GestionCarriereComponent;
-  let fixture: ComponentFixture<GestionCarriereComponent>;
+describe('SuiviCarriereComponent', () => {
+  let component: SuiviCarriereComponent;
+  let fixture: ComponentFixture<SuiviCarriereComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GestionCarriereComponent]
+      imports: [SuiviCarriereComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(GestionCarriereComponent);
+    fixture = TestBed.createComponent(SuiviCarriereComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

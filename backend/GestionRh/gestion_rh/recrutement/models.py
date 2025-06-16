@@ -25,7 +25,7 @@ class Candidat(models.Model):
     adresse = models.TextField(blank=True, null=True)
     cv = models.FileField(upload_to='uploads/cv/', blank=True, null=True)
     date_naissance = models.DateField(blank=True, null=True)
-    
+    est_employe = models.BooleanField(default=False)
     NIVEAU_ETUDE_CHOICES = [
     ('licence', 'Licence'),
     ('master', 'Master'),
@@ -115,28 +115,33 @@ class Candidature(models.Model):
     
     # Nouveau champ : Vérifie si l'IA a analysé la candidature
     analyse_effectuee = models.BooleanField(default=False)
+    prediction = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f"{self.candidat.user.username} - {self.offre.titre}"
-
-
-class IAModule(models.Model):
-    candidature = models.OneToOneField(
-        Candidature, on_delete=models.CASCADE, related_name="analyse_ia"
-    )
-    score_matching = models.FloatField(blank=True, null=True)
-    recommandations = models.TextField(blank=True, null=True)
-
-    def analyser_cv(self):
-        # Simulation de l'analyse IA (à remplacer par un vrai modèle IA)
-        self.score_matching = 85.7  # Exemple : score fictif
-        self.recommandations = "Ce candidat correspond bien au poste."
-        self.save()
-
-        # Mise à jour du statut dans Candidature
-        self.candidature.analyse_effectuee = True
-        self.candidature.save()
+    
+class Employe(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employe_profile')
+    poste_actuel = models.CharField(max_length=255)
+    date_embauche = models.DateField()
+    departement = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
-        return f"Analyse IA pour {self.candidature}"
+        return f"{self.user.get_full_name()} - {self.poste_actuel}"
+    
+class SuiviCarriereEmploye(models.Model):
+    employe = models.ForeignKey(Employe, on_delete=models.CASCADE, related_name='suivis')
+    ancien_poste = models.CharField(max_length=255, blank=True, null=True)
+    nouveau_poste = models.CharField(max_length=255)
+    date_changement = models.DateField(auto_now_add=True)
+    est_promotion = models.BooleanField(default=False)
+    commentaire = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.employe.user.username} -> {self.nouveau_poste}"
+
+
+
+
+
 

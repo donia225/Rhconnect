@@ -53,6 +53,15 @@ getCandidatures(): Observable<any> {
 
   return this.http.get(`${this.apiUrl}/candidatures-recruteur`, { headers });
 }
+getCandidaturesGestionnaire(): Observable<any> {
+  const token = localStorage.getItem('access_token');
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+  return this.http.get(`${this.apiUrl}/candidatures-gestionnaire/`, { headers });
+}
+
+
 
 
 updateStatut(id: number, statut: string) {
@@ -63,5 +72,15 @@ updateStatut(id: number, statut: string) {
 
   return this.http.put(`${this.apiUrl}/candidature/${id}/update-statut`, { statut }, { headers });
 }
+confirmerEmbauche(id: number): Observable<any> {
+  const token = localStorage.getItem('access_token');
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+  return this.http.post(`${this.apiUrl}/confirmer-embauche/${id}/`, {}, { headers });
+}
+
+
+
 
 }

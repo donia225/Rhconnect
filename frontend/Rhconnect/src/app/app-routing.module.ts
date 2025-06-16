@@ -17,8 +17,9 @@ import { NavbarComponent } from './theme/layout/accueil/navbar/navbar.component'
 import { PublicLayoutComponent } from './theme/layout/public-layout/public-layout.component';
 import { MescandidaturesComponent } from './theme/layout/accueil/candidat/mescandidatures/mescandidatures.component';
 import { MonProfilComponent } from './theme/layout/accueil/candidat/mon-profil/mon-profil.component';
-import { GestionCarriereComponent } from './theme/layout/admin/gestionnaire/gestion-carriere/gestion-carriere.component';
 import { ResetPasswordComponent } from './authentication/reset-password/reset-password.component';
+import { EmployeListComponent } from './theme/layout/admin/gestionnaire/employe-list/employe-list.component';
+import { SuiviCarriereComponent } from './theme/layout/admin/gestionnaire/suivi-carriere/suivi-carriere.component';
 
 registerLocaleData(localeFr);
 
@@ -64,7 +65,8 @@ export const routes: Routes = [
       {
         path: 'gestion-carriere',
         children: [
-          { path: '', component: GestionCarriereComponent }
+          { path: '', component: EmployeListComponent }, //liste des employés
+          { path: '', component: SuiviCarriereComponent}
         ]
       },
       {path: 'logo', loadComponent: () => import('./theme/layout/admin/navigation/nav-logo/nav-logo.component').then((c) => c.NavLogoComponent) },

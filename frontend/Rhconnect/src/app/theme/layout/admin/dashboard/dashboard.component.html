@@ -1,63 +1,71 @@
 <div class="row">
   <app-card cardTitle="Liste des candidatures">
-  <div class="table-responsive">
-    <table class="table table-bordered text-center">
-      <thead>
-  <tr>
-    <th>Candidat</th>
-    <th>Offre</th>
-    <th>Score</th>
-    <th>Tag IA</th>
-    <th>Prédiction</th> <!-- ✅ Nouvelle colonne -->
-    <th>Statut</th>
-    <th>CV</th>
-    <th>Action</th>
-  </tr>
-</thead>
+    <div class="table-responsive">
+      <table class="table table-bordered text-center">
+        <thead>
+          <tr>
+            <th>Candidat</th>
+            <th>Offre</th>
+            <th *ngIf="role !== 'gestionnaire_rh'">Score</th>
+            <th *ngIf="role !== 'gestionnaire_rh'">Tag IA</th>
+            <th *ngIf="role !== 'gestionnaire_rh'">Prédiction</th>
+            <th>Statut</th>
+            <th *ngIf="role !== 'gestionnaire_rh'">CV</th>
+            <th *ngIf="role !== 'gestionnaire_rh'">Action</th>
+            <th *ngIf="role === 'gestionnaire_rh'">Embauche</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        <tr *ngFor="let c of candidaturesFiltrees">
-          <td>{{ c.candidat }}</td>
-          <td>{{ c.offre }}</td>
-          <td>
-            <span [ngClass]="getScoreClass(c.score)">
-              {{ c.score }}%
-            </span>
-          </td>
-          <td>
-            <span class="badge bg-info text-dark">
-              {{ c.analyse_effectuee ? 'Matching IA détecté' : 'Analyse manuelle requise' }}
-            </span>
-          </td>
-              <!-- ✅ Nouvelle cellule : affichage prédiction -->
-  <td>
-  <span class="badge" [ngClass]="{
-    'bg-success': c.prediction === 'Correspond',
-    'bg-danger': c.prediction === 'Ne correspond pas',
-    'bg-secondary': c.prediction === 'Non analysé'
-  }">
-    {{ c.prediction }}
-  </span>
-</td>
+        <tbody>
+          <tr *ngFor="let c of candidaturesFiltrees">
+            <td>{{ c.candidat }}</td>
+            <td>{{ c.offre }}</td>
+            <td *ngIf="role !== 'gestionnaire_rh'">
+              <span [ngClass]="getScoreClass(c.score)">
+                {{ c.score }}%
+              </span>
+            </td>
+            <td *ngIf="role !== 'gestionnaire_rh'">
+              <span class="badge bg-info text-dark">
+                {{ c.tag_ia }}
+              </span>
+            </td>
+            <td *ngIf="role !== 'gestionnaire_rh'">
+              <span class="badge"
+                [ngClass]="{
+                  'bg-success': c.prediction === 'Correspond',
+                  'bg-danger': c.prediction === 'Ne correspond pas',
+                  'bg-secondary': c.prediction === 'Non analysé'
+                }">
+                {{ c.prediction }}
+              </span>
+            </td>
+            <td>{{ c.statut }}</td>
+            <td *ngIf="role !== 'gestionnaire_rh'">
+              <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">
+                📄 Voir CV
+              </a>
+            </td>
+            <td *ngIf="role !== 'gestionnaire_rh'">
+              <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
+              <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
+            </td>
+            <td *ngIf="role === 'gestionnaire_rh'">
+              <button class="btn btn-primary btn-sm" (click)="confirmerEmbauche(c.id)">
+                ✅ Confirmer embauche
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-          <td>{{ c.statut }}</td>
-          <td>
-            <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">
-              📄 Voir CV
-            </a>
-          </td>
-          <td>
-            <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
-            <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <button class="btn btn-primary mt-2" (click)="filtrerEnAttente = !filtrerEnAttente">
-      {{ filtrerEnAttente ? 'Voir toutes' : 'Afficher seulement EN_ATTENTE' }}
-    </button>
-  </div>
-</app-card>
+      <button class="btn btn-primary mt-2" (click)="filtrerEnAttente = !filtrerEnAttente">
+        {{ filtrerEnAttente ? 'Voir toutes' : 'Afficher seulement EN_ATTENTE' }}
+      </button>
+    </div>
+  </app-card>
+
+
 
 
     @for (sale of sales; track sale) {

@@ -1,0 +1,47 @@
+<div class="container py-4">
+  <h2 class="mb-4">
+    <i class="bi bi-people-fill text-primary"></i>
+    Liste des employés
+  </h2>
+
+  <div class="row g-4">
+    <div class="col-md-4" *ngFor="let emp of employes">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-1">
+            {{ emp.user.first_name }} {{ emp.user.last_name }}
+          </h5>
+          <p class="card-text text-muted mb-2">
+            <i class="bi bi-briefcase-fill me-1 text-success"></i>
+            {{ emp.poste_actuel }}
+          </p>
+          <p class="mb-0">
+            <i class="bi bi-calendar-check-fill me-1 text-info"></i>
+            Embauché le :
+            <strong>{{ emp.date_embauche | date: 'longDate' }}</strong>
+          </p>
+        </div>
+        <div class="card-footer bg-transparent border-0">
+          <button class="btn btn-outline-primary btn-sm w-100"
+                  (click)="selectEmploye(emp)">
+            📊 Voir suivi de carrière
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="selectedEmploye" class="mt-5">
+    <h4>
+      Suivi de carrière de {{ selectedEmploye.user.first_name }}
+    </h4>
+    <ul class="list-group">
+      <li *ngFor="let s of suivis" class="list-group-item">
+        📅 {{ s.date_changement }} :
+        <strong>{{ s.ancien_poste || '—' }}</strong>
+        ➜ <strong>{{ s.nouveau_poste }}</strong>
+        <span *ngIf="s.est_promotion" class="badge bg-success ms-2">Promotion</span>
+      </li>
+    </ul>
+  </div>
+</div>

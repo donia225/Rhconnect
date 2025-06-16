@@ -7,8 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 
 from gestion_rh import settings
-from .models import OffreEmploi, Candidature
-from .serializers import CandidatureSerializer, OffreEmploiSerializer
+from .models import Employe, OffreEmploi, Candidature, SuiviCarriereEmploye
+from .serializers import CandidatureSerializer, EmployeSerializer, OffreEmploiSerializer, SuiviCarriereEmployeSerializer
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Candidat
@@ -24,6 +24,11 @@ from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.tokens import default_token_generator
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from django.utils import timezone
+from .ia_tests.ml_model_loader import svm_model, vectorizer
+
 
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
@@ -227,12 +232,6 @@ def upload_cv(request):
         path_temp = default_storage.save(f'temp_cv/{file.name}', file)
         path_complet = default_storage.path(path_temp)
 
-        # ✅ Charger modèle et vectorizer
-        model_path = os.path.join(settings.BASE_DIR, 'ml_model/svm_model.joblib')
-        vectorizer_path = os.path.join(settings.BASE_DIR, 'ml_model/vectorizer.joblib')
-        svm_model = joblib.load(model_path)
-        vectorizer = joblib.load(vectorizer_path)
-
         # ✅ Extraire les compétences du CV
         competences_extraites = extract_skills_from_cv(path_complet)
         texte_cv = " ".join(competences_extraites)
@@ -252,7 +251,8 @@ def upload_cv(request):
             offre=offre_obj,
             statut='EN_ATTENTE',
             analyse_effectuee=True,
-            score_matching=score_matching
+            score_matching=score_matching,
+            prediction="Correspond" if prediction == 1 else "Ne correspond pas"
         )
 
         candidat_obj.cv = file
@@ -355,35 +355,9 @@ def mes_candidatures(request):
 def get_candidatures_recruteur(request):
     user = request.user
     candidatures = Candidature.objects.filter(offre__recruteur=user).order_by('-score_matching')
-
-    # Charger le modèle ML
-    model_path = os.path.join(settings.BASE_DIR, 'ml_model/svm_model.joblib')
-    vectorizer_path = os.path.join(settings.BASE_DIR, 'ml_model/vectorizer.joblib')
-
-    try:
-        svm_model = joblib.load(model_path)
-        vectorizer = joblib.load(vectorizer_path)
-    except Exception as e:
-        return Response({"error": f"Erreur de chargement du modèle : {e}"}, status=500)
-
     result = []
     for c in candidatures:
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
-        prediction = "Non analysé"
-
-        if c.analyse_effectuee and c.candidat.cv:
-            try:
-                cv_path = c.candidat.cv.path
-                skills = extract_skills_from_cv(cv_path)
-                vect_text = " ".join(skills)
-                vect_input = vectorizer.transform([vect_text])
-                pred = svm_model.predict(vect_input)[0]  # 0 ou 1
-
-                # ✅ Aligné avec train_model_from_db
-                prediction = "Correspond" if pred == 1 else "Ne correspond pas"
-            except Exception as e:
-                prediction = "Erreur prédiction"
-
         result.append({
             'id': c.id,
             'candidat': c.candidat.user.last_name,
@@ -392,12 +366,35 @@ def get_candidatures_recruteur(request):
             'analyse_effectuee': c.analyse_effectuee,
             'statut': c.statut,
             'cv_link': cv_url,
-            'prediction': prediction,
+            'prediction': c.prediction or "Non analysé",
             'tag_ia': "Matching IA détecté" if c.analyse_effectuee else "Analyse manuelle requise"
         })
 
     return Response(result)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_candidatures_gestionnaireRH(request):
+    """
+    Gestionnaire RH : voir toutes les candidatures de tous les recruteurs.
+    """
+    candidatures = Candidature.objects.all().order_by('-score_matching')
 
+    result = []
+    for c in candidatures:
+        cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
+        result.append({
+            'id': c.id,
+            'candidat': c.candidat.user.last_name,
+            'offre': c.offre.titre,
+            'score': c.score_matching if c.score_matching is not None else 0,
+            'analyse_effectuee': c.analyse_effectuee,
+            'statut': c.statut,
+            'cv_link': cv_url,
+            'prediction': c.prediction or "Non analysé",
+            'tag_ia': "Matching IA détecté" if c.analyse_effectuee else "Analyse manuelle requise"
+        })
+
+    return Response(result)
 
 
 @api_view(['PUT'])
@@ -415,3 +412,44 @@ def update_statut_candidature(request, id):
     candidature.statut = statut
     candidature.save()
     return Response({'success': 'Statut mis à jour'})
+
+class EmployeViewSet(viewsets.ModelViewSet):
+    queryset = Employe.objects.all()
+    serializer_class = EmployeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['get'])
+    def suivi(self, request, pk=None):
+        employe = self.get_object()
+        suivis = employe.suivis.all().order_by('-date_changement')
+        serializer = SuiviCarriereEmployeSerializer(suivis, many=True)
+        return Response(serializer.data)
+
+class SuiviCarriereEmployeViewSet(viewsets.ModelViewSet):
+    queryset = SuiviCarriereEmploye.objects.all()
+    serializer_class = SuiviCarriereEmployeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def confirmer_embauche(request, candidature_id):
+    try:
+        candidature = Candidature.objects.get(id=candidature_id)
+        user = candidature.candidat.user
+
+        # Créer Employe
+        Employe.objects.create(
+            user=user,
+            poste_actuel=candidature.offre.titre,
+            date_embauche=timezone.now().date(),
+            departement="A définir"
+        )
+        # Mettre à jour le role
+        user.role = 'employe'
+        user.save()
+        # ✅ Supprimer la candidature car embauche confirmée
+        candidature.delete()
+
+        return JsonResponse({'message': f"{user.get_full_name()} est maintenant employé."})
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
