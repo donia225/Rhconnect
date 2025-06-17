@@ -29,6 +29,8 @@ export class SidebarComponent {
   isRecruteur(): boolean {
     return this.userRole === 'recruteur';
   }
-
+  isEmploye(): boolean{
+    return this.userRole === 'employe';
+  }
   
 }

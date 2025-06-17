@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app/app-routing.module';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 
 if (environment.production) {
   enableProdMode();
@@ -21,6 +22,7 @@ providers: [
       AppRoutingModule,
       HttpClientModule,
       FormsModule,
+      NgbDropdownModule,
       ToastrModule.forRoot({ // ✅ Configuration recommandée
         timeOut: 3000,
         positionClass: 'toast-top-right',

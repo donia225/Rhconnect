@@ -1,0 +1,9 @@
+.employe-layout {
+  display: flex;
+
+  .main-content {
+    margin-left: 250px; // ✅ largeur du sidebar
+    padding: 80px 30px 30px; // ✅ 60px navbar + espace
+    width: 100%;
+  }
+}

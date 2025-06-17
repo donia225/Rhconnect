@@ -20,6 +20,10 @@ import { MonProfilComponent } from './theme/layout/accueil/candidat/mon-profil/m
 import { ResetPasswordComponent } from './authentication/reset-password/reset-password.component';
 import { EmployeListComponent } from './theme/layout/admin/gestionnaire/employe-list/employe-list.component';
 import { SuiviCarriereComponent } from './theme/layout/admin/gestionnaire/suivi-carriere/suivi-carriere.component';
+import { EmployeProfilComponent } from './theme/layout/employe/employe-profil/employe-profil.component';
+import { EmployeLayoutComponent } from './theme/layout/employe/employe-layout/employe-layout.component';
+import { SidebarEmployeComponent } from './theme/layout/employe/sidebar-employe/sidebar-employe.component';
+import { NavbarEmployeComponent } from './theme/layout/employe/navbar-employe/navbar-employe.component';
 
 registerLocaleData(localeFr);
 
@@ -38,6 +42,16 @@ export const routes: Routes = [
 
     ]
   },
+  {
+  path: 'employe',
+  component: EmployeLayoutComponent,
+  children: [
+    { path: 'profil', component: EmployeProfilComponent },
+    {path: 'sidebar', component: SidebarEmployeComponent},
+    {path: 'navbar', component: NavbarEmployeComponent}
+    
+  ]
+},
   {
     path: 'auth',
     children: [
@@ -66,9 +80,10 @@ export const routes: Routes = [
         path: 'gestion-carriere',
         children: [
           { path: '', component: EmployeListComponent }, //liste des employés
-          { path: '', component: SuiviCarriereComponent}
+          { path: 'suivi', component: SuiviCarriereComponent},
         ]
       },
+      
       {path: 'logo', loadComponent: () => import('./theme/layout/admin/navigation/nav-logo/nav-logo.component').then((c) => c.NavLogoComponent) },
       { path: 'navbar', loadComponent: () => import('./theme/layout/admin/nav-bar/nav-bar.component').then((c) => c.NavBarComponent) },
       {path:'navright', loadComponent: () => import('./theme/layout/admin/nav-bar/nav-right/nav-right.component').then((c) => c.NavRightComponent) }, 

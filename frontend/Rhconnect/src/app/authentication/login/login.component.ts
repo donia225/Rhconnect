@@ -32,12 +32,14 @@ export default class LoginComponent {
       localStorage.setItem('user_role', response.user.role);
       localStorage.setItem('username', response.user.username);
 
-      if (response.user.role === 'gestionnaire_rh' || response.user.role === 'recruteur') {
-        this.router.navigate(['/admin/dashboard']);
-      } else {
-        this.router.navigate(['/']);
-      }
-    },
+        if (response.user.role === 'gestionnaire_rh' || response.user.role === 'recruteur') {
+          this.router.navigate(['/admin/dashboard']);
+        } else if (response.user.role === 'employe') {
+          this.router.navigate(['/employe/profil']);
+        } else {
+          this.router.navigate(['/']);
+        }
+      },
     error: (error) => {
       alert(error.error.message || 'Email ou mot de passe incorrect.');
     }

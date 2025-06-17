@@ -1,0 +1,91 @@
+.navbar-employe {
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  height: 60px;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  .navbar-logo {
+    height: 40px;
+  }
+
+  .profile-container {
+    position: relative; // ✅ Pour que le dropdown soit positionné par rapport à ça
+
+    .profile-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+
+      .profile-avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+    }
+
+    .user-dropdown {
+      min-width: 205px;
+      background: #fff;
+      position: absolute; // ✅ Position absolue par rapport au conteneur relatif
+      top: 110%;
+      right: 0;
+      z-index: 888;
+      border-radius: 16px;
+      box-shadow: 0 6px 28px 2px rgba(86,40,215,0.13), 0 1.5px 2.5px rgba(60,72,88,0.08);
+      padding: 8px 0;
+      animation: dropdownIn 0.21s cubic-bezier(.23,1.02,.48,.98);
+    }
+
+    @keyframes dropdownIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .dropdown-item {
+      background: none;
+      border: none;
+      color: #333;
+      width: 100%;
+      padding: 12px 40px 12px 40px;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-size: 1rem;
+      border-radius: 9px;
+      transition: background 0.14s;
+
+      .item-label {
+        margin-left: 15px;
+      }
+    }
+
+    .dropdown-item:hover,
+    .dropdown-item:focus {
+      background: #f3f0ff;
+      color: #5628d7;
+    }
+
+    .logout-btn {
+      color: #e03131 !important;
+      font-weight: 600;
+    }
+    .logout-btn:hover {
+      background: #fff0f0 !important;
+      color: #e03131 !important;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      margin: 8px 0;
+      background: #ececec;
+      border: none;
+    }
+  }
+}

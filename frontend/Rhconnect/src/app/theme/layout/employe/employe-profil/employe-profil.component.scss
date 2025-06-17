@@ -1,0 +1,66 @@
+/* NAVBAR */
+.navbar {
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+
+  .logo {
+    height: 40px;
+  }
+
+  .user {
+    font-weight: 500;
+
+    button {
+      margin-left: 1rem;
+      background: none;
+      border: none;
+      color: #e53935;
+      cursor: pointer;
+    }
+  }
+}
+
+/* LAYOUT */
+.layout {
+  display: flex;
+  height: calc(100vh - 60px);
+
+  .sidebar {
+    width: 200px;
+    background: #f9f9f9;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+
+    a {
+      margin-bottom: 1rem;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+
+      &.active {
+        font-weight: 700;
+        color: #1976d2;
+      }
+    }
+  }
+
+  .content {
+    flex: 1;
+    padding: 2rem;
+
+    .card {
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+  }
+}

@@ -13,6 +13,18 @@ export class EmployeService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * ✅ Récupère le profil de l'employé connecté + suivi carrière
+   */
+  getEmployeProfilEtSuivi(): Observable<any> {
+    const token = localStorage.getItem('access_token');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    });
+
+    return this.http.get<any>(`${this.apiUrl}/profil-employe/`, { headers });
+  }
+
   /** ✅ Centralise la création des headers */
   private getAuthHeaders() {
     const token = localStorage.getItem('access_token') || '';

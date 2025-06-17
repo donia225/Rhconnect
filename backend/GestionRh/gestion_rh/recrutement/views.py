@@ -453,3 +453,39 @@ def confirmer_embauche(request, candidature_id):
         return JsonResponse({'message': f"{user.get_full_name()} est maintenant employé."})
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def employe_profil_et_suivi(request):
+    """
+    ⚙️ Vue pour l'espace Employé :
+    Retourne le profil Employé + historique suivi carrière.
+    """
+    user = request.user
+
+    if user.role != 'employe':
+        return Response({'error': 'Non autorisé'}, status=403)
+
+    try:
+        employe = Employe.objects.get(user=user)
+    except Employe.DoesNotExist:
+        return Response({'error': 'Employé introuvable'}, status=404)
+
+    # ✅ Profil de l'employé
+    profil = {
+        'nom': user.last_name,
+        'prenom': user.first_name,
+        'poste_actuel': employe.poste_actuel,
+        'date_embauche': employe.date_embauche,
+        'departement': employe.departement
+    }
+
+    # ✅ Suivi carrière
+    suivis = employe.suivis.all().order_by('-date_changement').values(
+        'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion'
+    )
+
+    return Response({
+        'profil': profil,
+        'suivi_carriere': list(suivis)
+    })
