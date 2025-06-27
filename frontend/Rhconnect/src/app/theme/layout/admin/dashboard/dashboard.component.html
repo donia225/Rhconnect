@@ -1,74 +1,127 @@
-<div class="row">
-  <app-card cardTitle="Liste des candidatures">
-    <div class="table-responsive">
-      <table class="table table-bordered text-center">
-        <thead>
-          <tr>
-            <th>Candidat</th>
-            <th>Offre</th>
-            <th *ngIf="role !== 'gestionnaire_rh'">Score</th>
-            <th *ngIf="role !== 'gestionnaire_rh'">Tag IA</th>
-            <th *ngIf="role !== 'gestionnaire_rh'">Prédiction</th>
-            <th>Statut</th>
-            <th *ngIf="role !== 'gestionnaire_rh'">CV</th>
-            <th *ngIf="role !== 'gestionnaire_rh'">Action</th>
-            <th *ngIf="role === 'gestionnaire_rh'">Embauche</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr *ngFor="let c of candidaturesFiltrees">
-            <td>{{ c.candidat }}</td>
-            <td>{{ c.offre }}</td>
-            <td *ngIf="role !== 'gestionnaire_rh'">
-              <span [ngClass]="getScoreClass(c.score)">
-                {{ c.score }}%
-              </span>
-            </td>
-            <td *ngIf="role !== 'gestionnaire_rh'">
-              <span class="badge bg-info text-dark">
-                {{ c.tag_ia }}
-              </span>
-            </td>
-            <td *ngIf="role !== 'gestionnaire_rh'">
-              <span class="badge"
-                [ngClass]="{
-                  'bg-success': c.prediction === 'Correspond',
-                  'bg-danger': c.prediction === 'Ne correspond pas',
-                  'bg-secondary': c.prediction === 'Non analysé'
-                }">
-                {{ c.prediction }}
-              </span>
-            </td>
-            <td>{{ c.statut }}</td>
-            <td *ngIf="role !== 'gestionnaire_rh'">
-              <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">
-                📄 Voir CV
-              </a>
-            </td>
-            <td *ngIf="role !== 'gestionnaire_rh'">
-              <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
-              <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
-            </td>
-            <td *ngIf="role === 'gestionnaire_rh'">
-              <button class="btn btn-primary btn-sm" (click)="confirmerEmbauche(c.id)">
-                ✅ Confirmer embauche
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <button class="btn btn-primary mt-2" (click)="filtrerEnAttente = !filtrerEnAttente">
-        {{ filtrerEnAttente ? 'Voir toutes' : 'Afficher seulement EN_ATTENTE' }}
-      </button>
+<!-- ✅ ROW des KPI Cards : Visible seulement pour le gestionnaire RH -->
+<div class="row mb-4 kpi-row" *ngIf="role === 'gestionnaire_rh'">
+  @for (kpi of kpis; track kpi) {
+    <div class="kpi-card card shadow-sm p-3">
+      <h5><i class="{{ kpi.icon }} me-2"></i> {{ kpi.title }}</h5>
+      <h2>{{ kpi.value }}</h2>
+      <p class="text-muted mb-0">{{ kpi.description }}</p>
     </div>
-  </app-card>
+  }
+</div>
 
 
+<!-- ✅ ROW des Graphiques -->
+<div class="row mb-4" *ngIf="role === 'gestionnaire_rh'">
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm p-3 h-100">
+      <h5 class="mb-3">🎯 Pipeline Recrutement</h5>
+      <div id="kpiPieChart" style="height: 300px;"></div>
+    </div>
+  </div>
 
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm p-3 h-100">
+      <h5 class="mb-3">🏆 Top Postes Attractifs</h5>
+      <div id="kpiTopOffersChart" style="height: 300px;"></div>
+    </div>
+  </div>
+</div>
 
-    @for (sale of sales; track sale) {
+<div class="row align-items-start">
+  <!-- Colonne 1 : Matching IA -->
+  <div class="col-md-4"  *ngIf="role === 'gestionnaire_rh'">
+    <app-card cardTitle="⚡ Matching IA moyen">
+      <div *ngFor="let item of kpiMatchingAvg">
+        <div class="d-flex justify-content-between align-items-center small">
+          <span>{{ item.offre }}</span>
+          <span>{{ item.avg }}%</span>
+        </div>
+        <div class="progress mb-2" style="height: 6px;">
+          <div class="progress-bar bg-info" [style.width.%]="item.avg"></div>
+        </div>
+      </div>
+      <p class="text-muted small mb-0">Qualité moyenne des profils</p>
+    </app-card>
+  </div>
+
+  <!-- Colonne 2 : Tableau -->
+  <div [class.col-md-8]="role === 'gestionnaire_rh'" [class.col-md-12]="role !== 'gestionnaire_rh'">
+    <div class="filter-bar mb-4 d-flex flex-wrap align-items-center gap-3">
+      <select class="filter-select" [(ngModel)]="selectedOffre">
+        <option value="" disabled selected hidden>Choisir une offre</option>
+        <option *ngFor="let offre of offresDisponibles; trackBy: trackByOffre" [value]="offre">
+          {{ offre }}
+        </option>
+      </select>
+  <!-- Filtre par statut -->
+  <select class="filter-select" [(ngModel)]="selectedStatut">
+    <option value="">Tous les statuts</option>
+    <option value="EN_ATTENTE">En attente</option>
+    <option value="ACCEPTEE">Acceptée</option>
+    <option value="REJETEE">Rejetée</option>
+  </select>
+
+  <!-- Réinitialiser -->
+  <button class="btn btn-outline-primary btn-sm reset-btn" (click)="resetFiltres()">🔄 Réinitialiser</button>
+</div>
+
+    <app-card cardTitle="Liste des candidatures">
+      <div class="table-responsive">
+        <table class="table table-bordered text-center">
+          <thead>
+            <tr>
+              <th>Candidat</th>
+              <th>Offre</th>
+              <th *ngIf="role !== 'gestionnaire_rh'">Score</th>
+              <th *ngIf="role !== 'gestionnaire_rh'">Tag IA</th>
+              <th *ngIf="role !== 'gestionnaire_rh'">Prédiction</th>
+              <th>Statut</th>
+              <th *ngIf="role !== 'gestionnaire_rh'">CV</th>
+              <th *ngIf="role !== 'gestionnaire_rh'">Action</th>
+              <th *ngIf="role === 'gestionnaire_rh'">Embauche</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of candidaturesFiltrees">
+              <td>{{ c.candidat }}</td>
+              <td>{{ c.offre }}</td>
+              <td *ngIf="role !== 'gestionnaire_rh'">
+                <span [ngClass]="getScoreClass(c.score)">{{ c.score }}%</span>
+              </td>
+              <td *ngIf="role !== 'gestionnaire_rh'">
+                <span class="badge bg-info text-dark">{{ c.tag_ia }}</span>
+              </td>
+              <td *ngIf="role !== 'gestionnaire_rh'">
+                <span class="badge"
+                  [ngClass]="{
+                    'bg-success': c.prediction === 'Correspond',
+                    'bg-danger': c.prediction === 'Ne correspond pas',
+                    'bg-secondary': c.prediction === 'Non analysé'
+                  }">
+                  {{ c.prediction }}
+                </span>
+              </td>
+              <td>{{ c.statut }}</td>
+              <td *ngIf="role !== 'gestionnaire_rh'">
+                <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">📄 Voir CV</a>
+              </td>
+              <td *ngIf="role !== 'gestionnaire_rh'">
+                <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
+                <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
+              </td>
+              <td *ngIf="role === 'gestionnaire_rh'">
+                <button class="btn btn-primary btn-sm" (click)="confirmerEmbauche(c.id)">✅ Confirmer embauche</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </div>
+</div>
+
+ 
+   <!--  @for (sale of sales; track sale) {
       <div class="{{ sale.design }} col-xl-4">
         <app-card [hidHeader]="true">
           <h6 class="mb-4">{{ sale.title }}</h6>
@@ -226,6 +279,6 @@
           </table>
         </div>
       </app-card>
-    </div>
-  </div>
+    </div>  -->
+  
   

@@ -77,37 +77,34 @@ selectOffer(offer: any) {
   this.selectedOffer = offer;
 }
 
-
   onFileSelected(event: any) {
-    const file: File = event.target.files[0];
-    if (!file) return;
+  const file: File = event.target.files[0];
+  if (!file) return;
 
-    const allowedTypes = [
-      'application/pdf', 'image/jpeg', 'image/png',
-      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      alert("Formats acceptés : PDF, JPG, PNG, DOC, DOCX");
-      return;
-    }
-
-    if (!this.selectedOffer || !this.candidatId)  {
-      alert("Veuillez d'abord sélectionner une offre et vous connecter.");
-      return;
-    }
-
-      const offreId = this.selectedOffer.id;
-
-    this.uploadService.uploadCV(file, offreId, this.candidatId).subscribe({
-      next: () => {
-        alert("CV déposé avec succès !");
-      },
-      error: (err) => {
-        console.error("Erreur d'upload du CV :", err);
-        alert("Erreur lors du dépôt du CV.");
-      }
-    });
+  // ✅ Autoriser uniquement le PDF
+  if (file.type !== 'application/pdf') {
+    alert("❌ Votre CV doit être au format PDF uniquement.");
+    return;
   }
+
+  if (!this.selectedOffer || !this.candidatId)  {
+    alert("Veuillez d'abord sélectionner une offre et vous connecter.");
+    return;
+  }
+
+  const offreId = this.selectedOffer.id;
+
+  this.uploadService.uploadCV(file, offreId, this.candidatId).subscribe({
+    next: () => {
+      alert("✅ CV déposé avec succès !");
+    },
+    error: (err) => {
+      console.error("Erreur d'upload du CV :", err);
+      alert("Erreur lors du dépôt du CV.");
+    }
+  });
+}
+
   filterOffres() {
   const term = this.searchTerm.trim().toLowerCase();
 

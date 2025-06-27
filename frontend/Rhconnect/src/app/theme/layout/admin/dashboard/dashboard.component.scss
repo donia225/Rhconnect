@@ -1,0 +1,76 @@
+
+
+.filter-bar {
+  gap: 1rem;
+  padding-top: 0 !important; // 🔑 supprime tout padding haut
+  margin-top: 0 !important;  // 🔑 au cas où une marge trainerait
+}
+.row {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.col-12 {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+.filter-select {
+  appearance: none;
+  background-color: #fff; // ✅ Blanc
+  color: #333;            // ✅ Texte noir
+  border: 1px solid #ccc;
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(86, 40, 215, 0.1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #5628d7;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #5628d7;
+    box-shadow: 0 0 0 0.2rem rgba(86, 40, 215, 0.2);
+  }
+}
+
+.reset-btn {
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #5628d7;
+    color: #fff;
+  }
+}
+
+.toggle-btn {
+  border-radius: 50px;
+  padding: 6px 16px;
+}
+/* Cible uniquement la rangée KPI */
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+
+  .kpi-card {
+    flex: 1 1 calc(33.333% - 20px); /* 3 par ligne avec espacement */
+    margin-right: 20px; /* Espace horizontal */
+    margin-bottom: 20px; /* Espace vertical */
+
+    /* Si c'est le dernier de la ligne : pas de margin-right */
+    &:nth-child(3n) {
+      margin-right: 0;
+    }
+  }
+}
+
+
+
+

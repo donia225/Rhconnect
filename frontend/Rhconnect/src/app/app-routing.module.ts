@@ -24,6 +24,7 @@ import { EmployeProfilComponent } from './theme/layout/employe/employe-profil/em
 import { EmployeLayoutComponent } from './theme/layout/employe/employe-layout/employe-layout.component';
 import { SidebarEmployeComponent } from './theme/layout/employe/sidebar-employe/sidebar-employe.component';
 import { NavbarEmployeComponent } from './theme/layout/employe/navbar-employe/navbar-employe.component';
+import { RedirectionGuard } from './services/auth/redirection.guard';
 
 registerLocaleData(localeFr);
 
@@ -34,7 +35,7 @@ export const routes: Routes = [
   path: '',
     component: PublicLayoutComponent,   // Ton layout public avec navbar
     children: [
-      { path: '', component: AccueilComponent },
+      { path: '', canActivate: [RedirectionGuard], component: AccueilComponent },
       { path: 'about', component: AboutComponent },
       { path: 'offres', component: OffresComponent },
       { path: 'mes-candidatures', component: MescandidaturesComponent },

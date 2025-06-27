@@ -212,7 +212,6 @@ def modifier_offre(request, id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])
@@ -224,6 +223,9 @@ def upload_cv(request):
 
         if not file or not offre_id or not candidat_id:
             return Response({"error": "Données manquantes."}, status=400)
+          # ✅ Vérification stricte PDF ici
+        if not file.name.lower().endswith('.pdf'):
+            return Response({"error": "Le fichier doit être au format PDF."}, status=400)
 
         candidat_obj = Candidat.objects.get(pk=candidat_id)
         offre_obj = OffreEmploi.objects.get(pk=offre_id)

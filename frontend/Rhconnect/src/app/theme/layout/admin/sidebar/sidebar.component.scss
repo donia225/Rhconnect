@@ -23,7 +23,11 @@
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
-
+      .nav-icon {
+    margin-right: 12px;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
     .pcoded-mtext {
       white-space: nowrap;
       font-size: 15px;
@@ -77,4 +81,22 @@
 body {
   box-shadow: none !important;
   border-left: none !important;
+}
+// ✅ Style pour le lien actif avec bande latérale
+.nav-item .nav-link.active-link {
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.15);// optionnel: fond léger
+  font-weight: 600;
+  border-radius: 4px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    border-radius: 2px;
+    background-color: white; // 💙 bleu ciel comme ta capture
+  }
 }

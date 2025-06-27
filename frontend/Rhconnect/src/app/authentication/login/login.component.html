@@ -1,17 +1,24 @@
 <div class="auth-wrapper">
   <div class="auth-content">
-    <div class="auth-bg">
-      <span class="r"></span>
-      <span class="r s"></span>
-      <span class="r s"></span>
-      <span class="r"></span>
-    </div>
-    <div class="card">
+<div class="auth-bg">
+  <span class="r"></span>
+  <span class="r s"></span>
+  <span class="r s"></span>
+  <span class="r"></span>
+</div>
+
+  <div class="card" style="box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
       <div class="card-body text-center">
-        <div class="mb-4">
-          <i class="feather icon-unlock auth-icon"></i>
+
+        <!-- Logo RHConnect -->
+        <div class="mb-3">
+          <img src="assets/images/rh.png" alt="HRConnect Logo" style="width: 160px;" />
         </div>
-        <h3 class="mb-4">Login</h3>
+     <div class="mb-3">
+        <i class="login-icon material-icons">lock_open</i>
+
+        </div>
+       <h3 class="mb-4" style="color: #d32f2f;">Login</h3>
 
         <!-- Formulaire Angular -->
         <form #loginForm="ngForm" (ngSubmit)="login(loginForm)">
