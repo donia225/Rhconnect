@@ -7,6 +7,13 @@ import { UploadService } from 'src/app/services/upload/upload.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { ProfilService } from 'src/app/services/profil/profil.service';
+import { ViewChild, ElementRef } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
+
+
 
 @Component({
   selector: 'app-offres',
@@ -28,35 +35,73 @@ export class OffresComponent implements OnInit {
   paginatedOffres: any[] = [];
   searchTerm: string = '';
   filteredOffres: any[] = [];
+  profilCandidat: any = null;
+  profilComplet: boolean = false;
+  dejaPostulee: boolean = false;
 
   constructor(
     private offreService: OffreService,
     private uploadService: UploadService,
     private authService: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private router: Router,
+    private profilService:ProfilService,
+     private route: ActivatedRoute
   ) {}
 
-  ngOnInit(): void {
-    this.user = this.authService.getUserInfo();
-    this.isLoggedIn = !!this.user;
+ngOnInit(): void {
+  this.user = this.authService.getUserInfo();
+  this.isLoggedIn = !!this.user;
 
-    if (this.isLoggedIn) {
-      const token = localStorage.getItem('access_token');
-      const headers = new HttpHeaders({
-        Authorization: `Bearer ${token}`
-      });
-      this.http.get(`${environment.apiUrl}/get-candidat-id/`, { headers }).subscribe({
-        next: (res: any) => {
-          this.candidatId = res.candidat_id;
+  if (!this.isLoggedIn) return;
+
+  const token = localStorage.getItem('access_token');
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+
+  // Étape 1 : récupérer candidat_id
+  this.http.get(`${environment.apiUrl}/get-candidat-id/`, { headers }).subscribe({
+    next: (res: any) => {
+      this.candidatId = res.candidat_id;
+
+      // Étape 2 : récupérer profil
+      this.profilService.getProfil().subscribe({
+        next: (profil) => {
+          this.profilCandidat = profil;
+          this.profilComplet = !this.profilService.isProfilIncomplet(profil);
+
+          // Étape 3 : vérifier postulation si offre déjà sélectionnée
+          if (this.selectedOffer) {
+            this.verifierSiDejaPostulee();
+          }
         },
         error: (err) => {
-          console.error(err);
-          alert("Erreur lors de la récupération du profil candidat.");
+          console.error("Erreur lors de la récupération du profil :", err);
         }
       });
+    },
+    error: (err) => {
+      console.error("Erreur lors de la récupération de candidat_id :", err);
     }
+  });
+
+
 
     this.chargerOffres();
+     // Attendre un petit délai pour s'assurer que les offres sont bien chargées
+  setTimeout(() => {
+    this.route.queryParams.subscribe(params => {
+      const offreId = params['offreId'];
+      if (offreId) {
+        const found = this.offres.find(o => o.id == offreId);
+        if (found) {
+          this.selectOffer(found);
+        }
+      }
+    });
+  }, 500); // délai léger pour éviter que this.offres soit vide
+
     this.filteredOffres = [...this.offres];
     this.updatePagination();
   }
@@ -72,23 +117,68 @@ export class OffresComponent implements OnInit {
       }
     });
   }
+@ViewChild('cvInput') cvInput!: ElementRef;
+
+handlePostulerClick() {
+  if (!this.isLoggedIn) {
+    alert("Veuillez vous connecter pour postuler.");
+    this.router.navigate(['/auth/login']);
+    return;
+  }
+
+  if (!this.profilComplet) {
+    alert("Veuillez d'abord compléter votre profil avant de postuler.");
+    localStorage.setItem('pending_offre_id', this.selectedOffer.id.toString());
+    this.router.navigate(['/mon-profil']);
+    return;
+  }
+
+  if (!this.selectedOffer) {
+    alert("Veuillez d'abord sélectionner une offre.");
+    return;
+  }
+
+  // ✅ Ouvre le sélecteur de fichier
+  this.cvInput.nativeElement.click();
+}
 
 selectOffer(offer: any) {
   this.selectedOffer = offer;
+
+  // 🔁 Vérifie si le candidat a déjà postulé
+  if (this.candidatId) {
+    this.verifierSiDejaPostulee();
+  }
 }
 
-  onFileSelected(event: any) {
+
+onFileSelected(event: any) {
   const file: File = event.target.files[0];
   if (!file) return;
 
-  // ✅ Autoriser uniquement le PDF
+  // ✅ Vérifier le format
   if (file.type !== 'application/pdf') {
     alert("❌ Votre CV doit être au format PDF uniquement.");
     return;
   }
 
-  if (!this.selectedOffer || !this.candidatId)  {
-    alert("Veuillez d'abord sélectionner une offre et vous connecter.");
+  // 🔐 Vérifie si l'utilisateur est connecté
+  if (!this.authService.getUserInfo()) {
+    alert("Veuillez vous connecter pour déposer votre CV.");
+    this.router.navigate(['/auth/login']); // redirection vers login
+    return;
+  }
+
+   // 🟡 Vérifie si le profil est incomplet
+  if (!this.profilComplet) {
+    alert("Veuillez d’abord compléter votre profil avant de déposer un CV.");
+    this.router.navigate(['/mon-profil']);
+    return;
+  }
+
+  // ✅ Vérifie que l'offre est sélectionnée
+  if (!this.selectedOffer || !this.candidatId) {
+    alert("Veuillez d'abord sélectionner une offre.");
     return;
   }
 
@@ -141,6 +231,29 @@ clearSearch() {
   this.searchTerm = '';
   this.filterOffres();
 }
+verifierSiDejaPostulee() {
+  if (!this.candidatId || !this.selectedOffer) return;
+
+  const token = localStorage.getItem('access_token');
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+
+  this.http.get<any>(
+    `${environment.apiUrl}/candidatures/deja-postule/${this.selectedOffer.id}/`,
+    { headers }
+  ).subscribe({
+    next: (res) => {
+      this.dejaPostulee = res.deja_postule;
+    },
+    error: (err) => {
+      console.error("Erreur lors de la vérification de postulation :", err);
+    }
+  });
+}
+
+
+
 
 
 }

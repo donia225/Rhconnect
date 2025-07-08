@@ -41,3 +41,7 @@ class SuiviCarriereEmployeSerializer(serializers.ModelSerializer):
         model = SuiviCarriereEmploye
         fields = ['id', 'employe', 'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion', 'commentaire']
 
+class EmployeProfilEtSuivisSerializer(serializers.Serializer):
+    employe = EmployeSerializer()
+    suivi_carriere = SuiviCarriereEmployeSerializer(many=True)
+

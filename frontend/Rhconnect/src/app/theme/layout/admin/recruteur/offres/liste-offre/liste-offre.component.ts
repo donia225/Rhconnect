@@ -16,16 +16,18 @@ export class ListeOffreComponent implements OnInit {
 
   constructor(private offreService: OffreService) {}
 
-  ngOnInit(): void {
-    this.offreService.getAllOffres().subscribe({
-      next: (res) => {
-        this.offres = res;  // res = uniquement les offres du recruteur
-      },
-      error: (err) => {
-        console.error('Erreur chargement des offres', err);
-      }
-    });
-  }
+ngOnInit(): void {
+  this.offreService.getMesOffres().subscribe({
+    next: (res: any[]) => {
+      this.offres = res;
+    },
+    error: (err) => {
+      console.error('Erreur chargement des offres', err);
+    }
+  });
+}
+
+
   supprimerOffre(id: number) {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) {
       this.offreService.supprimerOffre(id).subscribe({

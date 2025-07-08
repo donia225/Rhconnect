@@ -35,7 +35,7 @@ export const routes: Routes = [
   path: '',
     component: PublicLayoutComponent,   // Ton layout public avec navbar
     children: [
-      { path: '', canActivate: [RedirectionGuard], component: AccueilComponent },
+      { path: '', component: AccueilComponent },
       { path: 'about', component: AboutComponent },
       { path: 'offres', component: OffresComponent },
       { path: 'mes-candidatures', component: MescandidaturesComponent },
@@ -81,7 +81,7 @@ export const routes: Routes = [
         path: 'gestion-carriere',
         children: [
           { path: '', component: EmployeListComponent }, //liste des employés
-          { path: 'suivi', component: SuiviCarriereComponent},
+          { path: 'suivi/:id', component: SuiviCarriereComponent }
         ]
       },
       

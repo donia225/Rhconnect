@@ -166,18 +166,10 @@ get candidaturesFiltrees(): any[] {
   if (this.selectedStatut) {
     result = result.filter(c => c.statut === this.selectedStatut);
 
-  // ✅ Sinon : appliquer le statut par défaut selon le rôle
-  } else {
-    if (this.role === 'gestionnaire_rh') {
-      result = result.filter(c => c.statut === 'ACCEPTEE');
-    } else {
-      result = result.filter(c => c.statut === 'EN_ATTENTE');
-    }
   }
 
   return result;
 }
-
 
 
     getScoreClass(score: number): string {

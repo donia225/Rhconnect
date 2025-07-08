@@ -22,26 +22,89 @@
           </p>
         </div>
         <div class="card-footer bg-transparent border-0">
-          <button class="btn btn-outline-primary btn-sm w-100"
-                  (click)="selectEmploye(emp)">
-            📊 Voir suivi de carrière
-          </button>
+       <a class="btn btn-outline-primary btn-sm w-100"
+   [routerLink]="['/admin/gestion-carriere/suivi', emp.id]">
+  📊 Voir suivi de carrière
+</a>
+
+
+       <button
+  class="btn btn-outline-success btn-sm w-100 mt-2"
+  (click)="ouvrirFormulaire(emp)"
+  data-bs-toggle="modal"
+  data-bs-target="#ajoutSuiviModal">
+  ➕ Ajouter un suivi
+</button>
+
         </div>
       </div>
     </div>
   </div>
+<!-- ✅ Modal d’ajout de suivi -->
+<div class="modal fade" id="ajoutSuiviModal" tabindex="-1" aria-labelledby="ajoutSuiviLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form (ngSubmit)="ajouterSuivi()" #formAjout="ngForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ajoutSuiviLabel">
+            Ajouter un suivi pour {{ selectedEmploye?.user.first_name }}
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+       <!-- 🟦 Infos fixes -->
+        <div class="mb-3">
+        <label>Poste actuel :</label>
+        <input type="text" class="form-control" [value]="selectedEmploye?.poste_actuel" readonly>
+        </div>
 
-  <div *ngIf="selectedEmploye" class="mt-5">
-    <h4>
-      Suivi de carrière de {{ selectedEmploye.user.first_name }}
-    </h4>
-    <ul class="list-group">
-      <li *ngFor="let s of suivis" class="list-group-item">
-        📅 {{ s.date_changement }} :
-        <strong>{{ s.ancien_poste || '—' }}</strong>
-        ➜ <strong>{{ s.nouveau_poste }}</strong>
-        <span *ngIf="s.est_promotion" class="badge bg-success ms-2">Promotion</span>
-      </li>
-    </ul>
+        <div class="mb-3">
+        <label>Département :</label>
+        <input type="text" class="form-control" [value]="selectedEmploye?.departement" readonly>
+        </div>
+
+      <!-- 🔘 Bouton pour afficher les champs de changement -->
+      <button type="button" class="btn btn-sm btn-outline-primary mb-3" (click)="changerPosteVisible = true">
+      ✏️ Changer le poste
+      </button>
+
+      <!-- 🟨 Champs affichés seulement après clic -->
+    <div *ngIf="changerPosteVisible">
+  <div class="mb-3">
+    <label>Ancien poste :</label>
+    <input type="text" class="form-control" [(ngModel)]="suiviForm.ancien_poste" name="ancien_poste" [value]="selectedEmploye?.poste_actuel" readonly>
   </div>
+
+  <div class="mb-3">
+    <label>Nouveau poste :</label>
+    <input type="text" class="form-control" [(ngModel)]="suiviForm.nouveau_poste" name="nouveau_poste" required>
+  </div>
+
+  <div class="mb-3">
+    <label>Date de changement :</label>
+    <input type="date" class="form-control" [(ngModel)]="suiviForm.date_changement" name="date_changement" required>
+  </div>
+</div>
+<div class="form-check mb-3">
+  <input type="checkbox" class="form-check-input" [(ngModel)]="suiviForm.est_promotion" name="est_promotion">
+  <label class="form-check-label">
+    Est une promotion ? <br>
+    <small class="text-muted">Cocher si le nouveau poste représente une avancée dans la carrière</small>
+  </label>
+</div>
+
+          <div class="mb-3">
+            <label>Commentaire :</label>
+            <textarea class="form-control" [(ngModel)]="suiviForm.commentaire" name="commentaire"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 </div>

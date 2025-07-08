@@ -24,12 +24,7 @@ export class OffreService {
   }
   
   getAllOffres(): Observable<any[]> {
-    const headers = {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
-    };
-    return this.http.get<any[]>(`${this.apiUrl}/offres/`, headers);
+    return this.http.get<any[]>(`${this.apiUrl}/offres/`);
   }
   supprimerOffre(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/offres/${id}/`);
@@ -61,9 +56,6 @@ getCandidaturesGestionnaire(): Observable<any> {
   return this.http.get(`${this.apiUrl}/candidatures-gestionnaire/`, { headers });
 }
 
-
-
-
 updateStatut(id: number, statut: string) {
   const token = localStorage.getItem('access_token'); // ou 'token' selon ton projet
   const headers = new HttpHeaders({
@@ -79,6 +71,14 @@ confirmerEmbauche(id: number): Observable<any> {
   });
   return this.http.post(`${this.apiUrl}/confirmer-embauche/${id}/`, {}, { headers });
 }
+getMesOffres(): Observable<any[]> {
+    const token = localStorage.getItem('access_token'); // ou 'token'
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+  return this.http.get<any[]>(`${this.apiUrl}/offres/mes-offres/`, { headers });
+}
+
 
 
 

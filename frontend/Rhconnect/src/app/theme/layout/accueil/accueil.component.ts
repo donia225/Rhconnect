@@ -12,6 +12,10 @@ declare var AOS: any;
 })
 export class AccueilComponent implements AfterViewInit, OnInit {
 ngAfterViewInit(): void {
+   const script = document.createElement('script');
+  script.src = 'assets/js/main.js';
+  script.async = true;
+  document.body.appendChild(script);
   setTimeout(() => {
     AOS.init({
       once: true,      // animations ne se répètent pas

@@ -60,13 +60,21 @@
   <p><strong>🕒 Disponibilité :</strong> {{ selectedOffer.disponibilite }}</p>
   <p><strong>🌍 Langues :</strong> {{ selectedOffer.langues }}</p>
     <div class="button-group">
-      <button class="apply-btn">Postuler</button>
-      <label for="cvUpload" class="apply-btn upload-btn">Déposer votre CV</label>
-      <input 
-        type="file" 
-        id="cvUpload" 
-        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
-        (change)="onFileSelected($event)">
+ <button 
+    *ngIf="isLoggedIn" 
+    class="apply-btn upload-btn"
+    [disabled]="dejaPostulee"
+    (click)="handlePostulerClick()">
+    {{ dejaPostulee ? 'Déjà postulé' : 'Postuler avec votre CV' }}
+  </button>
+
+<input 
+  type="file" 
+  #cvInput 
+  hidden 
+  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
+  (change)="onFileSelected($event)">
+
     </div>
   </div>
 </section>

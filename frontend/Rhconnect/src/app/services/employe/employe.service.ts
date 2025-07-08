@@ -39,19 +39,40 @@ export class EmployeService {
   getEmployes(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/employes/`, this.getAuthHeaders());
   }
+ getSuivis(employeId: number): Observable<any> {
+  const headers = {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('access_token')}`
+    }
+  };
+  return this.http.get(`${this.apiUrl}/suivis/${employeId}/`, headers);
+}
 
-  /** ✅ Liste des suivis pour un employé */
-  getSuivis(employeId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/employes/${employeId}/suivi/`, this.getAuthHeaders());
+
+
+  ajouterSuivi(suivi: any): Observable<any> {
+      const headers = {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('access_token')}`
+      }
+    };
+    return this.http.post(`${this.apiUrl}/ajouter-suivi/`, suivi, headers);
   }
 
-  /** ✅ Ajouter un suivi carrière */
-  addSuivi(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/suivis/`, data, this.getAuthHeaders());
+  // ✏️ Modifier un suivi
+  modifierSuivi(id: number, suivi: any): Observable<any> {
+     const token = localStorage.getItem('access_token'); // ou 'token' selon ton projet
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+    return this.http.put(`${this.apiUrl}/modifier-suivi/${id}/`, {suivi}, { headers });
   }
+
+ 
 
   /** ✅ Notifie tous les abonnés qu'un rechargement est nécessaire */
   triggerReload() {
     this.reloadSubject.next();
   }
 }
+

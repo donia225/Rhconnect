@@ -33,4 +33,9 @@ export class ProfilService {
 
     return this.http.put(`${this.apiUrl}/profil-candidat/`, formData, { headers });
   }
+
+  isProfilIncomplet(profil: any): boolean {
+  return !profil.date_naissance || !profil.numero_tel || !profil.adresse || !profil.niveau_etude || !profil.niveau_experience;
+}
+
 }

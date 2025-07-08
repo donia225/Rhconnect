@@ -43,6 +43,7 @@
               "src/assets/vendor/glightbox/css/glightbox.min.css",
               "src/assets/vendor/swiper/swiper-bundle.min.css",
               "src/assets/css/main.css"
+
             ],
             "scripts": [
               "node_modules/apexcharts/dist/apexcharts.min.js",
@@ -63,7 +64,8 @@
               "src/assets/vendor/imagesloaded/imagesloaded.pkgd.min.js",
               "src/assets/vendor/isotope-layout/isotope.pkgd.min.js",
               "src/assets/vendor/swiper/swiper-bundle.min.js",
-              "src/assets/js/main.js"
+              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
+
             ]
           },
           "configurations": {

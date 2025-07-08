@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ProfilService } from 'src/app/services/profil/profil.service';
 
 
@@ -16,7 +16,7 @@ export class MonProfilComponent implements OnInit {
   profilForm!: FormGroup;
   selectedFile!: File;
 
-  constructor(private fb: FormBuilder, private profilService: ProfilService) {}
+  constructor(private fb: FormBuilder, private profilService: ProfilService, private router:Router) {}
 
   ngOnInit(): void {
     this.profilForm = this.fb.group({
@@ -43,6 +43,11 @@ export class MonProfilComponent implements OnInit {
     if (this.profilForm.valid) {
       this.profilService.updateProfil(this.profilForm.value).subscribe(() => {
         alert("Profil mis à jour avec succès !");
+        const pendingOffreId = localStorage.getItem('pending_offre_id');
+if (pendingOffreId) {
+  localStorage.removeItem('pending_offre_id');
+  this.router.navigate(['/offres'], { queryParams: { offreId: pendingOffreId } });
+}
       });
     }
   }

@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model, authenticate
 
 from gestion_rh import settings
 from .models import Employe, OffreEmploi, Candidature, SuiviCarriereEmploye
-from .serializers import CandidatureSerializer, EmployeSerializer, OffreEmploiSerializer, SuiviCarriereEmployeSerializer
+from .serializers import CandidatureSerializer, EmployeProfilEtSuivisSerializer, EmployeSerializer, OffreEmploiSerializer, SuiviCarriereEmployeSerializer
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Candidat
@@ -28,6 +28,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from django.utils import timezone
 from .ia_tests.ml_model_loader import svm_model, vectorizer
+from rest_framework.views import APIView
 
 
 
@@ -169,15 +170,25 @@ def reset_password(request, uidb64, token):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def liste_offres(request):
-    user = request.user
-    if user.role == "recruteur":
+    user = request.user if request.user.is_authenticated else None
+
+    if user and hasattr(user, 'role') and user.role == "recruteur":
         offres = OffreEmploi.objects.filter(recruteur=user)
     else:
-        offres = OffreEmploi.objects.all().order_by('-id')  # Dernières en premier
+        offres = OffreEmploi.objects.all().order_by('-id')  # tout public
+
     serializer = OffreEmploiSerializer(offres, many=True)
     return Response(serializer.data)
+class OffresDuRecruteurAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        offres = OffreEmploi.objects.filter(recruteur=user) 
+        serializer = OffreEmploiSerializer(offres, many=True)
+        return Response(serializer.data)
 
 
 @api_view(['POST'])
@@ -277,6 +288,18 @@ def upload_cv(request):
     except Exception as e:
         import traceback
         return Response({"error": str(e), "trace": traceback.format_exc()}, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def deja_postule(request, offre_id):
+    user = request.user
+    try:
+        candidat = user.candidat  # s’assurer que `user` a une relation `OneToOne` vers Candidat
+    except:
+        return Response({'error': 'Utilisateur non lié à un candidat'}, status=400)
+
+    deja_postule = Candidature.objects.filter(candidat=candidat, offre_id=offre_id).exists()
+    return Response({'deja_postule': deja_postule})
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -475,6 +498,7 @@ def employe_profil_et_suivi(request):
 
     # ✅ Profil de l'employé
     profil = {
+        'id': employe.id,
         'nom': user.last_name,
         'prenom': user.first_name,
         'poste_actuel': employe.poste_actuel,
@@ -484,10 +508,56 @@ def employe_profil_et_suivi(request):
 
     # ✅ Suivi carrière
     suivis = employe.suivis.all().order_by('-date_changement').values(
-        'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion'
+        'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion' , 'commentaire'
     )
 
     return Response({
         'profil': profil,
         'suivi_carriere': list(suivis)
     })
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_suivis_employe(request, employe_id):
+    try:
+        employe = Employe.objects.get(id=employe_id)
+    except Employe.DoesNotExist:
+        return Response({'error': 'Employé introuvable'}, status=404)
+
+    suivis = SuiviCarriereEmploye.objects.filter(employe=employe).order_by('-date_changement')
+
+    data = {
+        'employe': employe,
+        'suivi_carriere': suivis
+    }
+
+    serializer = EmployeProfilEtSuivisSerializer(instance=data)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ajouter_suivi_carriere(request):
+    """
+    ➕ Ajouter un élément de suivi de carrière (gestionnaire RH)
+    """
+    serializer = SuiviCarriereEmployeSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def modifier_suivi_carriere(request, suivi_id):
+    """
+    ✏️ Modifier un élément de suivi de carrière existant
+    """
+    try:
+        suivi = SuiviCarriereEmploye.objects.get(id=suivi_id)
+    except SuiviCarriereEmploye.DoesNotExist:
+        return Response({'error': 'Suivi introuvable'}, status=404)
+
+    serializer = SuiviCarriereEmployeSerializer(suivi, data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=400)
