@@ -16,11 +16,12 @@ class Command(BaseCommand):
 
         nlp = spacy.load("fr_core_news_sm")
 
-        X_text = []
-        y = []
-        candidats_traités = []
+        X_text = [] #liste des textes des CV traités
+        y = [] # labels (1 si score ≥ 50, 0 sinon)
+        candidats_traités = [] #pour mémoriser les objets Candidature à mettre à jour ensuite
 
         # 1️⃣ Construire le dataset pour entraînement
+        #Récupère toutes les candidatures analysées avec un score_matching déjà calculé.
         for candidature in Candidature.objects.filter(analyse_effectuee=True, score_matching__isnull=False):
             try:
                 cv_path = candidature.candidat.cv.path
@@ -37,7 +38,7 @@ class Command(BaseCommand):
 
             except Exception as e:
                 self.stdout.write(f"⚠️ Erreur pour la candidature {candidature.id}: {e}")
-
+     #Vérifie s’il y a assez de données
         if len(X_text) < 2:
             self.stdout.write("❌ Pas assez de données pour entraîner un modèle.")
             return
@@ -64,6 +65,7 @@ class Command(BaseCommand):
         self.stdout.write("✅ Modèle IA entraîné et sauvegardé avec succès.")
 
         # 4️⃣ Mettre à jour la prédiction pour chaque candidature
+        #Vectorise chaque CV avec le même vectorizer et fait la prédiction avec le modèle.
         for candidature, texte in candidats_traités:
             try:
                 vect_input = vectorizer.transform([texte])

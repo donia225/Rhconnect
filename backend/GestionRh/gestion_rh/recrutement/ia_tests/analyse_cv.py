@@ -13,13 +13,13 @@ nlp = spacy.load("fr_core_news_sm")
 def analyser_cv(path_pdf: str, competences_attendues: list[str]) -> float:
     with pdfplumber.open(path_pdf) as pdf:
         texte = ' '.join([page.extract_text() for page in pdf.pages if page.extract_text()])
-
+#nettoyer les mots 
     doc = nlp(texte.lower())
     tokens = [token.lemma_ for token in doc if token.is_alpha]
 
     texte_cv = " ".join(tokens)
     nb_matchs = sum(1 for comp in competences_attendues if comp.lower() in texte_cv)
-
+#Calcule le pourcentage de compétences présentes dans le CV.
     score = round((nb_matchs / len(competences_attendues)) * 100, 2)
     return score
 

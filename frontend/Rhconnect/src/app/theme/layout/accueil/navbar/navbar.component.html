@@ -12,7 +12,6 @@
 </li>
           <li><a [routerLink]="['/about']" routerLinkActive="active">À propos</a></li>
           <li><a [routerLink]="['/offres']" routerLinkActive="active">Offres</a></li>
-          <li><a [routerLink]="['/formations']" routerLinkActive="active">Formations</a></li>
           <li *ngIf="!isLoggedIn"><a routerLink="/auth/register" class="nav-link" [class.active]="activeTab === 'inscription'" (click)="setActiveTab('inscription')">S'inscrire</a></li>
           <li *ngIf="!isLoggedIn"><a routerLink="/auth/login" class="nav-link" [class.active]="activeTab === 'connexion'" (click)="setActiveTab('connexion')">Se connecter</a></li>
           <li class="nav-item user-menu" *ngIf="isLoggedIn && user" [class.open]="dropdownOpen">
