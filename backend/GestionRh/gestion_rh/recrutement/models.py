@@ -73,33 +73,6 @@ class OffreEmploi(models.Model):
     def __str__(self):
         return self.titre
 
-# # Modèle Formation
-# class Formation(models.Model):
-#     TYPE_CHOICES = [
-#         ('En ligne', 'En ligne'),
-#         ('Présentiel', 'Présentiel'),
-#         ('Hybride', 'Hybride'),
-#     ]
-#     titre = models.CharField(max_length=255)
-#     description = models.TextField()
-#     date_debut = models.DateField()
-#     date_fin = models.DateField(blank=True, null=True)
-#     duree = models.IntegerField()
-#     type_formation = models.CharField(max_length=50, choices=TYPE_CHOICES)
-#     cout = models.FloatField(blank=True, null=True)
-#     certification = models.BooleanField(default=False)
-
-#     def __str__(self):
-#         return self.titre
-
-# # Modèle Participation à une Formation
-# class ParticipationFormation(models.Model):
-#     candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="formations")
-#     formation = models.ForeignKey(Formation, on_delete=models.CASCADE, related_name="participants")
-
-#     def __str__(self):
-#         return f"{self.candidat.user.username} participe à {self.formation.titre}"
-
 class Candidature(models.Model):
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),

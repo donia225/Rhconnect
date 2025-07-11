@@ -12,7 +12,7 @@ import numpy as np
 from datetime import date
 from langdetect import detect
 
-# Chargement des modèles spaCy pour le français et l'anglais
+
 SPACY_MODELS = {
     "fr": spacy.load("fr_core_news_sm"),
     "en": spacy.load("en_core_web_sm")
