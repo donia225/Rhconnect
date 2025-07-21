@@ -1,79 +1,72 @@
 from django.core.management.base import BaseCommand
-from recrutement.models import Candidature
-from recrutement.ia_tests.analyse_cv import extract_skills_from_cv
-
 import os
-import joblib
-import spacy
+import pandas as pd
+from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import classification_report
+from django.conf import settings
+import joblib
+import re
+import string
+from nltk.corpus import stopwords
+import nltk
+
+nltk.download('stopwords')
+STOPWORDS = set(stopwords.words('english'))
+
+def clean_text(text):
+    # Suppression des caractères spéciaux, chiffres, ponctuation
+    text = re.sub(r'\d+', '', str(text))  # supprime les chiffres
+    text = text.translate(str.maketrans('', '', string.punctuation))  # ponctuation
+    text = text.lower()
+    text = " ".join([word for word in text.split() if word not in STOPWORDS])
+    return text.strip()
 
 class Command(BaseCommand):
-    help = "Entraîne automatiquement le modèle SVM depuis les candidatures analysées"
+    help = "Prétraite les données, entraîne un modèle ML et affiche les métriques"
 
-    def handle(self, *args, **kwargs):
-        self.stdout.write("📦 Entraînement du modèle IA en cours...")
+    def handle(self, *args, **options):
+        file_path = os.path.join(settings.BASE_DIR, 'dataset_candidats_adapte.csv.csv')
 
-        nlp = spacy.load("fr_core_news_sm")
-
-        X_text = [] #liste des textes des CV traités
-        y = [] # labels (1 si score ≥ 50, 0 sinon)
-        candidats_traités = [] #pour mémoriser les objets Candidature à mettre à jour ensuite
-
-        # 1️⃣ Construire le dataset pour entraînement
-        #Récupère toutes les candidatures analysées avec un score_matching déjà calculé.
-        for candidature in Candidature.objects.filter(analyse_effectuee=True, score_matching__isnull=False):
-            try:
-                cv_path = candidature.candidat.cv.path
-                skills = extract_skills_from_cv(cv_path)
-                if not skills:
-                    continue
-
-                texte = " ".join(skills)
-                X_text.append(texte)
-                y.append(1 if candidature.score_matching >= 50 else 0)
-
-                # ✅ On garde en mémoire pour appliquer la prédiction après
-                candidats_traités.append((candidature, texte))
-
-            except Exception as e:
-                self.stdout.write(f"⚠️ Erreur pour la candidature {candidature.id}: {e}")
-     #Vérifie s’il y a assez de données
-        if len(X_text) < 2:
-            self.stdout.write("❌ Pas assez de données pour entraîner un modèle.")
+        if not os.path.exists(file_path):
+            self.stdout.write(self.style.ERROR("❌ Fichier CSV introuvable."))
             return
 
-        # Debug infos
-        from collections import Counter
-        print("🟡 Données pour entraînement")
-        print("Répartition y :", Counter(y))
+        df = pd.read_csv(file_path)
 
-        # 2️⃣ Entraîner le modèle
-        vectorizer = TfidfVectorizer(stop_words='english')
-        X_vect = vectorizer.fit_transform(X_text)
+        if not {'cv', 'titre', 'description', 'label'}.issubset(df.columns):
+            self.stdout.write(self.style.ERROR("❌ Les colonnes nécessaires sont manquantes."))
+            return
 
-        model = SVC(kernel='linear')
-        model.fit(X_vect, y)
+        # Combinaison des champs texte
+        df['text'] = df['cv'].fillna('') + ' ' + df['titre'].fillna('') + ' ' + df['description'].fillna('')
+        df['text'] = df['text'].apply(clean_text)
 
-        # 3️⃣ Sauvegarder le modèle et le vectorizer
-        model_dir = os.path.join("ml_model")
-        os.makedirs(model_dir, exist_ok=True)
+        X = df['text']
+        y = df['label']
 
-        joblib.dump(model, os.path.join(model_dir, 'svm_model.joblib'))
-        joblib.dump(vectorizer, os.path.join(model_dir, 'vectorizer.joblib'))
+        # Division en train/test
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        self.stdout.write("✅ Modèle IA entraîné et sauvegardé avec succès.")
+        # Pipeline : TF-IDF + Logistic Regression
+        pipeline = Pipeline([
+            ('tfidf', TfidfVectorizer()),
+            ('clf', LogisticRegression(max_iter=1000))
+        ])
 
-        # 4️⃣ Mettre à jour la prédiction pour chaque candidature
-        #Vectorise chaque CV avec le même vectorizer et fait la prédiction avec le modèle.
-        for candidature, texte in candidats_traités:
-            try:
-                vect_input = vectorizer.transform([texte])
-                pred = model.predict(vect_input)[0]
-                candidature.prediction = "Correspond" if pred == 1 else "Ne correspond pas"
-                candidature.save()
-                print(f"✅ Candidature {candidature.id} : prédiction sauvegardée → {candidature.prediction}")
-            except Exception as e:
-                print(f"❌ Erreur de prédiction pour {candidature.id} : {e}")
+        # Entraînement
+        pipeline.fit(X_train, y_train)
 
-        self.stdout.write("🎉 Toutes les prédictions ont été mises à jour.")
+        # Prédiction
+        y_pred = pipeline.predict(X_test)
+
+        # Résultats
+        self.stdout.write(self.style.SUCCESS("✅ Résultats du modèle :\n"))
+        self.stdout.write(classification_report(y_test, y_pred))
+
+        # Sauvegarde du modèle
+        model_path = os.path.join(settings.BASE_DIR, 'trained_model.joblib')
+        joblib.dump(pipeline, model_path)
+        self.stdout.write(self.style.SUCCESS(f"✅ Modèle sauvegardé : {model_path}"))

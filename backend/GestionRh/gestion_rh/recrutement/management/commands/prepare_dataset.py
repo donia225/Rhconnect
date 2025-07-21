@@ -76,11 +76,8 @@ class Command(BaseCommand):
                 if not texte.strip() or len(texte.split()) < 30:
                     self.stdout.write(self.style.WARNING(f"❌ CV vide ou très court : {cv_path}"))
                     continue
-
-                # Détecter les CV à deux colonnes
-                if self.detect_two_columns(text_pages):
-                    self.stdout.write(self.style.WARNING(f"❌ CV à deux colonnes détecté : {cv_path}"))
-                    continue
+                # ✅ Détection mais sans exclusion
+                is_two_column = self.detect_two_columns(text_pages)
 
                 # Détection automatique de la langue
                 langue_detectee = detect(texte)
@@ -108,7 +105,8 @@ class Command(BaseCommand):
                     "niveau_experience": niveau_experience,
                     "langue": langue_detectee,
                     "age": age,
-                    "label": 1 if c.score_matching >= 50 else 0
+                    "two_column": int(is_two_column),
+                    "label": c.label 
                 })
 
             except Exception as e:
@@ -164,7 +162,9 @@ class Command(BaseCommand):
         # Ajout des variables encodées et du label
         X_final["niveau_etude"] = df["niveau_etude_encoded"].values
         X_final["langue"] = df["langue_encoded"].values
+        X_final["two_column"] = df["two_column"].values
         X_final["label"] = df["label"].values
+
 
         # Sauvegarde du fichier CSV final
         os.makedirs("dataset", exist_ok=True)

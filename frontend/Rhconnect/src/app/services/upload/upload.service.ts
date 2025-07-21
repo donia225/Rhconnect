@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { Observable } from 'rxjs';
 
@@ -11,12 +11,20 @@ export class UploadService {
 
   constructor(private http: HttpClient) {}
 
-  uploadCV(file: File, offreId: number, candidatId: number): Observable<any> {
-    const formData = new FormData();
-    formData.append('cv', file);
-    formData.append('offre', offreId.toString());
-    formData.append('candidat', candidatId.toString());
+uploadCV(file: File, offreId: number, candidatId: number): Observable<any> {
+  const formData = new FormData();
+  formData.append('cv', file);
+  formData.append('offre', offreId.toString());
+  formData.append('candidat', candidatId.toString()); // pas 'candidat_id'
 
-    return this.http.post(this.apiUrl, formData);
-  }
+
+  const token = localStorage.getItem('access_token');
+
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${token}`
+  });
+
+  return this.http.post(this.apiUrl, formData, { headers });
+}
+
 }

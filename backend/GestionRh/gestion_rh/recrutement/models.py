@@ -83,12 +83,9 @@ class Candidature(models.Model):
     candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="candidatures")
     offre = models.ForeignKey(OffreEmploi, on_delete=models.CASCADE, related_name="candidatures")
     date_postulation = models.DateField(auto_now_add=True)
-    score_matching = models.FloatField(blank=True, null=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
-    
-    # Nouveau champ : Vérifie si l'IA a analysé la candidature
-    analyse_effectuee = models.BooleanField(default=False)
-    prediction = models.CharField(max_length=50, blank=True, null=True)
+    label = models.IntegerField(null=True, blank=True, choices=[(0, "Non pertinent"), (1, "Pertinent")])
+
 
     def __str__(self):
         return f"{self.candidat.user.username} - {self.offre.titre}"

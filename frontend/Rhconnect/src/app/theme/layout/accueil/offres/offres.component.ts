@@ -156,11 +156,6 @@ onFileSelected(event: any) {
   const file: File = event.target.files[0];
   if (!file) return;
 
-  // ✅ Vérifier le format
-  if (file.type !== 'application/pdf') {
-    alert("❌ Votre CV doit être au format PDF uniquement.");
-    return;
-  }
 
   // 🔐 Vérifie si l'utilisateur est connecté
   if (!this.authService.getUserInfo()) {

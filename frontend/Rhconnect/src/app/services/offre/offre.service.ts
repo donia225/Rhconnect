@@ -55,6 +55,13 @@ getCandidaturesGestionnaire(): Observable<any> {
   });
   return this.http.get(`${this.apiUrl}/candidatures-gestionnaire/`, { headers });
 }
+updateLabel(id: number, label: number) {
+  const token = localStorage.getItem('access_token');
+  const headers = new HttpHeaders({
+     Authorization: `Bearer ${token}`
+  });
+  return this.http.put(`${this.apiUrl}/update-label/${id}`, { label }, { headers });
+}
 
 updateStatut(id: number, statut: string) {
   const token = localStorage.getItem('access_token'); // ou 'token' selon ton projet

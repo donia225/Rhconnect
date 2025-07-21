@@ -223,71 +223,105 @@ def modifier_offre(request, id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# @api_view(['POST'])
+# @parser_classes([MultiPartParser])
+# @permission_classes([AllowAny])
+# def upload_cv(request):
+#     try:
+#         file = request.FILES.get('cv')
+#         offre_id = request.POST.get('offre')
+#         candidat_id = request.POST.get('candidat')
+
+#         if not file or not offre_id or not candidat_id:
+#             return Response({"error": "Données manquantes."}, status=400)
+#           # ✅ Vérification stricte PDF ici
+#         if not file.name.lower().endswith('.pdf'):
+#             return Response({"error": "Le fichier doit être au format PDF."}, status=400)
+
+#         candidat_obj = Candidat.objects.get(pk=candidat_id)
+#         offre_obj = OffreEmploi.objects.get(pk=offre_id)
+
+#         from django.core.files.storage import default_storage
+#         path_temp = default_storage.save(f'temp_cv/{file.name}', file)
+#         path_complet = default_storage.path(path_temp)
+
+#         # ✅ Extraire les compétences du CV
+#         competences_extraites = extract_skills_from_cv(path_complet)
+#         texte_cv = " ".join(competences_extraites)
+#         cv_vect = vectorizer.transform([texte_cv])
+#         prediction = svm_model.predict(cv_vect)[0]
+
+#         # ✅ Calcul du score basé sur les compétences attendues de l'offre
+#         competences_attendues = []
+#         if offre_obj.competences:
+#             competences_attendues = [c.strip().lower() for c in offre_obj.competences.split(',') if c.strip()]
+        
+#         score_matching = analyser_cv(path_complet, competences_attendues)
+
+#         # ✅ Créer la candidature
+#         candidature = Candidature.objects.create(
+#             candidat=candidat_obj,
+#             offre=offre_obj,
+#             statut='EN_ATTENTE',
+#             analyse_effectuee=True,
+#             score_matching=score_matching,
+#             prediction="Correspond" if prediction == 1 else "Ne correspond pas"
+#         )
+
+#         candidat_obj.cv = file
+#         candidat_obj.save()
+#         # ✅ Entraînement automatique du modèle IA (commande Django)
+#         from django.core.management import call_command
+#         try:
+#             if Candidature.objects.filter(analyse_effectuee=True).count() % 3 == 0:
+#                 call_command('train_model_from_db')
+#         except Exception as e:
+#             print(f"Erreur IA auto : {e}")
+#         return Response({
+#             "message": "CV analysé",
+#             "prediction": "Correspond" if prediction == 1 else "Ne correspond pas",
+#             "score_matching": score_matching,
+#             "competences_attendues": competences_attendues,
+#             "competences_extraites": list(set(competences_extraites))
+#         })
+
+#     except Exception as e:
+#         import traceback
+#         return Response({"error": str(e), "trace": traceback.format_exc()}, status=500)
+
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])
 def upload_cv(request):
     try:
-        file = request.FILES.get('cv')
-        offre_id = request.POST.get('offre')
-        candidat_id = request.POST.get('candidat')
+        fichier_cv = request.FILES.get('cv')
+        candidat_id = request.data.get('candidat')
+        offre_id = request.data.get('offre')
 
-        if not file or not offre_id or not candidat_id:
-            return Response({"error": "Données manquantes."}, status=400)
-          # ✅ Vérification stricte PDF ici
-        if not file.name.lower().endswith('.pdf'):
-            return Response({"error": "Le fichier doit être au format PDF."}, status=400)
+        if not fichier_cv or not candidat_id or not offre_id:
+            return JsonResponse({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
 
-        candidat_obj = Candidat.objects.get(pk=candidat_id)
-        offre_obj = OffreEmploi.objects.get(pk=offre_id)
+        candidat = get_object_or_404(Candidat, id=candidat_id)
+        offre = get_object_or_404(OffreEmploi, id=offre_id)
 
-        from django.core.files.storage import default_storage
-        path_temp = default_storage.save(f'temp_cv/{file.name}', file)
-        path_complet = default_storage.path(path_temp)
+        # ✅ Mise à jour du CV dans le profil du candidat
+        candidat.cv = fichier_cv
+        candidat.save()
 
-        # ✅ Extraire les compétences du CV
-        competences_extraites = extract_skills_from_cv(path_complet)
-        texte_cv = " ".join(competences_extraites)
-        cv_vect = vectorizer.transform([texte_cv])
-        prediction = svm_model.predict(cv_vect)[0]
-
-        # ✅ Calcul du score basé sur les compétences attendues de l'offre
-        competences_attendues = []
-        if offre_obj.competences:
-            competences_attendues = [c.strip().lower() for c in offre_obj.competences.split(',') if c.strip()]
-        
-        score_matching = analyser_cv(path_complet, competences_attendues)
-
-        # ✅ Créer la candidature
+        # ✅ Création de la candidature
         candidature = Candidature.objects.create(
-            candidat=candidat_obj,
-            offre=offre_obj,
+            candidat=candidat,
+            offre=offre,
             statut='EN_ATTENTE',
-            analyse_effectuee=True,
-            score_matching=score_matching,
-            prediction="Correspond" if prediction == 1 else "Ne correspond pas"
+            label=None
         )
 
-        candidat_obj.cv = file
-        candidat_obj.save()
-        # ✅ Entraînement automatique du modèle IA (commande Django)
-        from django.core.management import call_command
-        try:
-            if Candidature.objects.filter(analyse_effectuee=True).count() % 3 == 0:
-                call_command('train_model_from_db')
-        except Exception as e:
-            print(f"Erreur IA auto : {e}")
-        return Response({
-            "message": "CV analysé",
-            "prediction": "Correspond" if prediction == 1 else "Ne correspond pas",
-            "score_matching": score_matching,
-            "competences_attendues": competences_attendues,
-            "competences_extraites": list(set(competences_extraites))
-        })
+        serializer = CandidatureSerializer(candidature)
+        return JsonResponse(serializer.data, status=201)
 
     except Exception as e:
-        import traceback
-        return Response({"error": str(e), "trace": traceback.format_exc()}, status=500)
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -379,7 +413,7 @@ def mes_candidatures(request):
 @permission_classes([IsAuthenticated])
 def get_candidatures_recruteur(request):
     user = request.user
-    candidatures = Candidature.objects.filter(offre__recruteur=user).order_by('-score_matching')
+    candidatures = Candidature.objects.filter(offre__recruteur=user)
     result = []
     for c in candidatures:
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
@@ -387,12 +421,11 @@ def get_candidatures_recruteur(request):
             'id': c.id,
             'candidat': c.candidat.user.last_name,
             'offre': c.offre.titre,
-            'score': c.score_matching if c.score_matching is not None else 0,
-            'analyse_effectuee': c.analyse_effectuee,
             'statut': c.statut,
             'cv_link': cv_url,
-            'prediction': c.prediction or "Non analysé",
-            'tag_ia': "Matching IA détecté" if c.analyse_effectuee else "Analyse manuelle requise"
+            'label': c.label
+     
+        
         })
 
     return Response(result)
@@ -402,7 +435,7 @@ def get_candidatures_gestionnaireRH(request):
     """
     Gestionnaire RH : voir toutes les candidatures de tous les recruteurs.
     """
-    candidatures = Candidature.objects.all().order_by('-score_matching')
+    candidatures = Candidature.objects.all()
 
     result = []
     for c in candidatures:
@@ -411,16 +444,31 @@ def get_candidatures_gestionnaireRH(request):
             'id': c.id,
             'candidat': c.candidat.user.last_name,
             'offre': c.offre.titre,
-            'score': c.score_matching if c.score_matching is not None else 0,
-            'analyse_effectuee': c.analyse_effectuee,
             'statut': c.statut,
             'cv_link': cv_url,
-            'prediction': c.prediction or "Non analysé",
-            'tag_ia': "Matching IA détecté" if c.analyse_effectuee else "Analyse manuelle requise"
+            
+      
         })
 
     return Response(result)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_label(request, candidature_id):
+    try:
+        # 🔒 Ne trouve que les candidatures du recruteur connecté
+        candidature = Candidature.objects.get(id=candidature_id, offre__recruteur=request.user)
 
+        label = request.data.get("label")
+        if label not in [0, 1, "0", "1"]:
+            return Response({"error": "Label invalide. Doit être 0 ou 1."}, status=400)
+
+        candidature.label = int(label)
+        candidature.save()
+
+        return Response({"success": "Label mis à jour avec succès."})
+
+    except Candidature.DoesNotExist:
+        return Response({"error": "Candidature introuvable ou vous n'êtes pas autorisé à la modifier."}, status=404)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])

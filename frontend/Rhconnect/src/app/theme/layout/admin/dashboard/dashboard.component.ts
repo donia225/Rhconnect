@@ -140,6 +140,16 @@ export class DashboardComponent implements OnInit {
 });
     }, 300);
   }
+updateLabel(id: number, label: number) {
+  this.offreService.updateLabel(id, label).subscribe({
+    next: () => {
+      console.log("✅ Label mis à jour");
+    },
+    error: (err) => {
+      console.error("❌ Erreur lors de la mise à jour du label", err);
+    }
+  });
+}
 
  updateStatut(id: number, statut: string): void {
     this.offreService.updateStatut(id, statut).subscribe(() => {
