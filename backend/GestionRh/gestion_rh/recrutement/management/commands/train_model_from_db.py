@@ -28,7 +28,7 @@ class Command(BaseCommand):
     help = "Prétraite les données, entraîne un modèle ML et affiche les métriques"
 
     def handle(self, *args, **options):
-        file_path = os.path.join(settings.BASE_DIR, 'dataset_candidats_adapte.csv.csv')
+        file_path = os.path.join(settings.BASE_DIR, 'gestion_rh', 'dataset', 'dataset_candidats_adapte.csv')
 
         if not os.path.exists(file_path):
             self.stdout.write(self.style.ERROR("❌ Fichier CSV introuvable."))
