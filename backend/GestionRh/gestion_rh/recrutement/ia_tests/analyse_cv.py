@@ -31,7 +31,7 @@ def extract_skills_from_cv(path_pdf: str) -> list:
     
     # Traitement du texte avec spaCy pour extraire les lemmes
     doc = nlp(texte.lower())
-    competences = [token.lemma_ for token in doc if token.is_alpha and not token.is_stop]
+    compsesliences = [token.lemma_ for token in doc if token.is_alpha and not token.is_stop]
     return competences
 
 # Entraîner le modèle SVM (à appeler manuellement une fois)

@@ -12,6 +12,7 @@ import re
 import string
 from nltk.corpus import stopwords
 import nltk
+from joblib import Memory
 
 nltk.download('stopwords')
 STOPWORDS = set(stopwords.words('english'))
@@ -51,10 +52,12 @@ class Command(BaseCommand):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         # Pipeline : TF-IDF + Logistic Regression
+        memory = Memory(location=None)  # ou un dossier cache: Memory('./cachedir')
+
         pipeline = Pipeline([
-            ('tfidf', TfidfVectorizer()),
-            ('clf', LogisticRegression(max_iter=1000))
-        ])
+        ('tfidf', TfidfVectorizer()),
+        ('clf', LogisticRegression(max_iter=1000))
+        ], memory=memory)
 
         # Entraînement
         pipeline.fit(X_train, y_train)

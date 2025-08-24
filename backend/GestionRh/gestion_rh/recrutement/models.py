@@ -8,6 +8,7 @@ class User(AbstractUser):
         ('candidat', 'Candidat'),
         ('gestionnaire_rh', 'Gestionnaire RH'),
         ('recruteur', 'Recruteur'),
+        ('employe', 'Employe')
     )
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='candidat')
@@ -25,6 +26,7 @@ class Candidat(models.Model):
     adresse = models.TextField(blank=True, null=True)
     cv = models.FileField(upload_to='uploads/cv/', blank=True, null=True)
     date_naissance = models.DateField(blank=True, null=True)
+    projects_count = models.PositiveIntegerField(default=0)
     est_employe = models.BooleanField(default=False)
     NIVEAU_ETUDE_CHOICES = [
     ('licence', 'Licence'),
@@ -84,7 +86,8 @@ class Candidature(models.Model):
     offre = models.ForeignKey(OffreEmploi, on_delete=models.CASCADE, related_name="candidatures")
     date_postulation = models.DateField(auto_now_add=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
-    label = models.IntegerField(null=True, blank=True, choices=[(0, "Non pertinent"), (1, "Pertinent")])
+    label = models.IntegerField(null=True, blank=True, choices=[(0, "Reject"), (1, "Hire")])
+    ai_score = models.IntegerField(null=True, blank=True) 
 
 
     def __str__(self):

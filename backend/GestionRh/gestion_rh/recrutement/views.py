@@ -1,5 +1,5 @@
 import json
-import os
+import os, tempfile
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,8 +7,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 
 from gestion_rh import settings
+from ml_models import predict_cv as pcv
+import re
 from .models import Employe, OffreEmploi, Candidature, SuiviCarriereEmploye
-from .serializers import CandidatureSerializer, EmployeProfilEtSuivisSerializer, EmployeSerializer, OffreEmploiSerializer, SuiviCarriereEmployeSerializer
+from .serializers import CandidatSerializer, CandidatureSerializer, EmployeProfilEtSuivisSerializer, EmployeSerializer, OffreEmploiSerializer, SuiviCarriereEmployeSerializer
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Candidat
@@ -17,7 +19,6 @@ from django.shortcuts import get_object_or_404
 from .ia_tests.analyse_cv import analyser_cv, extract_skills_from_cv
 from PyPDF2 import PdfReader, PdfWriter
 import joblib
-from sklearn.svm import SVC
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
@@ -27,12 +28,24 @@ from django.contrib.auth.tokens import default_token_generator
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from django.utils import timezone
-from .ia_tests.ml_model_loader import svm_model, vectorizer
 from rest_framework.views import APIView
 
+NIVEAU_TO_YEARS = {
+    'aucune': 0,
+    'moins_1_an': 0,
+    'entre_1_2_ans': 1,
+    'entre_2_5_ans': 3,
+    'entre_5_10_ans': 7,
+    'plus_10_ans': 12,
+}
+
+def approx_years_from_text(txt: str) -> int:
+    m = re.search(r'(\d+)\s*(?:years?|ans?)', txt or '', flags=re.I)
+    return int(m.group(1)) if m else 0
 
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
+
 
 @api_view(['POST'])
 def register_user(request):
@@ -223,105 +236,80 @@ def modifier_offre(request, id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# @api_view(['POST'])
-# @parser_classes([MultiPartParser])
-# @permission_classes([AllowAny])
-# def upload_cv(request):
-#     try:
-#         file = request.FILES.get('cv')
-#         offre_id = request.POST.get('offre')
-#         candidat_id = request.POST.get('candidat')
-
-#         if not file or not offre_id or not candidat_id:
-#             return Response({"error": "Données manquantes."}, status=400)
-#           # ✅ Vérification stricte PDF ici
-#         if not file.name.lower().endswith('.pdf'):
-#             return Response({"error": "Le fichier doit être au format PDF."}, status=400)
-
-#         candidat_obj = Candidat.objects.get(pk=candidat_id)
-#         offre_obj = OffreEmploi.objects.get(pk=offre_id)
-
-#         from django.core.files.storage import default_storage
-#         path_temp = default_storage.save(f'temp_cv/{file.name}', file)
-#         path_complet = default_storage.path(path_temp)
-
-#         # ✅ Extraire les compétences du CV
-#         competences_extraites = extract_skills_from_cv(path_complet)
-#         texte_cv = " ".join(competences_extraites)
-#         cv_vect = vectorizer.transform([texte_cv])
-#         prediction = svm_model.predict(cv_vect)[0]
-
-#         # ✅ Calcul du score basé sur les compétences attendues de l'offre
-#         competences_attendues = []
-#         if offre_obj.competences:
-#             competences_attendues = [c.strip().lower() for c in offre_obj.competences.split(',') if c.strip()]
-        
-#         score_matching = analyser_cv(path_complet, competences_attendues)
-
-#         # ✅ Créer la candidature
-#         candidature = Candidature.objects.create(
-#             candidat=candidat_obj,
-#             offre=offre_obj,
-#             statut='EN_ATTENTE',
-#             analyse_effectuee=True,
-#             score_matching=score_matching,
-#             prediction="Correspond" if prediction == 1 else "Ne correspond pas"
-#         )
-
-#         candidat_obj.cv = file
-#         candidat_obj.save()
-#         # ✅ Entraînement automatique du modèle IA (commande Django)
-#         from django.core.management import call_command
-#         try:
-#             if Candidature.objects.filter(analyse_effectuee=True).count() % 3 == 0:
-#                 call_command('train_model_from_db')
-#         except Exception as e:
-#             print(f"Erreur IA auto : {e}")
-#         return Response({
-#             "message": "CV analysé",
-#             "prediction": "Correspond" if prediction == 1 else "Ne correspond pas",
-#             "score_matching": score_matching,
-#             "competences_attendues": competences_attendues,
-#             "competences_extraites": list(set(competences_extraites))
-#         })
-
-#     except Exception as e:
-#         import traceback
-#         return Response({"error": str(e), "trace": traceback.format_exc()}, status=500)
-
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
-@permission_classes([AllowAny])
+@permission_classes([AllowAny])  # mets IsAuthenticated si tu veux sécuriser
 def upload_cv(request):
     try:
         fichier_cv = request.FILES.get('cv')
         candidat_id = request.data.get('candidat')
         offre_id = request.data.get('offre')
 
+        # Optionnel: projects_count passé par le front (sinon on prend celui du candidat)
+        projects_count_in = request.data.get('projects_count')
+
         if not fichier_cv or not candidat_id or not offre_id:
-            return JsonResponse({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
+            return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
 
         candidat = get_object_or_404(Candidat, id=candidat_id)
         offre = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # ✅ Mise à jour du CV dans le profil du candidat
+        # ---- 1) Ecrire le fichier dans un temp et prédire directement depuis le PDF
+        # déduit l'extension pour NamedTemporaryFile
+        name = getattr(fichier_cv, "name", "") or "cv.pdf"
+        _, ext = os.path.splitext(name)
+        if ext.lower() not in {".pdf", ".docx", ".doc"}:
+            # Ton modèle lit mieux les PDF; si tu n'as pas géré .docx/.doc dans predict_from_pdf,
+            # refuse ou convertis; ici, on refuse proprement.
+            return Response({"error": "Format non supporté. Utilise un PDF (.pdf)."}, status=400)
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            for chunk in fichier_cv.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        # projects_count
+        try:
+            projects_count = int(projects_count_in) if projects_count_in is not None else int(candidat.projects_count or 0)
+        except Exception:
+            projects_count = 0
+
+        # ---- 2) prédiction (lit le fichier temp)
+        pred = pcv.predict_from_pdf(tmp_path, projects_count)
+        # Pred debug (journal serveur)
+        print("PRED DEBUG:", pred)
+
+        # ---- 3) Sauvegarder le fichier dans le profil candidat (dans MEDIA_ROOT)
         candidat.cv = fichier_cv
+        if projects_count_in is not None:
+            try:
+                candidat.projects_count = int(projects_count_in)
+            except Exception:
+                pass
         candidat.save()
 
-        # ✅ Création de la candidature
+        # ---- 4) Créer la candidature avec le label prédit et le score
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
             statut='EN_ATTENTE',
-            label=None
+            label=pred.get("label"),  # 0 ou 1
+            ai_score=round((pred.get("proba") or 0) * 100, 2)
         )
+        print("CREATED CANDIDATURE:", candidature.id, candidature.label)
 
+        # ---- 5) Nettoyage du fichier temporaire
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+
+        # ---- 6) Réponse
         serializer = CandidatureSerializer(candidature)
-        return JsonResponse(serializer.data, status=201)
+        return Response(serializer.data, status=201)
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
+        return Response({"error": str(e)}, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -329,25 +317,35 @@ def deja_postule(request, offre_id):
     user = request.user
     try:
         candidat = user.candidat  # s’assurer que `user` a une relation `OneToOne` vers Candidat
-    except:
+    except Exception:
         return Response({'error': 'Utilisateur non lié à un candidat'}, status=400)
 
     deja_postule = Candidature.objects.filter(candidat=candidat, offre_id=offre_id).exists()
     return Response({'deja_postule': deja_postule})
 
 @api_view(['GET'])
+@permission_classes([AllowAny])   # <-- plus de restriction
+def list_candidats(request):
+    candidats = Candidat.objects.select_related('user').all()
+    serializer = CandidatSerializer(candidats, many=True, context={'request': request})
+    return Response(serializer.data, status=200)
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_candidat_id(request):
     user = request.user
-
-    if user.role != 'candidat':
+    if getattr(user, "role", None) != 'candidat':
         return Response({'error': 'Utilisateur non autorisé'}, status=403)
 
-    try:
-        candidat = Candidat.objects.get(user=user)
-        return Response({'candidat_id': candidat.id})
-    except Candidat.DoesNotExist:
-        return Response({'error': 'Candidat introuvable'}, status=404)
+    candidat = get_object_or_404(Candidat.objects.select_related('user'), user=user)
+
+    # Utiliser le serializer (avec request pour générer l’URL absolue du CV si ton serializer le fait)
+    data = CandidatSerializer(candidat, context={'request': request}).data
+
+    # Si tu veux garder aussi l'ID à la racine de la réponse:
+    data.update({"candidat_id": candidat.id})
+
+    return Response(data, status=200)
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
@@ -368,6 +366,7 @@ def candidat_profil(request):
             'numero_tel': candidat.numero_tel,
             'adresse': candidat.adresse,
             'cv': candidat.cv.url if candidat.cv else None,
+            'projects_count': candidat.projects_count
         }
         return Response(data)
 
@@ -382,7 +381,8 @@ def candidat_profil(request):
         candidat.niveau_etude = request.data.get('niveau_etude')
         candidat.niveau_experience = request.data.get('niveau_experience')
         candidat.numero_tel = request.data.get('numero_tel')
-        candidat.adresse = request.data.get('adresse')
+        candidat.adresse = request.data.get('adresse'),
+        candidat.projects_count =request.data.get('projects_count')
 
         # Upload fichier CV si envoyé
         if 'cv' in request.FILES:
@@ -409,29 +409,44 @@ def mes_candidatures(request):
     ]
     return Response(data)
 
+LABEL_TEXT = {0: "Reject", 1: "Hire"}
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])  # si tu veux protéger avec JWT
+def get_candidatures_by_candidat(request, id):
+    candidat = get_object_or_404(Candidat, id=id)
+    candidatures = candidat.candidatures.all()
+    serializer = CandidatureSerializer(candidatures, many=True)
+    return Response(serializer.data, status=200)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_candidatures_recruteur(request):
     user = request.user
-    candidatures = Candidature.objects.filter(offre__recruteur=user)
+    qs = (Candidature.objects
+          .filter(offre__recruteur=user)
+          .select_related('candidat__user', 'offre')
+          .order_by('-id'))
+
     result = []
-    for c in candidatures:
+    for c in qs:
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
         result.append({
             'id': c.id,
-            'candidat': c.candidat.user.last_name,
+            'candidat': c.candidat.user.last_name,   # ou first_name selon ton besoin
             'offre': c.offre.titre,
             'statut': c.statut,
             'cv_link': cv_url,
-            'label': c.label
-     
-        
+            'label': c.label,                        # 0 / 1 / None (si anciennes lignes)
+            'label_text': LABEL_TEXT.get(c.label),   # "Reject"/"Hire"/None
+            'ai_score': getattr(c, 'ai_score', None)
         })
+    return Response(result, status=200)
 
-    return Response(result)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_candidatures_gestionnaireRH(request):
+def get_candidatures_gestionnaire_rh(request):
     """
     Gestionnaire RH : voir toutes les candidatures de tous les recruteurs.
     """

@@ -27,7 +27,8 @@ export class MonProfilComponent implements OnInit {
       niveau_experience: [''],
       numero_tel: [''],
       adresse: [''],
-      cv: [null]
+      cv: [null],
+      projects_count:['']
     });
 
     this.loadProfil();

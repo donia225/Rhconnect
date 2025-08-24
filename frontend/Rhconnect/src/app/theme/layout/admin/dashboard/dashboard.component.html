@@ -92,12 +92,15 @@
                 <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
                 <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
               </td>
-                <td *ngIf="role !== 'gestionnaire_rh'">
-              <select class="form-select form-select-sm w-auto d-inline" [(ngModel)]="c.label" (change)="updateLabel(c.id, c.label)">
-              <option [value]="1">✅ Pertinent</option>
-              <option [value]="0">❌ Non pertinent</option>
-             </select>
-              </td>
+           <td *ngIf="role !== 'gestionnaire_rh'">
+           <select class="form-select form-select-sm w-auto d-inline"
+           [(ngModel)]="c.label"
+           (change)="updateLabel(c.id, c.label)">
+           <option [ngValue]="1">✅ Hire</option>
+           <option [ngValue]="0">❌ Reject</option>
+          </select>
+           </td>
+
               <td *ngIf="role === 'gestionnaire_rh'">
                 <button class="btn btn-primary btn-sm" (click)="confirmerEmbauche(c.id)">✅ Confirmer embauche</button>
               </td>

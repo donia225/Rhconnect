@@ -143,7 +143,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'rhdb',  # Assure-toi que c'est bien le nom correct de ta base
         'USER': 'postgres',
-        'PASSWORD': 'postgresql',  # Remplace par ton mot de passe PostgreSQL
+        'PASSWORD': 'admin',  # Remplace par ton mot de passe PostgreSQL
         'HOST': 'localhost',
         'PORT': '5432',
     }

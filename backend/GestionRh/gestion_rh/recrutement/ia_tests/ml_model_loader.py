@@ -1,11 +1,9 @@
 import os
 import joblib
-from django.conf import settings
 
-# Chemins vers les fichiers .joblib dans ton dossier ml_model/
-model_path = os.path.join(settings.BASE_DIR, 'ml_model/svm_model.joblib')
-vectorizer_path = os.path.join(settings.BASE_DIR, 'ml_model/vectorizer.joblib')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, '..', '..', 'ml_models', 'svm_model.pkl')
+encoder_path = os.path.join(BASE_DIR, '..', '..', 'ml_models', 'label_encoder.pkl')
 
-# Charger UNE SEULE FOIS
-svm_model = joblib.load(model_path)
-vectorizer = joblib.load(vectorizer_path)
+svm_model = joblib.load(os.path.abspath(model_path))
+label_encoder = joblib.load(os.path.abspath(encoder_path))
