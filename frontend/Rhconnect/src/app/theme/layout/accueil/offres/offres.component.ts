@@ -53,7 +53,6 @@ ngOnInit(): void {
   this.user = this.authService.getUserInfo();
   this.isLoggedIn = !!this.user;
 
-  if (!this.isLoggedIn) return;
 
   const token = localStorage.getItem('access_token');
   const headers = new HttpHeaders({

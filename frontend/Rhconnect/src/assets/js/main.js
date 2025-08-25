@@ -68,48 +68,51 @@
   /**
    * Scroll top button
    */
-  let scrollTop = document.querySelector('.scroll-top');
+ // Scroll top button
+let scrollTop = document.querySelector('.scroll-top');
 
-  function toggleScrollTop() {
-    if (scrollTop) {
-      window.scrollY > 100 ? scrollTop.classList.add('active') : scrollTop.classList.remove('active');
-    }
+function toggleScrollTop() {
+  if (scrollTop) {
+    window.scrollY > 100 ? scrollTop.classList.add('active') : scrollTop.classList.remove('active');
   }
+}
+
+if (scrollTop) {
   scrollTop.addEventListener('click', (e) => {
     e.preventDefault();
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+}
 
-  window.addEventListener('load', toggleScrollTop);
-  document.addEventListener('scroll', toggleScrollTop);
+window.addEventListener('load', toggleScrollTop);
+document.addEventListener('scroll', toggleScrollTop);
+
 
   /**
    * Animation on scroll function and init
    */
-  function aosInit() {
-    AOS.init({
-      duration: 600,
-      easing: 'ease-in-out',
-      once: true,
-      mirror: false
-    });
+function aosInit() {
+  if (typeof window.AOS !== 'undefined' && typeof AOS.init === 'function') {
+    AOS.init({ duration: 600, easing: 'ease-in-out', once: true, mirror: false });
   }
-  window.addEventListener('load', aosInit);
+}
+window.addEventListener('load', aosInit);
+
 
   /**
    * Initiate glightbox
    */
-  const glightbox = GLightbox({
-    selector: '.glightbox'
-  });
+if (typeof window.GLightbox !== 'undefined') {
+  GLightbox({ selector: '.glightbox' });
+}
+
 
   /**
    * Initiate Pure Counter
    */
-  new PureCounter();
+if (typeof window.PureCounter !== 'undefined') {
+  try { new PureCounter(); } catch {}
+}
 
   /**
    * Frequently Asked Questions Toggle
@@ -124,53 +127,59 @@
    * Init isotope layout and filters
    */
   document.querySelectorAll('.isotope-layout').forEach(function(isotopeItem) {
-    let layout = isotopeItem.getAttribute('data-layout') ?? 'masonry';
-    let filter = isotopeItem.getAttribute('data-default-filter') ?? '*';
-    let sort = isotopeItem.getAttribute('data-sort') ?? 'original-order';
+  if (typeof window.Isotope === 'undefined' || typeof window.imagesLoaded === 'undefined') return;
 
-    let initIsotope;
-    imagesLoaded(isotopeItem.querySelector('.isotope-container'), function() {
-      initIsotope = new Isotope(isotopeItem.querySelector('.isotope-container'), {
-        itemSelector: '.isotope-item',
-        layoutMode: layout,
-        filter: filter,
-        sortBy: sort
-      });
+  const container = isotopeItem.querySelector('.isotope-container');
+  if (!container) return;
+
+  let layout = isotopeItem.getAttribute('data-layout') ?? 'masonry';
+  let filter = isotopeItem.getAttribute('data-default-filter') ?? '*';
+  let sort   = isotopeItem.getAttribute('data-sort') ?? 'original-order';
+
+  let initIsotope;
+  imagesLoaded(container, function() {
+    initIsotope = new Isotope(container, {
+      itemSelector: '.isotope-item',
+      layoutMode: layout,
+      filter: filter,
+      sortBy: sort
     });
-
-    isotopeItem.querySelectorAll('.isotope-filters li').forEach(function(filters) {
-      filters.addEventListener('click', function() {
-        isotopeItem.querySelector('.isotope-filters .filter-active').classList.remove('filter-active');
-        this.classList.add('filter-active');
-        initIsotope.arrange({
-          filter: this.getAttribute('data-filter')
-        });
-        if (typeof aosInit === 'function') {
-          aosInit();
-        }
-      }, false);
-    });
-
   });
+
+  isotopeItem.querySelectorAll('.isotope-filters li').forEach(function(li) {
+    li.addEventListener('click', function() {
+      const active = isotopeItem.querySelector('.isotope-filters .filter-active');
+      active && active.classList.remove('filter-active');
+      this.classList.add('filter-active');
+      if (initIsotope) {
+        initIsotope.arrange({ filter: this.getAttribute('data-filter') });
+      }
+      if (typeof aosInit === 'function') aosInit();
+    }, false);
+  });
+});
 
   /**
    * Init swiper sliders
    */
-  function initSwiper() {
-    document.querySelectorAll(".init-swiper").forEach(function(swiperElement) {
-      let config = JSON.parse(
-        swiperElement.querySelector(".swiper-config").innerHTML.trim()
-      );
+function initSwiper() {
+  if (typeof window.Swiper === 'undefined') return;
+  document.querySelectorAll(".init-swiper").forEach(function(swiperElement) {
+    const cfgHolder = swiperElement.querySelector(".swiper-config");
+    if (!cfgHolder) return;
 
-      if (swiperElement.classList.contains("swiper-tab")) {
-        initSwiperWithCustomPagination(swiperElement, config);
-      } else {
-        new Swiper(swiperElement, config);
-      }
-    });
-  }
+    let config = {};
+    try { config = JSON.parse(cfgHolder.innerHTML.trim()); } catch {}
 
-  window.addEventListener("load", initSwiper);
+    if (swiperElement.classList.contains("swiper-tab") && typeof window.initSwiperWithCustomPagination === 'function') {
+      initSwiperWithCustomPagination(swiperElement, config);
+    } else {
+      new Swiper(swiperElement, config);
+    }
+  });
+}
+window.addEventListener("load", initSwiper);
+
 
   /**
    * Correct scrolling position upon page load for URLs containing hash links.

@@ -33,7 +33,7 @@ registerLocaleData(localeFr);
 export const routes: Routes = [
   {
   path: '',
-    component: PublicLayoutComponent,   // Ton layout public avec navbar
+    component: PublicLayoutComponent,
     children: [
       { path: '', component: AccueilComponent },
       { path: 'about', component: AboutComponent },
@@ -80,7 +80,7 @@ export const routes: Routes = [
       {
         path: 'gestion-carriere',
         children: [
-          { path: '', component: EmployeListComponent }, //liste des employés
+          { path: '', component: EmployeListComponent },
           { path: 'suivi/:id', component: SuiviCarriereComponent }
         ]
       },

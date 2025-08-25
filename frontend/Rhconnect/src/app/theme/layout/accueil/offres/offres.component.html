@@ -61,7 +61,6 @@
   <p><strong>🌍 Langues :</strong> {{ selectedOffer.langues }}</p>
     <div class="button-group">
  <button 
-    *ngIf="isLoggedIn" 
     class="apply-btn upload-btn"
     [disabled]="dejaPostulee"
     (click)="handlePostulerClick()">
