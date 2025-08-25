@@ -1,3 +1,7 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+torchvision==0.20.0+cpu
+torchaudio==2.8.0+cpu
 annotated-types==0.7.0
 asgiref==3.8.1
 beautifulsoup4==4.12.3

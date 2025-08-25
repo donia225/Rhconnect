@@ -254,13 +254,10 @@ def upload_cv(request):
         candidat = get_object_or_404(Candidat, id=candidat_id)
         offre = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # ---- 1) Ecrire le fichier dans un temp et prédire directement depuis le PDF
-        # déduit l'extension pour NamedTemporaryFile
+        # ---- 1) Écrire le fichier dans un temp
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
         _, ext = os.path.splitext(name)
         if ext.lower() not in {".pdf", ".docx", ".doc"}:
-            # Ton modèle lit mieux les PDF; si tu n'as pas géré .docx/.doc dans predict_from_pdf,
-            # refuse ou convertis; ici, on refuse proprement.
             return Response({"error": "Format non supporté. Utilise un PDF (.pdf)."}, status=400)
 
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
@@ -268,18 +265,59 @@ def upload_cv(request):
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # projects_count
+        # ---- 2) projects_count
         try:
             projects_count = int(projects_count_in) if projects_count_in is not None else int(candidat.projects_count or 0)
         except Exception:
             projects_count = 0
 
-        # ---- 2) prédiction (lit le fichier temp)
-        pred = pcv.predict_from_pdf(tmp_path, projects_count)
-        # Pred debug (journal serveur)
+        # ---- 3) construire la description d'offre (mêmes signaux que le training)
+        def _as_text(x):
+            if x is None:
+                return ""
+            try:
+                if hasattr(x, "all"):
+                    return ", ".join(map(str, x.all()))
+            except Exception:
+                pass
+            if isinstance(x, (list, tuple, set)):
+                return ", ".join(map(str, x))
+            return str(x)
+
+        titre = _as_text(getattr(offre, "titre", "")) or _as_text(getattr(offre, "job_title", ""))
+        desc  = _as_text(getattr(offre, "description", "")) or _as_text(getattr(offre, "details", ""))
+
+        comps = ""
+        try:
+            if hasattr(offre, "competences") and hasattr(offre.competences, "all"):
+                comps = ", ".join(map(str, offre.competences.all()))
+            else:
+                comps = _as_text(getattr(offre, "competences", "")) or _as_text(getattr(offre, "skills", ""))
+        except Exception:
+            comps = _as_text(getattr(offre, "competences", "")) or _as_text(getattr(offre, "skills", ""))
+
+        edu   = _as_text(getattr(offre, "niveau_etude", "")) or _as_text(getattr(offre, "education", ""))
+        exp_r = _as_text(getattr(offre, "experience_requise", "")) or _as_text(getattr(offre, "niveau_experience", ""))
+
+        offer_description = " — ".join([p for p in [
+            titre.strip() if titre else "",
+            desc.strip() if desc else "",
+            f"required skills: {comps}".strip() if comps else "",
+            f"education: {edu}".strip() if edu else "",
+            f"experience: {exp_r}".strip() if exp_r else "",
+        ] if p])
+
+        # ---- 4) PREDICTION OFFER-AWARE
+        # IMPORTANT: nécessite que tu aies ajouté predict_from_pdf_with_offer dans predict_cv.py
+        pred = pcv.predict_from_pdf_with_offer(
+            tmp_path,
+            offre_obj=offre,                   # optionnel, on passe aussi l'objet
+            offer_description=offer_description,
+            projects_count=projects_count
+        )
         print("PRED DEBUG:", pred)
 
-        # ---- 3) Sauvegarder le fichier dans le profil candidat (dans MEDIA_ROOT)
+        # ---- 5) Sauvegarder le CV et éventuellement projects_count
         candidat.cv = fichier_cv
         if projects_count_in is not None:
             try:
@@ -288,28 +326,29 @@ def upload_cv(request):
                 pass
         candidat.save()
 
-        # ---- 4) Créer la candidature avec le label prédit et le score
+        # ---- 6) Créer la candidature
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
             statut='EN_ATTENTE',
-            label=pred.get("label"),  # 0 ou 1
-            ai_score=round((pred.get("proba") or 0) * 100, 2)
+            label=pred.get("label"),
+            ai_score=round((pred.get("proba") or 0) * 100, 2),
         )
         print("CREATED CANDIDATURE:", candidature.id, candidature.label)
 
-        # ---- 5) Nettoyage du fichier temporaire
+        # ---- 7) Nettoyage temp
         try:
             os.remove(tmp_path)
         except Exception:
             pass
 
-        # ---- 6) Réponse
+        # ---- 8) Réponse
         serializer = CandidatureSerializer(candidature)
         return Response(serializer.data, status=201)
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

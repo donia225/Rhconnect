@@ -8,6 +8,7 @@ from docx import Document  # pip install python-docx
 import re
 from datetime import datetime
 import pdfplumber
+import math
 
 # Dossier des artefacts
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -308,7 +309,65 @@ def infer_experience_years_from_text(text: str) -> int:
     years = total_months / 12.0
     return _clamp_years(years, lo=0, hi=50)
 
+def _build_offer_description(offre) -> str:
+    """
+    Concatène les infos de l'offre dans un texte unique, au même style
+    que celui utilisé à l'entraînement: titre/description + skills + education + experience.
+    """
+    def _as_text(x):
+        # gère texte, None, ou ManyToMany/list -> "a, b, c"
+        if x is None:
+            return ""
+        if isinstance(x, (list, tuple, set)):
+            return ", ".join(map(str, x))
+        # ManyToMany Django: ex. offre.competences.all()
+        try:
+            if hasattr(x, "all"):
+                return ", ".join(map(str, x.all()))
+        except Exception:
+            pass
+        return str(x)
 
+    title = _as_text(getattr(offre, "titre", "")) or _as_text(getattr(offre, "job_title", ""))
+    desc  = _as_text(getattr(offre, "description", "")) or _as_text(getattr(offre, "details", ""))
+
+    # essaie plusieurs noms possibles
+    skills_offer = (
+        _as_text(getattr(offre, "competences", "")) or
+        _as_text(getattr(offre, "skills", "")) or
+        _as_text(getattr(offre, "competences_requises", ""))
+    )
+
+    education = (
+        _as_text(getattr(offre, "niveau_etude", "")) or
+        _as_text(getattr(offre, "education", "")) or
+        _as_text(getattr(offre, "degree_required", ""))
+    )
+
+    exp_required = (
+        _as_text(getattr(offre, "experience_requise", "")) or
+        _as_text(getattr(offre, "niveau_experience", ""))
+    )
+
+    parts = []
+    if title: parts.append(title)
+    if desc:  parts.append(desc)
+
+    # garde le même phrasé que le training (required skills / education / experience)
+    if skills_offer:
+        parts.append(f"required skills: {skills_offer}")
+    if education:
+        parts.append(f"education: {education}")
+    if exp_required:
+        parts.append(f"experience: {exp_required}")
+
+    return " — ".join([p for p in parts if p]).strip()
+
+# --- UTILITAIRE: cosinus une-ligne (pas besoin de scikit ici)
+def _cosine_sim(u: np.ndarray, v: np.ndarray, eps: float = 1e-8) -> float:
+    num = float(np.dot(u, v))
+    den = (np.linalg.norm(u) * np.linalg.norm(v)) + eps
+    return num / den
 
 # ---------- Wrapper PDF ----------
 def infer_experience_years_from_cv(path_pdf: str) -> int:
@@ -446,4 +505,69 @@ def predict_from_pdf(path_pdf: str, projects_count: int = 0) -> dict:
         "proba": proba,
         "extracted_skills": skills,
         "exp_years": int(exp_years),
+    }
+def predict_from_pdf_with_offer(path_pdf: str,
+                                offre_obj=None,
+                                offer_description: str | None = None,
+                                projects_count: int = 0) -> dict:
+    """
+    Lecture du CV (PDF) + comparaison à l'OFFRE:
+      - extrait compétences CV et années d'expérience
+      - construit la description d'offre (ou utilise offer_description fournie)
+      - embed BERT: [CV_skills_text] et [offer_description]
+      - calcule similarité cosinus
+      - concat features: [emb_cv (768), emb_offer (768), cos_sim (1), num_scaled (2)] => 1539
+      - prédit via le classifieur entraîné "offer-aware"
+
+    Retourne le label + proba + debug (skills, exp, cos_sim, offer_desc_used)
+    """
+    # 1) Lire texte CV + skills + exp
+    try:
+        cv_text = _read_pdf_text(path_pdf) or ""
+    except Exception:
+        cv_text = ""
+
+    skills = extract_skills_from_cv(path_pdf)              # liste
+    exp_years = infer_experience_years_from_text(cv_text)  # int
+
+    # 2) Construire la description d'offre
+    if offer_description is None:
+        offer_description = _build_offer_description(offre_obj) if offre_obj is not None else ""
+
+    # 3) Embeddings BERT
+    skills_text = ", ".join(skills) if skills else cv_text
+    emb_cv     = _embed_cls(skills_text)         # (768,)
+    emb_offer  = _embed_cls(offer_description)   # (768,)
+
+    # 4) Similarité cosinus
+    cos_sim = _cosine_sim(emb_cv, emb_offer)
+
+    # 5) Numériques (mêmes colonnes que le scaler appris)
+    cols = getattr(_SCALER, 'feature_names_in_', ['Experience (Years)', 'Projects Count'])
+    num_df = pd.DataFrame([[int(exp_years), int(projects_count)]], columns=cols)
+    num = _SCALER.transform(num_df)  # (1,2)
+
+    # 6) Concat dans l’ordre de l’entraînement: [emb_skills | emb_desc | cos_sim | num_scaled]
+    X = np.hstack([
+        emb_cv.reshape(1, -1),
+        emb_offer.reshape(1, -1),
+        np.array([[cos_sim]], dtype=float),
+        num
+    ])
+
+    # 7) Prédiction
+    label_id = int(_CLF.predict(X)[0])
+    proba = float(_CLF.predict_proba(X)[0, label_id]) if hasattr(_CLF, "predict_proba") else None
+    label_text = _LE.inverse_transform([label_id])[0]
+    mapping = {"Reject": 0, "Hire": 1}
+    label_int = mapping.get(label_text, 0)
+
+    return {
+        "label": label_int,
+        "label_text": label_text,
+        "proba": proba,
+        "extracted_skills": skills,
+        "exp_years": int(exp_years),
+        "cos_sim": float(cos_sim),
+        "offer_description_used": offer_description
     }
