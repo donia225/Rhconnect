@@ -30,18 +30,18 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
 
-NIVEAU_TO_YEARS = {
-    'aucune': 0,
-    'moins_1_an': 0,
-    'entre_1_2_ans': 1,
-    'entre_2_5_ans': 3,
-    'entre_5_10_ans': 7,
-    'plus_10_ans': 12,
-}
+def years_to_level(years: int) -> str:
+    """
+    Mappe nombre d'années -> clé choices de Candidat.niveau_experience
+    """
+    y = int(years or 0)
+    if y <= 0:  return 'aucune'
+    if y < 1:   return 'moins_1_an'
+    if y < 2:   return 'entre_1_2_ans'
+    if y < 5:   return 'entre_2_5_ans'
+    if y < 10:  return 'entre_5_10_ans'
+    return 'plus_10_ans'
 
-def approx_years_from_text(txt: str) -> int:
-    m = re.search(r'(\d+)\s*(?:years?|ans?)', txt or '', flags=re.I)
-    return int(m.group(1)) if m else 0
 
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
@@ -307,26 +307,29 @@ def upload_cv(request):
             f"experience: {exp_r}".strip() if exp_r else "",
         ] if p])
 
-        # ---- 4) PREDICTION OFFER-AWARE
-        # IMPORTANT: nécessite que tu aies ajouté predict_from_pdf_with_offer dans predict_cv.py
         pred = pcv.predict_from_pdf_with_offer(
             tmp_path,
-            offre_obj=offre,                   # optionnel, on passe aussi l'objet
+            offre_obj=offre,                 
             offer_description=offer_description,
             projects_count=projects_count
         )
         print("PRED DEBUG:", pred)
 
-        # ---- 5) Sauvegarder le CV et éventuellement projects_count
+ 
+             # ===== MISE À JOUR CANDIDAT =====
+        exp_years = int(pred.get("exp_years") or 0)       # ⬅️ récupère l'XP calculée
+        level     = years_to_level(exp_years)              # ⬅️ mappe vers la clé choices
+
         candidat.cv = fichier_cv
+        candidat.niveau_experience = level                 # ⬅️ enregistre auto
         if projects_count_in is not None:
             try:
                 candidat.projects_count = int(projects_count_in)
             except Exception:
                 pass
-        candidat.save()
+        candidat.save(update_fields=['cv', 'niveau_experience', 'projects_count'])  # ⬅️
 
-        # ---- 6) Créer la candidature
+        # Créer la candidature
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
@@ -334,17 +337,14 @@ def upload_cv(request):
             label=pred.get("label"),
             ai_score=round((pred.get("proba") or 0) * 100, 2),
         )
-        print("CREATED CANDIDATURE:", candidature.id, candidature.label)
 
-        # ---- 7) Nettoyage temp
-        try:
-            os.remove(tmp_path)
-        except Exception:
-            pass
+        try: os.remove(tmp_path)
+        except Exception: pass
 
-        # ---- 8) Réponse
-        serializer = CandidatureSerializer(candidature)
-        return Response(serializer.data, status=201)
+        data = CandidatureSerializer(candidature, context={'request': request}).data
+        # (optionnel) renvoyer aussi exp_years & level pour debug/front
+        data.update({"exp_years": exp_years, "niveau_experience": level})  # ⬅️
+        return Response(data, status=201)
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
@@ -354,13 +354,12 @@ def upload_cv(request):
 @permission_classes([IsAuthenticated])
 def deja_postule(request, offre_id):
     user = request.user
-    try:
-        candidat = user.candidat  # s’assurer que `user` a une relation `OneToOne` vers Candidat
-    except Exception:
+    candidat = getattr(user, 'candidat_profile', None)   # <-- ici
+    if candidat is None:
         return Response({'error': 'Utilisateur non lié à un candidat'}, status=400)
 
-    deja_postule = Candidature.objects.filter(candidat=candidat, offre_id=offre_id).exists()
-    return Response({'deja_postule': deja_postule})
+    deja = Candidature.objects.filter(candidat_id=candidat.id, offre_id=offre_id).exists()
+    return Response({'dejapostule': deja})
 
 @api_view(['GET'])
 @permission_classes([AllowAny])   # <-- plus de restriction
@@ -418,9 +417,9 @@ def candidat_profil(request):
         # Maj données candidat
         candidat.date_naissance = request.data.get('date_naissance')
         candidat.niveau_etude = request.data.get('niveau_etude')
-        candidat.niveau_experience = request.data.get('niveau_experience')
+        # candidat.niveau_experience = request.data.get('niveau_experience')
         candidat.numero_tel = request.data.get('numero_tel')
-        candidat.adresse = request.data.get('adresse'),
+        candidat.adresse = request.data.get('adresse')
         candidat.projects_count =request.data.get('projects_count')
 
         # Upload fichier CV si envoyé

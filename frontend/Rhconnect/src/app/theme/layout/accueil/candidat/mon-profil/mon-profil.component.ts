@@ -24,7 +24,7 @@ export class MonProfilComponent implements OnInit {
       prenom: [{ value: '', disabled: true }],
       date_naissance: [''],
       niveau_etude: [''],
-      niveau_experience: [''],
+      // niveau_experience: [''],
       numero_tel: [''],
       adresse: [''],
       cv: [null],

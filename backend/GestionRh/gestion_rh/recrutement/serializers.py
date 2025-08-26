@@ -15,6 +15,7 @@ class CandidatSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     cv_url = serializers.SerializerMethodField(read_only=True)
     niveau_etude_label = serializers.CharField(source='get_niveau_etude_display', read_only=True)
+    niveau_experience = serializers.CharField(read_only=True)
     niveau_experience_label = serializers.CharField(source='get_niveau_experience_display', read_only=True)
 
     class Meta:

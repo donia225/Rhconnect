@@ -234,14 +234,15 @@ verifierSiDejaPostulee() {
   });
 
   this.http.get<any>(
-    `${environment.apiUrl}/candidatures/deja-postule/${this.selectedOffer.id}/`,
+    `${environment.apiUrl}/candidatures/dejapostule/${this.selectedOffer.id}/`,
     { headers }
   ).subscribe({
     next: (res) => {
-      this.dejaPostulee = res.deja_postule;
+      this.dejaPostulee = res.dejapostule;
     },
     error: (err) => {
       console.error("Erreur lors de la vérification de postulation :", err);
+       this.dejaPostulee = false;
     }
   });
 }

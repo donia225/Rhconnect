@@ -10,11 +10,11 @@ from datetime import datetime
 import pdfplumber
 import math
 
-# Dossier des artefacts
+#Dossier des artefacts
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 _BERT_DIR = _THIS_DIR
 
-# Charger configs/artefacts
+#Chargement des configs/artefacts
 _CFG = json.load(open(os.path.join(_BERT_DIR, "bert_config.json")))
 _HF_NAME = _CFG.get("hf_model_name", "bert-base-uncased")
 _MAXLEN  = int(_CFG.get("max_length", 128))
@@ -29,9 +29,8 @@ _LE     = joblib.load(os.path.join(_BERT_DIR, "label_encoder.pkl"))
 
 
 
-# --- .doc (legacy) : nécessite textract (et catdoc/antiword selon OS)
 try:
-    import textract  # pip install textract
+    import textract
     _HAS_TEXTRACT = True
 except Exception:
     _HAS_TEXTRACT = False
@@ -49,7 +48,7 @@ def _clean_text(text: str) -> str:
     return text.strip()
 
 
-# Charger FR puis fallback EN une seule fois
+# Chargement FR puis fallback EN une seule fois
 try:
     import spacy
     _NLP = spacy.load("fr_core_news_md")
@@ -58,11 +57,11 @@ except Exception:
         import spacy
         _NLP = spacy.load("en_core_web_sm")
     except Exception:
-        _NLP = None  # au cas où spaCy n'est pas dispo
+        _NLP = None
 
 
 def _read_pdf_text(path_pdf: str) -> str:
-    """Retourne le texte concaténé de toutes les pages."""
+    """elle retourne le texte concaténé de toutes les pages."""
     parts = []
     with pdfplumber.open(path_pdf) as pdf:
         for page in pdf.pages:
@@ -77,13 +76,13 @@ def _normalize_whitespace(s: str) -> str:
 
 
 def extract_skills_from_cv(path_pdf: str) -> list[str]:
-    # 1) lire le texte brut du PDF
+    #lire le texte brut du PDF
     raw = _read_pdf_text(path_pdf) or ""
     if not raw:
         return []
 
     txt = raw.replace("\xa0", " ")
-    # 2) isoler la section compétences (FR/EN)
+    #isoler la section compétences (FR/EN)
     sec_re = re.compile(
         r"(comp[eé]tences(?:\s+techniques)?|skills|technical\s+skills)\s*:?\s*(.*?)"
         r"(?=\n\s*(formation|exp[eé]rience|experience|education|projets?|projects?)\b|$)",
@@ -91,15 +90,15 @@ def extract_skills_from_cv(path_pdf: str) -> list[str]:
     )
     blocks = [m.group(2) for m in sec_re.finditer(txt)]
     if not blocks:
-        # si on ne trouve pas la section, on travaille sur tout le texte (dégradé)
+        #si on ne trouve pas la section, on travaille sur tout le texte
         blocks = [txt]
 
-    # 3) pattern qui accepte lettres/chiffres/symboles tech
+    #pattern qui accepte lettres/chiffres/symboles tech
     tech_pat = re.compile(
         r"""
         (?:
-            [A-Za-z][A-Za-z0-9\+\#\.\-]{1,}      # ReactJS, TypeScript, .NET, Node.js, C++, C#, HTML5, CSS3
-            (?:\s+[A-Za-z][A-Za-z0-9\+\#\.\-]{1,})*  # Spring Boot, Open Stack (on normalisera ensuite)
+            [A-Za-z][A-Za-z0-9\+\#\.\-]{1,}      #exemple .NET, Node.js, C++
+            (?:\s+[A-Za-z][A-Za-z0-9\+\#\.\-]{1,})* 
         )
         """,
         re.VERBOSE
@@ -107,7 +106,7 @@ def extract_skills_from_cv(path_pdf: str) -> list[str]:
 
     # 4) mots à ignorer (trop génériques)
     blacklist = {
-        "competence", "compétence", "competences", "compétences",
+        "competence", "compétence", "competences",
         "technique", "techniques", "technologies", "technologie",
         "developpement", "développement", "logiciel", "logiciels",
         "outils", "outil", "cloud", "langues", "profil", "resume", "cv"
@@ -116,14 +115,14 @@ def extract_skills_from_cv(path_pdf: str) -> list[str]:
     found, seen = [], set()
 
     for block in blocks:
-        # nettoyer les puces et séparer
+        #elle nettoie les puces et les séparer
         b = block.replace("•", " ").replace("·", " ").replace("|", " ")
-        # récupérer toutes les “technos” possibles
+        #récupérer toutes les “technos” possibles
         for m in tech_pat.finditer(b):
             token = m.group(0).strip()
 
             # normalisations légères
-            token = re.sub(r"\s{2,}", " ", token)           # espaces multiples -> 1
+            token = re.sub(r"\s{2,}", " ", token)
             token = token.replace("Open Stack", "OpenStack")
             token = token.replace("React Js", "ReactJS")
             token = token.replace("Node Js", "Node.js")

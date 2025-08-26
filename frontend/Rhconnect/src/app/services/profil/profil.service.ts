@@ -35,7 +35,7 @@ export class ProfilService {
   }
 
   isProfilIncomplet(profil: any): boolean {
-  return !profil.date_naissance || !profil.numero_tel || !profil.adresse || !profil.niveau_etude || !profil.niveau_experience;
+  return !profil.date_naissance || !profil.numero_tel || !profil.adresse || !profil.niveau_etude || !profil.projects_count;
 }
 
 }
