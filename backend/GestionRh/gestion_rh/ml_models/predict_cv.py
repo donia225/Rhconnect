@@ -5,7 +5,7 @@ from typing import Optional
 import pandas as pd
 import PyPDF2
 from docx import Document  # pip install python-docx
-import re
+import re, unicodedata
 from datetime import datetime
 import pdfplumber
 import math
@@ -35,6 +35,80 @@ try:
 except Exception:
     _HAS_TEXTRACT = False
 
+def _exp_bucket_and_phrase(years) -> tuple[str, str]:
+    try:
+        y = float(years)
+    except Exception:
+    #mapping experience
+     y = 0.0
+    if y <= 0:   return "aucune",        "aucune"
+    if y < 1:    return "moins_1_an",    "moins de 1 an"
+    if y < 2:    return "entre_1_2_ans", "1 à 2 ans"
+    if y < 5:    return "entre_2_5_ans", "2 à 5 ans"
+    if y < 10:   return "entre_5_10_ans","5 à 10 ans"
+    return "plus_10_ans", "plus de 10 ans"
+
+def _strip_accents(s: str) -> str:
+    return "".join(ch for ch in unicodedata.normalize("NFD", s) if unicodedata.category(ch) != "Mn")
+
+    #extraction education du texte de cv
+_EDU_PATTERNS_NORM = [
+    # PhD / Doctorat
+    (r"\b(ph\.?\s*d|doctorat|doctorate)\b", "PhD / Doctorat"),
+    # MBA
+    (r"\b(mba|master\s+of\s+business\s+administration)\b", "MBA"),
+    # Diplôme d'ingénieur & variantes (y compris 'cycle d'ingenieur' / 'ecole d'ingenieur')
+    (r"\b(diplome\s+d['’]?\s*ingenieur|ingeniorat|ing\.\b|b\.?\s?eng\b|m\.?\s?eng\b|"
+     r"master\s+of\s+engineering|cycle\s+d['’]?\s*ingenieur|ecole\s+(?:superieure\s+)?d['’]?\s*ingenieurs?)\b",
+     "Diplôme d'ingénieur (Bac+5)"),
+    # Master / Maîtrise / Mastère / MSc
+    (r"\b(master(?:'s)?|msc|maitrise|mastere)\b", "Master"),
+    # Licence / Bachelor (+ pro/app/fonda) – Bac+3/4
+    (r"\b(bachelor|licence(?:\s+(?:pro|professionnelle|appliquee|fondamentale))?|bac\+3|bac\+4)\b",
+     "Licence / Bachelor"),
+    # Bac+2 (BTS/DUT/DEUST/IUT/BTP)
+    (r"\b(dut|iut|deust|bts|btp|brevet\s+de\s+technicien(?:\s+superieur)?)\b",
+     "Bac+2 (BTS/DUT/DEUST)"),
+    # Classes préparatoires
+    (r"\b(cpge|classes?\s+preparatoires?|prepa)\b", "Classes préparatoires"),
+    # Secondaire
+    (r"\b(bac(?:calaureat)?|baccalaureat|high\s*school|secondary\s+school|lycee)\b", "Bac"),
+]
+
+_BAC_PLUS_NORM = [
+    (r"\bbac\s*\+\s*5\b", "Bac+5 (Master/Ingénieur)"),
+    (r"\bbac\s*\+\s*4\b", "Bac+4"),
+    (r"\bbac\s*\+\s*3\b", "Bac+3 (Licence)"),
+    (r"\bbac\s*\+\s*2\b", "Bac+2 (BTS/DUT)"),
+]
+
+def _extract_education_phrase_from_text(text: str) -> str:
+    """
+    Renvoie un libellé court du plus haut niveau détecté.
+    - normalise apostrophes ‘ ’ -> '
+    - supprime accents pour matcher des motifs 'sans accents'
+    - cible d'abord la zone 'formation/education', sinon tout le texte
+    """
+    t = (text or "")
+    # normalisations
+    t = t.replace("\u2019", "'").replace("\u2018", "'").replace("\u201B", "'").replace("\xa0", " ")
+    t_norm = _strip_accents(t.lower())
+
+    # Restreindre la zone si possible
+    m = re.search(r"(?:education|formation|dipl[o\s]*me|degree)\b[\s:]*([\s\S]{0,2000})", t_norm, flags=re.IGNORECASE)
+    zone = m.group(0) if m else t_norm
+
+    # 1) motifs structurés (plus haut niveau = premier match rencontré, ordre important)
+    for pat, label in _EDU_PATTERNS_NORM:
+        if re.search(pat, zone, flags=re.IGNORECASE):
+            return label
+
+    # 2) Bac+X explicite (sur tout le texte)
+    for pat, label in _BAC_PLUS_NORM:
+        if re.search(pat, t_norm, flags=re.IGNORECASE):
+            return label
+
+    return ""
 
 def _clean_text(text: str) -> str:
     """Nettoie les espaces/retraits multiples et normalise le texte."""
@@ -74,7 +148,6 @@ def _read_pdf_text(path_pdf: str) -> str:
 def _normalize_whitespace(s: str) -> str:
     return re.sub(r"[ \t]+", " ", re.sub(r"\n{2,}", "\n", s)).strip()
 
-
 def extract_skills_from_cv(path_pdf: str) -> list[str]:
     #lire le texte brut du PDF
     raw = _read_pdf_text(path_pdf) or ""
@@ -96,10 +169,8 @@ def extract_skills_from_cv(path_pdf: str) -> list[str]:
     #pattern qui accepte lettres/chiffres/symboles tech
     tech_pat = re.compile(
         r"""
-        (?:
-            [A-Za-z][A-Za-z0-9\+\#\.\-]{1,}      #exemple .NET, Node.js, C++
-            (?:\s+[A-Za-z][A-Za-z0-9\+\#\.\-]{1,})* 
-        )
+        (?:[A-Za-z][A-Za-z0-9\+\#\.\-]{1,}      #exemple .NET, Node.js, C++
+        (?:\s+[A-Za-z][A-Za-z0-9\+\#\.\-]{1,})*)
         """,
         re.VERBOSE
     )
@@ -314,7 +385,6 @@ def _build_offer_description(offre) -> str:
     que celui utilisé à l'entraînement: titre/description + skills + education + experience.
     """
     def _as_text(x):
-        # gère texte, None, ou ManyToMany/list -> "a, b, c"
         if x is None:
             return ""
         if isinstance(x, (list, tuple, set)):
@@ -329,6 +399,9 @@ def _build_offer_description(offre) -> str:
 
     title = _as_text(getattr(offre, "titre", "")) or _as_text(getattr(offre, "job_title", ""))
     desc  = _as_text(getattr(offre, "description", "")) or _as_text(getattr(offre, "details", ""))
+    skills_offer = _as_text(getattr(offre, "competences", "")) or _as_text(getattr(offre, "skills", ""))
+    education    = _as_text(getattr(offre, "niveau_etude", "")) or _as_text(getattr(offre, "education", ""))
+    exp_required = _as_text(getattr(offre, "experience", ""))   or _as_text(getattr(offre, "experience_requise", ""))
 
     # essaie plusieurs noms possibles
     skills_offer = (
@@ -351,6 +424,9 @@ def _build_offer_description(offre) -> str:
     parts = []
     if title: parts.append(title)
     if desc:  parts.append(desc)
+    if skills_offer: parts.append(f"required skills: {skills_offer}")
+    if education:    parts.append(f"education: {education}")
+    if exp_required: parts.append(f"experience: {exp_required}")
 
     # garde le même phrasé que le training (required skills / education / experience)
     if skills_offer:
@@ -362,11 +438,31 @@ def _build_offer_description(offre) -> str:
 
     return " — ".join([p for p in parts if p]).strip()
 
-# --- UTILITAIRE: cosinus une-ligne (pas besoin de scikit ici)
+
 def _cosine_sim(u: np.ndarray, v: np.ndarray, eps: float = 1e-8) -> float:
     num = float(np.dot(u, v))
     den = (np.linalg.norm(u) * np.linalg.norm(v)) + eps
     return num / den
+
+def _top_skill_sims(skills_list, offer_description, topn: int = 15):
+    """
+    Retourne les top-n similarités (skill CV ↔ description d'offre) triées décroissantes.
+    Format: [(sim, "skill"), ...]
+    NB: coûteux (1 embedding BERT par skill) → à utiliser en debug uniquement.
+    """
+    if not offer_description or not skills_list:
+        return []
+    emb_offer = _embed_cls(offer_description)
+    rows = []
+    for s in skills_list or []:
+        s = (s or "").strip()
+        if not s:
+            continue
+        sim = float(_cosine_sim(_embed_cls(s), emb_offer))
+        rows.append((sim, s))
+    rows.sort(key=lambda x: x[0], reverse=True)
+    return rows[:topn]
+
 
 # ---------- Wrapper PDF ----------
 def infer_experience_years_from_cv(path_pdf: str) -> int:
@@ -508,7 +604,9 @@ def predict_from_pdf(path_pdf: str, projects_count: int = 0) -> dict:
 def predict_from_pdf_with_offer(path_pdf: str,
                                 offre_obj=None,
                                 offer_description: str | None = None,
-                                projects_count: int = 0) -> dict:
+                                projects_count: int = 0,
+                                debug_topn: int = 0,         # <-- NEW
+                                debug_print: bool = False):  # <-- NEW
     """
     Lecture du CV (PDF) + comparaison à l'OFFRE:
       - extrait compétences CV et années d'expérience
@@ -527,19 +625,33 @@ def predict_from_pdf_with_offer(path_pdf: str,
         cv_text = ""
 
     skills = extract_skills_from_cv(path_pdf)              # liste
-    exp_years = infer_experience_years_from_text(cv_text)  # int
+    exp_years = infer_experience_years_from_text(cv_text)
+    _, exp_phrase = _exp_bucket_and_phrase(exp_years)
+    edu_phrase = _extract_education_phrase_from_text(cv_text)
+    edu_phrase = _extract_education_phrase_from_text(cv_text)
+    print("DEBUG EDU ->", edu_phrase)  # devrait renvoyer "Diplôme d'ingénieur (Bac+5)" ici
+
 
     # 2) Construire la description d'offre
     if offer_description is None:
         offer_description = _build_offer_description(offre_obj) if offre_obj is not None else ""
 
-    # 3) Embeddings BERT
+   # 5) textes à embedder
     skills_text = ", ".join(skills) if skills else cv_text
-    emb_cv     = _embed_cls(skills_text)         # (768,)
-    emb_offer  = _embed_cls(offer_description)   # (768,)
+    exp_text    = f"experience: {exp_phrase}" if exp_phrase else ""
+    edu_text    = f"education: {edu_phrase}" if edu_phrase else ""
 
-    # 4) Similarité cosinus
-    cos_sim = _cosine_sim(emb_cv, emb_offer)
+    # 6) embeddings BERT
+    emb_cv     = _embed_cls(skills_text)       # (768,)
+    emb_offer  = _embed_cls(offer_description) # (768,)
+    emb_exp    = _embed_cls(exp_text)          # (768,)
+    emb_edu    = _embed_cls(edu_text)          # (768,)
+
+    # 7) similarités
+    cos_sk_desc  = _cosine_sim(emb_cv,   emb_offer)
+    cos_exp_desc = _cosine_sim(emb_exp,  emb_offer)
+    cos_edu_desc = _cosine_sim(emb_edu,  emb_offer)
+
 
     # 5) Numériques (mêmes colonnes que le scaler appris)
     cols = getattr(_SCALER, 'feature_names_in_', ['Experience (Years)', 'Projects Count'])
@@ -548,25 +660,31 @@ def predict_from_pdf_with_offer(path_pdf: str,
 
     # 6) Concat dans l’ordre de l’entraînement: [emb_skills | emb_desc | cos_sim | num_scaled]
     X = np.hstack([
-        emb_cv.reshape(1, -1),
-        emb_offer.reshape(1, -1),
-        np.array([[cos_sim]], dtype=float),
-        num
+        emb_cv.reshape(1, -1),           # 768
+        emb_offer.reshape(1, -1),        # 768
+        np.array([[cos_sk_desc]], dtype=float),   # +1
+        np.array([[cos_exp_desc]], dtype=float),  # +1
+        np.array([[cos_edu_desc]], dtype=float),  # +1
+        num                                         # +2  => 1541
     ])
 
-    # 7) Prédiction
     label_id = int(_CLF.predict(X)[0])
     proba = float(_CLF.predict_proba(X)[0, label_id]) if hasattr(_CLF, "predict_proba") else None
     label_text = _LE.inverse_transform([label_id])[0]
     mapping = {"Reject": 0, "Hire": 1}
     label_int = mapping.get(label_text, 0)
-
+    
     return {
         "label": label_int,
         "label_text": label_text,
         "proba": proba,
         "extracted_skills": skills,
         "exp_years": int(exp_years),
-        "cos_sim": float(cos_sim),
+        "exp_phrase": exp_phrase,
+        "edu_phrase": edu_phrase,
+        "cos_sim_skills_desc": float(cos_sk_desc),
+        "cos_sim_exp_desc": float(cos_exp_desc),
+        "cos_sim_edu_desc": float(cos_edu_desc),
         "offer_description_used": offer_description
+    
     }

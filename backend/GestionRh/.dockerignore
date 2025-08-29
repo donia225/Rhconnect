@@ -1,15 +1,37 @@
+# Python caches
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+
+# Virtualenvs
+.venv/
+my_venv/
+
+# DB & logs
 *.db
 *.sqlite3
 *.log
+
+# Env files
 *.env
 .env.*
-*.bak
-*.swp
-media/
-my_venv/
+
+# IDE / tooling
 .idea/
 .vscode/
-.git/
+*.swp
+*.bak
+
+# Build/test artifacts
 tests/
+*.egg-info/
+.tox/
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+coverage.xml
+build/
+
+# Git
+.git/

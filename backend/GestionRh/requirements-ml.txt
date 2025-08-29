@@ -1,0 +1,20 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+torchvision==0.23.0+cpu
+torchaudio==2.8.0+cpu
+
+# Stack scientifique
+numpy==2.0.0
+scipy==1.15.3
+pandas==2.2.2
+scikit-learn==1.6.1
+tqdm==4.67.1
+
+# NLP
+spacy==3.8.5
+transformers==4.55.2
+sentencepiece==0.2.0
+
+requests==2.32.3
+smart-open==7.1.0
+cloudpathlib==0.21.0

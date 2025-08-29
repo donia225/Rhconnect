@@ -30,10 +30,8 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
 
+
 def years_to_level(years: int) -> str:
-    """
-    Mappe nombre d'années -> clé choices de Candidat.niveau_experience
-    """
     y = int(years or 0)
     if y <= 0:  return 'aucune'
     if y < 1:   return 'moins_1_an'
@@ -41,7 +39,6 @@ def years_to_level(years: int) -> str:
     if y < 5:   return 'entre_2_5_ans'
     if y < 10:  return 'entre_5_10_ans'
     return 'plus_10_ans'
-
 
 
 User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
@@ -240,13 +237,12 @@ def modifier_offre(request, id):
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])  # mets IsAuthenticated si tu veux sécuriser
 def upload_cv(request):
+    tmp_path = None
     try:
         fichier_cv = request.FILES.get('cv')
         candidat_id = request.data.get('candidat')
         offre_id = request.data.get('offre')
-
-        # Optionnel: projects_count passé par le front (sinon on prend celui du candidat)
-        projects_count_in = request.data.get('projects_count')
+        projects_count_in = request.data.get('projects_count')  # optionnel
 
         if not fichier_cv or not candidat_id or not offre_id:
             return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
@@ -254,82 +250,84 @@ def upload_cv(request):
         candidat = get_object_or_404(Candidat, id=candidat_id)
         offre = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # ---- 1) Écrire le fichier dans un temp
+        # --- 1) Vérif extension + write temp
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
         _, ext = os.path.splitext(name)
-        if ext.lower() not in {".pdf", ".docx", ".doc"}:
-            return Response({"error": "Format non supporté. Utilise un PDF (.pdf)."}, status=400)
+        ext = ext.lower()
+        if ext not in {".pdf", ".docx", ".doc"}:
+            return Response({"error": "Formats acceptés : .pdf, .docx, .doc"}, status=400)
 
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
             for chunk in fichier_cv.chunks():
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # ---- 2) projects_count
+        # --- 2) projects_count (priorité au front, sinon candidat)
         try:
-            projects_count = int(projects_count_in) if projects_count_in is not None else int(candidat.projects_count or 0)
+            projects_count = int(projects_count_in) if projects_count_in is not None \
+                             else int(getattr(candidat, "projects_count", 0) or 0)
         except Exception:
             projects_count = 0
 
-        # ---- 3) construire la description d'offre (mêmes signaux que le training)
-        def _as_text(x):
-            if x is None:
-                return ""
-            try:
-                if hasattr(x, "all"):
-                    return ", ".join(map(str, x.all()))
-            except Exception:
-                pass
-            if isinstance(x, (list, tuple, set)):
-                return ", ".join(map(str, x))
-            return str(x)
-
-        titre = _as_text(getattr(offre, "titre", "")) or _as_text(getattr(offre, "job_title", ""))
-        desc  = _as_text(getattr(offre, "description", "")) or _as_text(getattr(offre, "details", ""))
-
-        comps = ""
-        try:
-            if hasattr(offre, "competences") and hasattr(offre.competences, "all"):
-                comps = ", ".join(map(str, offre.competences.all()))
-            else:
-                comps = _as_text(getattr(offre, "competences", "")) or _as_text(getattr(offre, "skills", ""))
-        except Exception:
-            comps = _as_text(getattr(offre, "competences", "")) or _as_text(getattr(offre, "skills", ""))
-
-        edu   = _as_text(getattr(offre, "niveau_etude", "")) or _as_text(getattr(offre, "education", ""))
-        exp_r = _as_text(getattr(offre, "experience_requise", "")) or _as_text(getattr(offre, "niveau_experience", ""))
-
-        offer_description = " — ".join([p for p in [
-            titre.strip() if titre else "",
-            desc.strip() if desc else "",
-            f"required skills: {comps}".strip() if comps else "",
-            f"education: {edu}".strip() if edu else "",
-            f"experience: {exp_r}".strip() if exp_r else "",
-        ] if p])
-
+        # --- 3) PRÉDICTION offer-aware
         pred = pcv.predict_from_pdf_with_offer(
             tmp_path,
-            offre_obj=offre,                 
-            offer_description=offer_description,
-            projects_count=projects_count
+            offre_obj=offre,         # _build_offer_description(offre) utilisé en interne
+            offer_description=None,  # None => utilise l'objet offre
+            projects_count=projects_count,
+            debug_topn=15,         # affiche/retourne les 15 meilleurs
+            debug_print=True  
         )
-        print("PRED DEBUG:", pred)
+        # ===== DEBUG CONSOLE (s'affiche dans le terminal runserver) =====
+        print("=== AI PREDICTION ===")
+        print(f"Label: {pred.get('label_text')} ({pred.get('label')}) | Proba: {float(pred.get('proba') or 0):.3f}")
 
- 
-             # ===== MISE À JOUR CANDIDAT =====
-        exp_years = int(pred.get("exp_years") or 0)       # ⬅️ récupère l'XP calculée
-        level     = years_to_level(exp_years)              # ⬅️ mappe vers la clé choices
+        offer_txt = (pred.get('offer_description_used') or '')
+        print("---- OFFER DESCRIPTION ----")
+        print(offer_txt[:1000])  # limite à 1000 caractères pour éviter de flood
 
-        candidat.cv = fichier_cv
-        candidat.niveau_experience = level                 # ⬅️ enregistre auto
-        if projects_count_in is not None:
-            try:
-                candidat.projects_count = int(projects_count_in)
-            except Exception:
-                pass
-        candidat.save(update_fields=['cv', 'niveau_experience', 'projects_count'])  # ⬅️
+        skills_list = pred.get('extracted_skills') or []
+        print("---- CV SKILLS ----")
+        print(", ".join(skills_list[:40]))  # affiche au max 40 skills
+        
+        print("---- CV META ----")
+        print(f"Experience: {int(pred.get('exp_years') or 0)} ans ({pred.get('exp_phrase') or 'N/A'})")
+        print(f"Education: {pred.get('edu_phrase') or 'N/A'}")
 
-        # Créer la candidature
+        print("---- COSINE SIMS ----")
+        print(
+        "skills↔desc: %.3f | exp↔desc: %.3f | edu↔desc: %.3f" % (
+        float(pred.get('cos_sim_skills_desc') or 0.0),
+        float(pred.get('cos_sim_exp_desc') or 0.0),
+        float(pred.get('cos_sim_edu_desc') or 0.0),
+    )
+)
+        print("=======================\n")
+        # keys: label, label_text, proba, extracted_skills, exp_years, exp_phrase, edu_phrase,
+        #       cos_sim_skills_desc, cos_sim_exp_desc, cos_sim_edu_desc, offer_description_used
+
+        # --- 4) MAJ candidat (cv, niveau_experience, projects_count)
+        exp_years = int(pred.get("exp_years") or 0)
+        level = years_to_level(exp_years)
+
+        update_fields = []
+        if hasattr(candidat, "cv"):
+            candidat.cv = fichier_cv
+            update_fields.append("cv")
+        if hasattr(candidat, "niveau_experience"):
+            candidat.niveau_experience = level
+            update_fields.append("niveau_experience")
+        if hasattr(candidat, "projects_count"):
+            if projects_count_in is not None:
+                try:
+                    candidat.projects_count = int(projects_count_in)
+                    update_fields.append("projects_count")
+                except Exception:
+                    pass
+        if update_fields:
+            candidat.save(update_fields=update_fields)
+
+        # --- 5) Créer la candidature
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
@@ -338,16 +336,27 @@ def upload_cv(request):
             ai_score=round((pred.get("proba") or 0) * 100, 2),
         )
 
-        try: os.remove(tmp_path)
-        except Exception: pass
-
         data = CandidatureSerializer(candidature, context={'request': request}).data
-        # (optionnel) renvoyer aussi exp_years & level pour debug/front
-        data.update({"exp_years": exp_years, "niveau_experience": level})  # ⬅️
+        # bonus debug pour le front (retire en prod si tu veux)
+        data.update({
+            "exp_years": exp_years,
+            "niveau_experience": level,
+            "exp_phrase": pred.get("exp_phrase"),
+            "edu_phrase": pred.get("edu_phrase"),
+            "cos_sim_skills_desc": pred.get("cos_sim_skills_desc"),
+            "cos_sim_exp_desc": pred.get("cos_sim_exp_desc"),
+            "cos_sim_edu_desc": pred.get("cos_sim_edu_desc"),
+        })
         return Response(data, status=201)
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    finally:
+        if tmp_path:
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
 
 @api_view(['GET'])

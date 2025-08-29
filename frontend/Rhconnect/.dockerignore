@@ -1,7 +1,10 @@
+# Angular build artifacts
+dist/
 .angular/
 node_modules/
-dist/
+.cache/
+coverage/
+
+# Config/docs
 .git/
 .gitignore
-Dockerfile
-README.md
