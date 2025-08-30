@@ -1,14 +1,82 @@
-.card {
-  border: none !important;
-  box-shadow: none !important;
-}
-::placeholder {
-  color: #adb5bd !important;  /* Couleur placeholder Bootstrap 5 */
-  opacity: 1; /* pour éviter les problèmes avec certains navigateurs */
+
+.elevated-card .card {
+  border: 1px solid #eef2f7;
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
 }
 
-input.form-control,
-textarea.form-control {
-  background-color: #f8f9fa !important; /* gris clair */
-  border: 1px solid #ced4da;
+.offer-form .form-title {
+  font-weight: 700;
+  letter-spacing: .2px;
+  margin-bottom: .25rem;
 }
+
+.offer-form label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: .5rem;
+}
+
+.offer-form .modern-input {
+  --radius: 14px;
+  --border: #e5e7eb;   
+  --bg: #f9fafb;    
+  --focus: #6366f1;
+
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+
+.offer-form .modern-input:hover {
+  border-color: #d1d5db;
+}
+
+.offer-form .modern-input:focus {
+  background: #fff;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 .25rem rgba(99, 102, 241, 0.15);
+  outline: none;
+}
+
+.offer-form textarea.modern-input {
+  min-height: 140px;
+  resize: vertical;
+}
+
+
+.offer-form .modern-input::placeholder,
+.offer-form textarea.modern-input::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+.pill-btn {
+  border-radius: 999px;
+  padding: .6rem 1.25rem;
+}
+
+.btn-primary.pill-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border: none;
+}
+.btn-primary.pill-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(79, 70, 229, .25);
+}
+
+.soft-btn {
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+.soft-btn:hover {
+  background: #f3f4f6;
+}
+
+.form-group { margin-bottom: 1rem; }
+.row.gy-4 { row-gap: 1.25rem; }
+
+.form-control { border-radius: 14px; }

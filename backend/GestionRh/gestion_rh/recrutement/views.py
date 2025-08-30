@@ -7,7 +7,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 
 from gestion_rh import settings
-from ml_models import predict_cv as pcv
 import re
 from .models import Employe, OffreEmploi, Candidature, SuiviCarriereEmploye
 from .serializers import CandidatSerializer, CandidatureSerializer, EmployeProfilEtSuivisSerializer, EmployeSerializer, OffreEmploiSerializer, SuiviCarriereEmployeSerializer
@@ -16,9 +15,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Candidat
 from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
-from .ia_tests.analyse_cv import analyser_cv, extract_skills_from_cv
 from PyPDF2 import PdfReader, PdfWriter
-import joblib
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
@@ -237,6 +234,9 @@ def modifier_offre(request, id):
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])  # mets IsAuthenticated si tu veux sécuriser
 def upload_cv(request):
+    if not getattr(settings, "ML_ENABLED", False):
+        return Response({"error": "ML is disabled on this build."}, status=503)
+    from ml_models import predict_cv as pcv
     tmp_path = None
     try:
         fichier_cv = request.FILES.get('cv')
@@ -278,17 +278,17 @@ def upload_cv(request):
             debug_topn=15,         # affiche/retourne les 15 meilleurs
             debug_print=True  
         )
-        # ===== DEBUG CONSOLE (s'affiche dans le terminal runserver) =====
+
         print("=== AI PREDICTION ===")
         print(f"Label: {pred.get('label_text')} ({pred.get('label')}) | Proba: {float(pred.get('proba') or 0):.3f}")
 
         offer_txt = (pred.get('offer_description_used') or '')
         print("---- OFFER DESCRIPTION ----")
-        print(offer_txt[:1000])  # limite à 1000 caractères pour éviter de flood
+        print(offer_txt[:1000])
 
         skills_list = pred.get('extracted_skills') or []
         print("---- CV SKILLS ----")
-        print(", ".join(skills_list[:40]))  # affiche au max 40 skills
+        print(", ".join(skills_list[:40]))
         
         print("---- CV META ----")
         print(f"Experience: {int(pred.get('exp_years') or 0)} ans ({pred.get('exp_phrase') or 'N/A'})")
@@ -303,10 +303,9 @@ def upload_cv(request):
     )
 )
         print("=======================\n")
-        # keys: label, label_text, proba, extracted_skills, exp_years, exp_phrase, edu_phrase,
-        #       cos_sim_skills_desc, cos_sim_exp_desc, cos_sim_edu_desc, offer_description_used
 
-        # --- 4) MAJ candidat (cv, niveau_experience, projects_count)
+
+        #MAJ candidat 
         exp_years = int(pred.get("exp_years") or 0)
         level = years_to_level(exp_years)
 
@@ -327,7 +326,6 @@ def upload_cv(request):
         if update_fields:
             candidat.save(update_fields=update_fields)
 
-        # --- 5) Créer la candidature
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
@@ -337,7 +335,6 @@ def upload_cv(request):
         )
 
         data = CandidatureSerializer(candidature, context={'request': request}).data
-        # bonus debug pour le front (retire en prod si tu veux)
         data.update({
             "exp_years": exp_years,
             "niveau_experience": level,
@@ -363,7 +360,7 @@ def upload_cv(request):
 @permission_classes([IsAuthenticated])
 def deja_postule(request, offre_id):
     user = request.user
-    candidat = getattr(user, 'candidat_profile', None)   # <-- ici
+    candidat = getattr(user, 'candidat_profile', None)
     if candidat is None:
         return Response({'error': 'Utilisateur non lié à un candidat'}, status=400)
 
@@ -371,7 +368,7 @@ def deja_postule(request, offre_id):
     return Response({'dejapostule': deja})
 
 @api_view(['GET'])
-@permission_classes([AllowAny])   # <-- plus de restriction
+@permission_classes([AllowAny])
 def list_candidats(request):
     candidats = Candidat.objects.select_related('user').all()
     serializer = CandidatSerializer(candidats, many=True, context={'request': request})
@@ -386,10 +383,8 @@ def get_candidat_id(request):
 
     candidat = get_object_or_404(Candidat.objects.select_related('user'), user=user)
 
-    # Utiliser le serializer (avec request pour générer l’URL absolue du CV si ton serializer le fait)
     data = CandidatSerializer(candidat, context={'request': request}).data
 
-    # Si tu veux garder aussi l'ID à la racine de la réponse:
     data.update({"candidat_id": candidat.id})
 
     return Response(data, status=200)
@@ -418,12 +413,12 @@ def candidat_profil(request):
         return Response(data)
 
     elif request.method == 'PUT':
-        # Maj données utilisateur (si autorisé)
+
         user.first_name = request.data.get('prenom', user.first_name)
         user.last_name = request.data.get('nom', user.last_name)
         user.save()
 
-        # Maj données candidat
+
         candidat.date_naissance = request.data.get('date_naissance')
         candidat.niveau_etude = request.data.get('niveau_etude')
         # candidat.niveau_experience = request.data.get('niveau_experience')
@@ -431,7 +426,6 @@ def candidat_profil(request):
         candidat.adresse = request.data.get('adresse')
         candidat.projects_count =request.data.get('projects_count')
 
-        # Upload fichier CV si envoyé
         if 'cv' in request.FILES:
             candidat.cv = request.FILES['cv']
 
@@ -444,7 +438,6 @@ def candidat_profil(request):
 @permission_classes([IsAuthenticated])
 def mes_candidatures(request):
     user = request.user
-    # Filtrer les candidatures du candidat connecté
     candidatures = Candidature.objects.filter(candidat__user=user).select_related('offre')
     data = [
         {
@@ -460,7 +453,7 @@ LABEL_TEXT = {0: "Reject", 1: "Hire"}
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])  # si tu veux protéger avec JWT
+@permission_classes([IsAuthenticated])
 def get_candidatures_by_candidat(request, id):
     candidat = get_object_or_404(Candidat, id=id)
     candidatures = candidat.candidatures.all()
@@ -481,12 +474,12 @@ def get_candidatures_recruteur(request):
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
         result.append({
             'id': c.id,
-            'candidat': c.candidat.user.last_name,   # ou first_name selon ton besoin
+            'candidat': c.candidat.user.last_name,
             'offre': c.offre.titre,
             'statut': c.statut,
             'cv_link': cv_url,
-            'label': c.label,                        # 0 / 1 / None (si anciennes lignes)
-            'label_text': LABEL_TEXT.get(c.label),   # "Reject"/"Hire"/None
+            'label': c.label,                       
+            'label_text': LABEL_TEXT.get(c.label),
             'ai_score': getattr(c, 'ai_score', None)
         })
     return Response(result, status=200)
@@ -494,9 +487,6 @@ def get_candidatures_recruteur(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_candidatures_gestionnaire_rh(request):
-    """
-    Gestionnaire RH : voir toutes les candidatures de tous les recruteurs.
-    """
     candidatures = Candidature.objects.all()
 
     result = []
@@ -517,7 +507,7 @@ def get_candidatures_gestionnaire_rh(request):
 @permission_classes([IsAuthenticated])
 def update_label(request, candidature_id):
     try:
-        # 🔒 Ne trouve que les candidatures du recruteur connecté
+
         candidature = Candidature.objects.get(id=candidature_id, offre__recruteur=request.user)
 
         label = request.data.get("label")
@@ -572,17 +562,14 @@ def confirmer_embauche(request, candidature_id):
         candidature = Candidature.objects.get(id=candidature_id)
         user = candidature.candidat.user
 
-        # Créer Employe
         Employe.objects.create(
             user=user,
             poste_actuel=candidature.offre.titre,
             date_embauche=timezone.now().date(),
             departement="A définir"
         )
-        # Mettre à jour le role
         user.role = 'employe'
         user.save()
-        # ✅ Supprimer la candidature car embauche confirmée
         candidature.delete()
 
         return JsonResponse({'message': f"{user.get_full_name()} est maintenant employé."})

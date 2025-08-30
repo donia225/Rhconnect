@@ -1,137 +1,134 @@
-<app-card cardTitle="Ajout d'une offre" [options]="false">
-  <form (ngSubmit)="onSubmit()" #offreForm="ngForm">
-    <h5>Ajout d'une offre</h5>
+<app-card class="pull-up" cardTitle="Ajout d'une offre" [options]="false" class="elevated-card">
+  <form (ngSubmit)="onSubmit()" #offreForm="ngForm" class="offer-form">
+    <h5 class="form-title">Ajout d'une offre</h5>
     <hr />
-    <div class="row">
+    <div class="row gy-4">
       <!-- Colonne gauche -->
       <div class="col-md-6">
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label for="titre">Titre</label>
           <input
             type="text"
             name="titre"
             [(ngModel)]="offre.titre"
             id="titre"
-            class="form-control  bg-light"
+            class="form-control modern-input"
             placeholder="Ex : Développeur Web"
             required
           />
         </div>
 
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label for="description">Description</label>
           <textarea
             name="description"
             [(ngModel)]="offre.description"
             id="description"
-            rows="4"
-            class="form-control  bg-light"
+            rows="5"
+            class="form-control modern-input"
             placeholder="Description de l’offre"
             required
           ></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="type_poste">Type de poste</label>
-          <input
-            type="text"
-            name="type_poste"
-            [(ngModel)]="offre.type_poste"
-            id="type_poste"
-            class="form-control  bg-light"
-            placeholder="Ex : CDI, CDD, SIVP"
-          />
-        </div>
+      <div class="form-group mb-4">
+  <label for="type_poste">Type de poste</label>
+  <select
+    id="type_poste"
+    name="type_poste"
+    class="form-control modern-input"
+    [(ngModel)]="offre.type_poste">
+    <option value="">-- Sélectionner --</option>
+    <option *ngFor="let t of TYPES_POSTE" [value]="t">{{ t }}</option>
+  </select>
+</div>
 
-        <div class="form-group">
-          <label for="experience">Expérience</label>
-          <input
-            type="text"
-            name="experience"
-            [(ngModel)]="offre.experience"
-            id="experience"
-            class="form-control  bg-light"
-            placeholder="Ex : Moins d’un an, 2 ans"
-          />
-        </div>
+       <div class="form-group mb-4">
+  <label for="experience">Expérience</label>
+  <select
+    id="experience"
+    name="experience"
+    class="form-control modern-input"
+    [(ngModel)]="offre.experience">
+    <option value="">-- Sélectionner --</option>
+    <option *ngFor="let e of EXPERIENCES" [value]="e.value">{{ e.label }}</option>
+  </select>
+</div>
       </div>
 
       <!-- Colonne droite -->
       <div class="col-md-6">
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label for="competences">Compétences</label>
           <input
             type="text"
             name="competences"
             [(ngModel)]="offre.competences"
             id="competences"
-            class="form-control  bg-light"
+            class="form-control modern-input"
             placeholder="Ex : python, django"
           />
         </div>
 
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label for="salaire">Salaire (TND)</label>
           <input
             type="number"
             name="salaire"
             [(ngModel)]="offre.salaire"
             id="salaire"
-            class="form-control  bg-light"
+            class="form-control modern-input"
             placeholder="Ex : 1500"
-            required
             min="0"
+            required
           />
         </div>
 
-        <div class="form-group">
-          <label for="niveau_etude">Niveau d'étude</label>
-          <input
-            type="text"
-            name="niveau_etude"
-            [(ngModel)]="offre.niveau_etude"
-            id="niveau_etude"
-            class="form-control  bg-light"
-            placeholder="Ex : Bac, Bac+3, Master"
-          />
-        </div>
+       <div class="form-group mb-4">
+  <label for="niveau_etude">Niveau d'étude</label>
+  <select
+    id="niveau_etude"
+    name="niveau_etude"
+    class="form-control modern-input"
+    [(ngModel)]="offre.niveau_etude">
+    <option value="">-- Sélectionner --</option>
+    <option *ngFor="let n of NIVEAUX_ETUDE" [value]="n.value">{{ n.label }}</option>
+  </select>
+</div>
 
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label for="disponibilite">Disponibilité</label>
           <input
             type="text"
             name="disponibilite"
             [(ngModel)]="offre.disponibilite"
             id="disponibilite"
-            class="form-control  bg-light"
+            class="form-control modern-input"
             placeholder="Ex : Plein temps, Mi-temps"
           />
         </div>
 
-        <div class="form-group">
+        <div class="form-group mb-4">
           <label for="langues">Langues</label>
           <input
             type="text"
             name="langues"
             [(ngModel)]="offre.langues"
             id="langues"
-            class="form-control  bg-light"
+            class="form-control modern-input"
             placeholder="Ex : Français, Anglais"
           />
         </div>
 
-        <!-- ✅ Bouton aligné à droite -->
- 
-        <div class="text-end mt-3">
-          <button class="btn btn-light" (click)="annuler()">
-          ← Retour
-        </button>
-          <button type="submit" class="btn btn-primary">Valider</button>
+        <div class="d-flex justify-content-end gap-2 mt-2">
+          <button type="button" class="btn btn-light soft-btn" (click)="annuler()">
+            ← Retour
+          </button>
+          <button type="submit" class="btn btn-primary pill-btn shadow-sm">
+            Valider
+          </button>
         </div>
       </div>
     </div>
   </form>
 </app-card>
-
-
-     

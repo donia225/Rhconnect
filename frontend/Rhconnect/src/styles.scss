@@ -43,6 +43,26 @@
 
 }
 
+/* N'agira que quand la page a mis la classe sur <body> */
+.compact-offre .pcoded-main-container .pcoded-content,
+.compact-offre .container-fluid,
+.compact-offre .main-content,
+.compact-offre .page-content {
+  padding-top: 10px !important;
+}
+
+.compact-offre .page-header,
+.compact-offre .breadcrumb {
+  margin-bottom: 8px !important;
+}
+
+/* Pour tes cards de cette page uniquement */
+.compact-offre app-card .card {
+  margin-top: 0 !important;
+}
+
+
+
 
 
 
