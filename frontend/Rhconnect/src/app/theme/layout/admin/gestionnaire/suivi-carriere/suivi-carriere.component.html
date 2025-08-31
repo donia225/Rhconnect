@@ -1,55 +1,85 @@
+<!-- src/app/theme/layout/admin/gestion-carriere/suivi-carriere/suivi-carriere.component.html -->
 <div class="container mt-4">
   <h3>Suivi de carrière de {{ employeNom }}</h3>
 
   <ul class="list-group mt-3">
     <li *ngFor="let s of suivis" class="list-group-item">
-      📅 {{ s.date_changement }} :
-      <strong>{{ s.ancien_poste || '—' }}</strong> ➜
-      <strong>{{ s.nouveau_poste }}</strong>
-      <span *ngIf="s.est_promotion" class="badge bg-success ms-2">Promotion</span>
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          📅 {{ s.date_changement }} :
+          <strong>{{ s.ancien_poste || '—' }}</strong> ➜
+          <strong>{{ s.nouveau_poste }}</strong>
+          <span *ngIf="s.est_promotion" class="badge bg-success ms-2">Promotion</span>
+        </div>
+      </div>
+
+      <div *ngIf="s.commentaire" class="mt-2 text-muted">
+        📝 {{ s.commentaire }}
+      </div>
+
+      <!-- Objectifs -->
+      <div *ngIf="s.objectifs?.length" class="mt-2">
+        🎯 <strong>Objectifs</strong>
+        <ul class="mb-0 ps-4">
+          <li *ngFor="let o of s.objectifs">{{ o }}</li>
+        </ul>
+      </div>
+
+      <!-- Notes -->
+      <div *ngIf="s.notes && (s.notes | keyvalue).length" class="mt-2">
+  ⭐ <strong>Notes</strong>
+  <div class="row mt-1">
+    <div class="col-md-4" *ngFor="let kv of (s.notes | keyvalue)">
+      <span class="text-muted">
+        {{ NOTE_LABELS[$any(kv.key)] || kv.key }}:
+      </span>
+      <span class="fw-semibold">{{ kv.value }}/10</span>
+    </div>
+  </div>
+</div>
+
+
+   
     </li>
   </ul>
-<div class="row mt-3">
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm p-3">
-      <h5 class="card-title">Poste actuel</h5>
-      <p class="mb-0">{{ posteActuel }}</p>
+
+  <!-- KPI cards -->
+  <div class="row mt-3">
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3">
+        <h5 class="card-title">Poste actuel</h5>
+        <p class="mb-0">{{ posteActuel }}</p>
+      </div>
     </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm p-3">
-      <h5 class="card-title">Département</h5>
-      <p class="mb-0">{{ departement }}</p>
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3">
+        <h5 class="card-title">Département</h5>
+        <p class="mb-0">{{ departement }}</p>
+      </div>
     </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm p-3">
-      <h5 class="card-title">Ancienneté</h5>
-      <p class="mb-0">{{ kpi.anciennete }}</p>
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3">
+        <h5 class="card-title">Ancienneté</h5>
+        <p class="mb-0">{{ kpi.anciennete }}</p>
+      </div>
     </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm p-3">
-      <h5 class="card-title">Changements de poste</h5>
-      <p class="mb-0">{{ kpi.totalChangements }}</p>
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3">
+        <h5 class="card-title">Changements de poste</h5>
+        <p class="mb-0">{{ kpi.totalChangements }}</p>
+      </div>
     </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm p-3">
-      <h5 class="card-title">Promotions</h5>
-      <p class="mb-0">{{ kpi.totalPromotions }}</p>
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3">
+        <h5 class="card-title">Promotions</h5>
+        <p class="mb-0">{{ kpi.totalPromotions }}</p>
+      </div>
     </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm p-3">
-      <h5 class="card-title">Durée moyenne entre changements</h5>
-      <p class="mb-0">{{ kpi.dureeMoyenneChangement }}</p>
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm p-3">
+        <h5 class="card-title">Durée moyenne entre changements</h5>
+        <p class="mb-0">{{ kpi.dureeMoyenneChangement }}</p>
+      </div>
     </div>
   </div>
 </div>
-
-
-
-</div>
-
-

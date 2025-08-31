@@ -216,14 +216,16 @@ def supprimer_offre(request, id):
     offre.delete()
     return Response({'message': "Offre supprimée avec succès."}, status=status.HTTP_204_NO_CONTENT)
 
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 def modifier_offre(request, id):
     try:
         offre = OffreEmploi.objects.get(id=id)
     except OffreEmploi.DoesNotExist:
         return Response({'message': 'Offre introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = OffreEmploiSerializer(offre, data=request.data)
+    serializer = OffreEmploiSerializer(
+        offre, data=request.data, partial=(request.method == 'PATCH')
+    )
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
@@ -613,35 +615,30 @@ def employe_profil_et_suivi(request):
         'suivi_carriere': list(suivis)
     })
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def get_suivis_employe(request, employe_id):
-    try:
-        employe = Employe.objects.get(id=employe_id)
-    except Employe.DoesNotExist:
-        return Response({'error': 'Employé introuvable'}, status=404)
-
-    suivis = SuiviCarriereEmploye.objects.filter(employe=employe).order_by('-date_changement')
-
-    data = {
-        'employe': employe,
-        'suivi_carriere': suivis
-    }
-
-    serializer = EmployeProfilEtSuivisSerializer(instance=data)
-    return Response(serializer.data)
+    """
+    Retourne le profil + tous les suivis (avec objectifs/notes/commentaires).
+    """
+    employe = get_object_or_404(Employe, id=employe_id)
+    suivis = SuiviCarriereEmploye.objects.filter(employe=employe).order_by('date_changement')
+    payload = {'employe': employe, 'suivi_carriere': suivis}
+    serializer = EmployeProfilEtSuivisSerializer(payload)
+    return Response(serializer.data, status=200)
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def ajouter_suivi_carriere(request):
     """
-    ➕ Ajouter un élément de suivi de carrière (gestionnaire RH)
+    Crée un suivi avec objectifs + notes (0..10) + commentaires.
     """
     serializer = SuiviCarriereEmployeSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def modifier_suivi_carriere(request, suivi_id):

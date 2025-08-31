@@ -1,0 +1,55 @@
+.elevated-card .card {
+  border: 1px solid #eef2f7;
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.08);
+}
+.offer-form .form-title { font-weight: 700; letter-spacing: .2px; margin-bottom: .25rem; }
+.offer-form label { font-weight: 600; color: #374151; margin-bottom: .5rem; }
+.offer-form .modern-input {
+  --radius: 14px; --border: #e5e7eb; --bg: #f9fafb; --focus: #6366f1;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; transition: box-shadow .2s, border-color .2s, background-color .2s;
+}
+.offer-form .modern-input:hover { border-color: #d1d5db; }
+.offer-form .modern-input:focus {
+  background: #fff; border-color: var(--focus);
+  box-shadow: 0 0 0 .25rem rgba(99,102,241,.15); outline: none;
+}
+.offer-form textarea.modern-input { min-height: 140px; resize: vertical; }
+.pill-btn { border-radius: 999px; padding: .6rem 1.25rem; }
+.btn-primary.pill-btn { background: linear-gradient(135deg,#6366f1,#4f46e5); border: none; }
+.btn-primary.pill-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(79,70,229,.25); }
+.soft-btn { border-radius: 999px; border: 1px solid #e5e7eb; background: #fff; }
+.soft-btn:hover { background: #f3f4f6; }
+.row.gy-4 { row-gap: 1.25rem; }
+.form-group { margin-bottom: 1rem; }
+.form-control { border-radius: 14px; }
+.chk-chip {
+  --border: #e5e7eb; --on: #4f46e5; --bg: #f9fafb;
+  display: inline-flex; align-items: center; gap: .5rem;
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: .45rem .8rem; background: var(--bg); cursor: pointer;
+  transition: .2s border-color, .2s background-color, .2s color, .2s box-shadow;
+}
+.chk-chip__input { position: absolute; opacity: 0; pointer-events: none; }
+.chk-chip__label { font-weight: 500; }
+.chk-chip:has(.chk-chip__input:checked) {
+  border-color: var(--on); background: #eef2ff; color: #1e1b4b;
+  box-shadow: 0 0 0 .15rem rgba(79,70,229,.15);
+}
+.chk-chip:hover { border-color: #d1d5db; }
+.chk-chip:hover { border-color: #d1d5db; }
+.is-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 .2rem rgba(220,53,69,.1);
+}
+.invalid-msg {
+  color: #dc3545;
+  font-size: .875rem;
+  margin-top: .25rem;
+}
+.chk-group.invalid { /* encadre le groupe de cases à cocher */
+  outline: 2px solid #dc3545;
+  border-radius: 10px;
+  padding: .25rem;
+}

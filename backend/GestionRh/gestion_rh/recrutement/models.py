@@ -52,24 +52,35 @@ class Candidat(models.Model):
     def __str__(self):
         return f"Candidat: {self.user.username}"
 
-
+class NiveauEtude(models.TextChoices):
+    BAC        = 'bac',        'Baccalauréat'
+    BAC_2      = 'bac+2',      'Bac+2 (BTS/DUT/ISET)'
+    LICENCE    = 'licence',    'Licence (Bac+3)'
+    MASTER     = 'master',     'Master / Mastère (Bac+5)'
+    INGENIEUR  = 'ingenieur',  "Diplôme d'ingénieur (Bac+5)"
+    MBA        = 'mba',        'MBA / Mastère spécialisé'
+    DOCTORAT   = 'doctorat',   'Doctorat'
 class OffreEmploi(models.Model):
     titre = models.CharField(max_length=255)
     description = models.TextField()
     salaire = models.FloatField()
     competences = models.TextField(blank=True, null=True)
-
-    # ✅ Nouveaux champs structurés
-    type_poste = models.CharField(max_length=100, blank=True, null=True)  # Ex: CDI, CDD, SIVP
-    experience = models.CharField(max_length=100, blank=True, null=True)  # Ex: Moins d’un an
-    niveau_etude = models.CharField(max_length=100, blank=True, null=True)  # Ex: Bac, Bac+3
-    disponibilite = models.CharField(max_length=100, blank=True, null=True)  # Ex: Plein temps
-    langues = models.TextField(blank=True, null=True)  # Ex: Français, Anglais
-
-    # ✅ Publication
+    type_poste = models.CharField(max_length=100, blank=True, null=True)
+    experience = models.CharField(max_length=100, blank=True, null=True)
+    niveau_etude = models.JSONField(default=list, blank=True)
+    disponibilite = models.CharField(max_length=100, blank=True, null=True)
+    MODALITE_CHOICES = [
+        ('sur_site', 'Sur site'),
+        ('hybride', 'Hybride'),
+        ('teletravail', 'Télétravail'),
+    ]
+    modalite = models.CharField(
+        max_length=20,
+        choices=MODALITE_CHOICES,
+        blank=True, null=True
+    )
+    langues = models.TextField(blank=True, null=True)
     date_publication = models.DateField(auto_now_add=True, blank=True)
-
-    # ✅ Lien avec l'utilisateur recruteur
     recruteur = models.ForeignKey(User, on_delete=models.CASCADE, related_name="offres")
 
     def __str__(self):
@@ -109,6 +120,8 @@ class SuiviCarriereEmploye(models.Model):
     date_changement = models.DateField(auto_now_add=True)
     est_promotion = models.BooleanField(default=False)
     commentaire = models.TextField(blank=True, null=True)
+    objectifs = models.JSONField(default=list, blank=True)
+    notes = models.JSONField(default=dict, blank=True) 
 
     def __str__(self):
         return f"{self.employe.user.username} -> {self.nouveau_poste}"

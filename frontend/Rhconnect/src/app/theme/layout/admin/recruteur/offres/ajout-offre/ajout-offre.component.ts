@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, Renderer2, Inject } from '@angular/core';
 import { OffreService } from 'src/app/services/offre/offre.service';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm  } from '@angular/forms';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { SharedModule } from 'src/app/theme/shared/shared.module';
 import { ToastrService } from 'ngx-toastr';
@@ -21,19 +21,21 @@ export class AjoutOffreComponent implements OnInit, OnDestroy{
     experience: '',
     niveau_etude: '',
     disponibilite: '',
+    modalite:'',
     langues: '',
     description: '',
-    salaire: null,
+    salaire: null as number | null,
     competences:''
   };
  NIVEAUX_ETUDE = [
-  { value: 'licence',     label: 'Licence' },
-  { value: 'master',      label: 'Master' },
-  { value: 'ingénierie',  label: 'Ingénierie' },
-  { value: 'doctorat',    label: 'Doctorat' },
-  { value: 'expert',      label: 'Expert' },
-  { value: 'recherche',   label: 'Chercheur/Recherche' },
-];
+    { value: 'bac',       label: 'Baccalauréat' },
+    { value: 'bac+2',     label: 'Bac+2 (BTS/DUT/ISET)' },
+    { value: 'licence',   label: 'Licence (Bac+3)' },
+    { value: 'master',    label: 'Master / Mastère (Bac+5)' },
+    { value: 'ingenieur', label: "Diplôme d'ingénieur (Bac+5)" },
+    { value: 'mba',       label: 'MBA / Mastère spécialisé' },
+    { value: 'doctorat',  label: 'Doctorat' }
+  ];
 
 TYPES_POSTE = ['CDI', 'CDD', 'SIVP'];
 
@@ -45,7 +47,32 @@ EXPERIENCES = [
   { value: 'entre_5_10_ans', label: '5 à 10 ans' },
   { value: 'plus_10_ans',    label: 'Plus de 10 ans' },
 ];
+DISPONIBILITES = [
+  { value: 'plein_temps',           label: 'Plein temps' },
+  { value: 'mi_temps',              label: 'Mi-temps' },
+  { value: 'temps_partiel_weekend', label: 'Temps partiel (week-end)' },
+  { value: 'temps_partiel_soir',    label: 'Temps partiel (soir)' },
+  { value: 'horaires_flexibles',    label: 'Horaires flexibles' },
+  { value: 'travail_en_shifts',     label: 'Travail en shifts (2x8/3x8)' },
+  { value: 'saisonnier',            label: 'Saisonnier' },
+];
+MODALITES = [
+  { value: 'sur_site', label: 'Sur site' },
+  { value: 'hybride',  label: 'Hybride' },
+  { value: 'teletravail', label: 'Télétravail' },
+];
+submitted=false;
+titrePattern = "^(?=.*[A-Za-zÀ-ÖØ-öø-ÿ])[A-Za-zÀ-ÖØ-öø-ÿ' -]+$";
+competencesPattern =
+  '^(?:(?=[A-Za-z0-9À-ÖØ-öø-ÿ+\\#\\.\\- ]*[A-Za-zÀ-ÖØ-öø-ÿ])[A-Za-z0-9À-ÖØ-öø-ÿ+\\#\\.\\- ]+)'+
+  '(?:\\s*,\\s*(?=[A-Za-z0-9À-ÖØ-öø-ÿ+\\#\\.\\- ]*[A-Za-zÀ-ÖØ-öø-ÿ])[A-Za-z0-9À-ÖØ-öø-ÿ+\\#\\.\\- ]+)*$';
+languesPattern = "^([A-Za-zÀ-ÖØ-öø-ÿ' -]+)(\\s*,\\s*[A-Za-zÀ-ÖØ-öø-ÿ' -]+){0,2}$";
+languesError = "";
+SALAIRE_MIN = 300;
+SALAIRE_MAX = 20000;
 
+
+niveauEtudeSel: string[] = [];
   constructor(private offreService: OffreService, private toastr: ToastrService, private router: Router, private r: Renderer2, @Inject(DOCUMENT) private doc: Document) {}
 
    ngOnInit() {
@@ -55,10 +82,36 @@ EXPERIENCES = [
     ngOnDestroy() {
     this.r.removeClass(this.doc.body, 'compact-offre');
   }
-  onSubmit() {
+  onToggleNiveau(value: string, checked: boolean) {
+    if (checked) {
+      if (!this.niveauEtudeSel.includes(value)) {
+        this.niveauEtudeSel = [...this.niveauEtudeSel, value];
+      }
+    } else {
+      this.niveauEtudeSel = this.niveauEtudeSel.filter(v => v !== value);
+    }
+  }
+onLangChange(val: string) {
+  this.offre.langues = val;
+  const langs = (val || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  this.languesError = langs.length > 3 ? 'Maximum 3 langues (séparées par une virgule).' : '';
+}
+  onSubmit(form: NgForm) {
+  this.submitted = true;
+  if (this.niveauEtudeSel.length === 0) return;
+  if (this.languesError) return;
+
+  if (form.invalid) return;
     const user = JSON.parse(localStorage.getItem('user_info') || '{}');
     const data = {
       ...this.offre,
+      titre: (this.offre.titre || '').trim(),
+      description: (this.offre.description || '').trim(),
+      salaire: this.offre.salaire != null ? Number(this.offre.salaire) : null,
+      niveau_etude: [...this.niveauEtudeSel], 
       recruteur: user.id
     };
   

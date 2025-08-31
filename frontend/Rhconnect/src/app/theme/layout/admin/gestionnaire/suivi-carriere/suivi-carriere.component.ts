@@ -22,7 +22,16 @@ export class SuiviCarriereComponent implements OnInit {
     anciennete: '',
     dureeMoyenneChangement: ''
   };
-
+  NOTE_LABELS: Record<string,string> = {
+    technique: 'Technique', communication: 'Communication', performance: 'Performance',
+    travail_d_equipe: "Travail d'équipe", leadership: 'Leadership',
+    qualite: 'Qualité', respect_delais: 'Respect des délais',
+    autonomie: 'Autonomie', initiative: 'Initiative / Innovation',
+    orientation_client: 'Orientation client', assiduite: 'Assiduité',
+    gestion_stress: 'Gestion du stress', securite_conformite: 'Sécurité & conformité',
+    apprentissage: 'Apprentissage', fiabilite: 'Fiabilité'
+  };
+  
   constructor(
     private route: ActivatedRoute,
     private employeService: EmployeService
