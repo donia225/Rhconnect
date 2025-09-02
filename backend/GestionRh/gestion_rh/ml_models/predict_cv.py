@@ -35,6 +35,14 @@ try:
 except Exception:
     _HAS_TEXTRACT = False
 
+def _degree_rank(text: str) -> int:
+    t = (text or "").lower()
+    if re.search(r"\b(ph\.?\s*d|doctorat|doctorate)\b", t): return 4
+    if re.search(r"\b(master|mast[eè]re|ing[ée]nieur|bac\+5|m\.?eng|b\.?eng)\b", t): return 3
+    if re.search(r"\b(licence|bachelor|bac\+3|bac\+4)\b", t): return 2
+    if re.search(r"\b(bts|dut|deust|bac\+2)\b", t): return 1
+    return 0
+
 def _exp_bucket_and_phrase(years) -> tuple[str, str]:
     try:
         y = float(years)
@@ -82,33 +90,75 @@ _BAC_PLUS_NORM = [
     (r"\bbac\s*\+\s*2\b", "Bac+2 (BTS/DUT)"),
 ]
 
-def _extract_education_phrase_from_text(text: str) -> str:
+def _extract_education_phrase_from_text(text: str, debug: bool = False) -> str:
     """
-    Renvoie un libellé court du plus haut niveau détecté.
-    - normalise apostrophes ‘ ’ -> '
-    - supprime accents pour matcher des motifs 'sans accents'
-    - cible d'abord la zone 'formation/education', sinon tout le texte
+    Détecte le plus haut niveau d'étude présent dans le CV.
+    - Normalisation Unicode + nettoyage séparateurs
+    - Recherche dans la zone 'Formation' puis fallback global
+    - Motifs robustes pour ingénieur/ingénierie, licence, master, PhD, bac+X, etc.
     """
-    t = (text or "")
-    # normalisations
-    t = t.replace("\u2019", "'").replace("\u2018", "'").replace("\u201B", "'").replace("\xa0", " ")
+    if not text:
+        return ""
+
+    # 1) normalisation Unicode + minuscules
+    t = (text
+         .replace("\u2019", "'").replace("\u2018", "'").replace("\u201B", "'")
+         .replace("\xa0", " "))
+    # retire les accents (NFD -> drop Mn), conserve ponctuation
     t_norm = _strip_accents(t.lower())
 
-    # Restreindre la zone si possible
-    m = re.search(r"(?:education|formation|dipl[o\s]*me|degree)\b[\s:]*([\s\S]{0,2000})", t_norm, flags=re.IGNORECASE)
-    zone = m.group(0) if m else t_norm
+    # 2) remplace séparateurs exotiques par espaces + compaction
+    def _clean(s: str) -> str:
+        s = re.sub(r"[|•·/–—]+", " ", s)           # unify separators
+        s = re.sub(r"\s+", " ", s)                 # collapse spaces
+        return s.strip()
 
-    # 1) motifs structurés (plus haut niveau = premier match rencontré, ordre important)
-    for pat, label in _EDU_PATTERNS_NORM:
-        if re.search(pat, zone, flags=re.IGNORECASE):
+    t_norm = _clean(t_norm)
+
+    # 3) extraire une zone 'formation' si possible (on prend le GROUPE capturé)
+    head = re.search(
+        r"(?:\bformation\b|\beducation\b|parcours\s+academique|\betudes?)\s*[:\-]?\s*([\s\S]{0,5000})",
+        t_norm, flags=re.IGNORECASE
+    )
+    zone = _clean(head.group(1)) if head else ""
+
+    if debug:
+        sample = zone[:400] if zone else t_norm[:400]
+        print("DEBUG[EDU] HEAD_FOUND:", bool(head), "| SAMPLE:", sample)
+
+    # 4) motifs ordonnés (du plus haut au plus bas)
+    EDU_PAT = [
+        (r"\b(ph\.?\s*d|doctorat|doctorate)\b", "PhD / Doctorat"),
+        (r"\bmba\b|\bmaster\s+of\s+business\s+administration\b", "MBA"),
+        # Ingénieur & Ingénierie (cycle / diplôme / école d'…)
+        (r"\b(cycle\s+d['’]?\s*ingenieur|diplome\s+d['’]?\s*ingenieur|"
+         r"ecole\s+(?:superieure\s+)?d['’]?\s*ingenieur(?:s)?|"
+         r"d['’]?\s*ingenierie)\b", "Diplôme d'ingénieur (Bac+5)"),
+        (r"\b(master|maitrise|mastere|msc)\b", "Master"),
+        (r"\b(licence|bachelor|bac\+3|bac\+4)\b", "Licence / Bachelor"),
+        (r"\b(bts|dut|deust|bac\+2)\b", "Bac+2 (BTS/DUT/DEUST)"),
+        (r"\b(cpge|classes?\s+preparatoires?|prepa)\b", "Classes préparatoires"),
+        (r"\b(bac(?:calaureat)?|baccalaureat|lycee|high\s*school|secondary\s+school)\b", "Bac"),
+    ]
+
+    # 5) cherche d'abord dans la zone Formation (si trouvée), sinon dans tout le texte
+    lookup_spaces = (zone if zone else t_norm)
+    for pat, label in EDU_PAT:
+        if re.search(pat, lookup_spaces, flags=re.IGNORECASE):
             return label
 
-    # 2) Bac+X explicite (sur tout le texte)
-    for pat, label in _BAC_PLUS_NORM:
+    # 6) dernier fallback : mentions explicites Bac+X (n’importe où)
+    for pat, label in [
+        (r"\bbac\s*\+\s*5\b", "Bac+5 (Master/Ingénieur)"),
+        (r"\bbac\s*\+\s*4\b", "Bac+4"),
+        (r"\bbac\s*\+\s*3\b", "Bac+3 (Licence)"),
+        (r"\bbac\s*\+\s*2\b", "Bac+2 (BTS/DUT/DEUST)"),
+    ]:
         if re.search(pat, t_norm, flags=re.IGNORECASE):
             return label
 
     return ""
+
 
 def _clean_text(text: str) -> str:
     """Nettoie les espaces/retraits multiples et normalise le texte."""
@@ -149,67 +199,91 @@ def _normalize_whitespace(s: str) -> str:
     return re.sub(r"[ \t]+", " ", re.sub(r"\n{2,}", "\n", s)).strip()
 
 def extract_skills_from_cv(path_pdf: str) -> list[str]:
-    #lire le texte brut du PDF
     raw = _read_pdf_text(path_pdf) or ""
     if not raw:
         return []
 
-    txt = raw.replace("\xa0", " ")
-    #isoler la section compétences (FR/EN)
-    sec_re = re.compile(
-        r"(comp[eé]tences(?:\s+techniques)?|skills|technical\s+skills)\s*:?\s*(.*?)"
-        r"(?=\n\s*(formation|exp[eé]rience|experience|education|projets?|projects?)\b|$)",
-        flags=re.IGNORECASE | re.DOTALL
-    )
-    blocks = [m.group(2) for m in sec_re.finditer(txt)]
-    if not blocks:
-        #si on ne trouve pas la section, on travaille sur tout le texte
-        blocks = [txt]
+    # --- 1) normalisation de base (PDF -> texte)
+    txt = (raw.replace("\xa0", " ")
+              .replace("\u2019", "'").replace("\u2018", "'").replace("\u201B", "'"))
+    # séparateurs exotiques -> espace ; compaction
+    txt = re.sub(r"[|•·/–—]+", " ", txt)
+    txt = re.sub(r"\s+", " ", txt).strip()
 
-    #pattern qui accepte lettres/chiffres/symboles tech
-    tech_pat = re.compile(
-        r"""
-        (?:[A-Za-z][A-Za-z0-9\+\#\.\-]{1,}      #exemple .NET, Node.js, C++
-        (?:\s+[A-Za-z][A-Za-z0-9\+\#\.\-]{1,})*)
-        """,
-        re.VERBOSE
-    )
+    # version sans accents pour repérer les entêtes
+    norm = _strip_accents(txt.lower())
 
-    # 4) mots à ignorer (trop génériques)
-    blacklist = {
-        "competence", "compétence", "competences",
-        "technique", "techniques", "technologies", "technologie",
-        "developpement", "développement", "logiciel", "logiciels",
-        "outils", "outil", "cloud", "langues", "profil", "resume", "cv"
+    # --- 2) isoler la section Compétences/Skills
+    m = re.search(
+        r"(?:\bcompetences?\b|\bskills?\b|technical\s+skills?)\s*[:\-]?\s*(.*?)"
+        r"(?=\b(formation|educa|experience|exp[ée]riences?|projets?|projects?|langues?)\b|$)",
+        norm, flags=re.IGNORECASE | re.DOTALL
+    )
+    zone = txt if not m else txt[m.start(1):m.end(1)]
+
+    # --- 3) dictionnaire de technos + heuristiques
+    WHITELIST = {
+        # langages
+        "c", "c++", "c#", "java", "python", "javascript", "typescript", "go", "rust", "php", "ruby",
+        # web / frameworks
+        "react", "reactjs", "angular", "node.js", "nodejs", "django", "spring", "springboot", ".net", "asp.net",
+        # bdd / data
+        "sql", "mysql", "postgres", "oracle", "nosql", "mongodb", "redis",
+        # pratiques/outils fréquents
+        "uml", "git", "scrum", "agile", "docker", "kubernetes", "ansible", "jenkins", "sonarqube", "grafana", "prometheus"
+    }
+    CANON = {
+        "react js": "ReactJS", "reactjs": "ReactJS",
+        "node js": "Node.js", "nodejs": "Node.js",
+        "springboot": "Spring Boot", "spring boot": "Spring Boot",
+        "asp.net": "ASP.NET", ".net": ".NET",
+        "typescript": "TypeScript", "javascript": "JavaScript",
+    }
+
+    def canon(tok: str) -> str:
+        low = _strip_accents(tok.lower())
+        return CANON.get(low, tok)
+
+    # tokens tech : au moins une lettre, et souvent un symbole/num
+    CAND_RE = re.compile(r"[A-Za-z][A-Za-z0-9\+\#\.\-]{0,}(?:\s+[A-Za-z][A-Za-z0-9\+\#\.\-]{0,})*")
+
+    STOPWORDS = {
+        "competence","competences","technique","techniques","technologies","technologie",
+        "developpement","développement","logiciel","logiciels","outils","outil",
+        "experience","experiences","professionnelle","professionnelles","formation",
+        "ingenieur","ingenierie","projet","projets","langues","profil","resume","cv",
+        "present","janv","fev","mars","avr","mai","juin","juil","aout","sept","oct","nov","dec"
     }
 
     found, seen = [], set()
+    for m in CAND_RE.finditer(zone):
+        tok = m.group(0).strip(" ,.;:/()[]")
+        if not tok:
+            continue
+        low = _strip_accents(tok.lower())
 
-    for block in blocks:
-        #elle nettoie les puces et les séparer
-        b = block.replace("•", " ").replace("·", " ").replace("|", " ")
-        #récupérer toutes les “technos” possibles
-        for m in tech_pat.finditer(b):
-            token = m.group(0).strip()
+        # heuristique : garder si (dans la whitelist)
+        # OU s'il contient un caractère typique tech (+, #, ., chiffre)
+        # OU s'il ressemble à une techno connue en 2 mots (react js / node js)
+        keep = (
+            low in WHITELIST
+            or bool(re.search(r"[\+\#\.\d]", tok))
+            or low in CANON
+        )
+        if not keep:
+            continue
+        if low in STOPWORDS:
+            continue
 
-            # normalisations légères
-            token = re.sub(r"\s{2,}", " ", token)
-            token = token.replace("Open Stack", "OpenStack")
-            token = token.replace("React Js", "ReactJS")
-            token = token.replace("Node Js", "Node.js")
-            token = token.replace("SpringBoot", "Spring Boot")
+        key = low
+        if key not in seen:
+            seen.add(key)
+            found.append(canon(tok))
 
-            low = token.lower().strip(" .,")
-
-            # filtrer les génériques et trop courts (sauf C/R)
-            if low in blacklist:
-                continue
-            if len(low) < 2 and token not in {"C", "R"}:
-                continue
-
-            if low not in seen:
-                seen.add(low)
-                found.append(token.strip(" ,."))
+    # --- 4) rattrapage explicite pour le langage "C" (souvent perdu)
+    if re.search(r"(?<![a-z0-9])c(?![a-z0-9])", _strip_accents(zone.lower())):
+        if "C" not in found and "c" not in seen:
+            found.insert(0, "C")
 
     return found[:100]
 
@@ -381,62 +455,37 @@ def infer_experience_years_from_text(text: str) -> int:
 
 def _build_offer_description(offre) -> str:
     """
-    Concatène les infos de l'offre dans un texte unique, au même style
-    que celui utilisé à l'entraînement: titre/description + skills + education + experience.
+    Texte sémantique de l'offre UNIQUEMENT :
+    - titre / description libre
+    - required skills
+    (PAS d'années ni de diplôme ici)
     """
     def _as_text(x):
-        if x is None:
-            return ""
-        if isinstance(x, (list, tuple, set)):
-            return ", ".join(map(str, x))
-        # ManyToMany Django: ex. offre.competences.all()
+        if x is None: return ""
         try:
             if hasattr(x, "all"):
                 return ", ".join(map(str, x.all()))
         except Exception:
             pass
+        if isinstance(x, (list, tuple, set)):
+            return ", ".join(map(str, x))
         return str(x)
 
     title = _as_text(getattr(offre, "titre", "")) or _as_text(getattr(offre, "job_title", ""))
     desc  = _as_text(getattr(offre, "description", "")) or _as_text(getattr(offre, "details", ""))
-    skills_offer = _as_text(getattr(offre, "competences", "")) or _as_text(getattr(offre, "skills", ""))
-    education    = _as_text(getattr(offre, "niveau_etude", "")) or _as_text(getattr(offre, "education", ""))
-    exp_required = _as_text(getattr(offre, "experience", ""))   or _as_text(getattr(offre, "experience_requise", ""))
 
-    # essaie plusieurs noms possibles
     skills_offer = (
         _as_text(getattr(offre, "competences", "")) or
         _as_text(getattr(offre, "skills", "")) or
         _as_text(getattr(offre, "competences_requises", ""))
     )
 
-    education = (
-        _as_text(getattr(offre, "niveau_etude", "")) or
-        _as_text(getattr(offre, "education", "")) or
-        _as_text(getattr(offre, "degree_required", ""))
-    )
-
-    exp_required = (
-        _as_text(getattr(offre, "experience_requise", "")) or
-        _as_text(getattr(offre, "niveau_experience", ""))
-    )
-
     parts = []
-    if title: parts.append(title)
-    if desc:  parts.append(desc)
+    if title:  parts.append(title)
+    if desc:   parts.append(desc)
     if skills_offer: parts.append(f"required skills: {skills_offer}")
-    if education:    parts.append(f"education: {education}")
-    if exp_required: parts.append(f"experience: {exp_required}")
-
-    # garde le même phrasé que le training (required skills / education / experience)
-    if skills_offer:
-        parts.append(f"required skills: {skills_offer}")
-    if education:
-        parts.append(f"education: {education}")
-    if exp_required:
-        parts.append(f"experience: {exp_required}")
-
     return " — ".join([p for p in parts if p]).strip()
+
 
 
 def _cosine_sim(u: np.ndarray, v: np.ndarray, eps: float = 1e-8) -> float:
@@ -556,135 +605,71 @@ def _embed_cls(text: str) -> np.ndarray:
 
 # =====================  PREDICTIONS  =====================
 
-
-def predict_from_pdf(path_pdf: str, projects_count: int = 0) -> dict:
-    """
-    Prédit en lisant DIRECTEMENT le PDF:
-    - Extrait le texte et les compétences depuis le fichier
-    - Estime les années d'expérience
-    - Concatène BERT + features numériques et prédit
-    """
-    try:
-        # 1) lire texte brut
-        cv_text = _read_pdf_text(path_pdf)
-    except Exception:
-        cv_text = ""
-
-    # 2) extraire compétences directement du PDF
-    skills = extract_skills_from_cv(path_pdf)
-
-    # 3) extraire années d’expérience depuis le texte
-    exp_years = infer_experience_years_from_text(cv_text)
-
-    # 4) embedding BERT sur les compétences (ou texte complet si vide)
-    skills_text = ", ".join(skills) if skills else cv_text
-    emb = _embed_cls(skills_text)
-
-    # 5) features numériques (expérience + projects_count)
-    cols = getattr(_SCALER, 'feature_names_in_', ['Experience (Years)', 'Projects Count'])
-    num_df = pd.DataFrame([[int(exp_years), int(projects_count)]], columns=cols)
-    num = _SCALER.transform(num_df)
-
-    X = np.hstack([emb.reshape(1, -1), num])
-
-    # 6) prédiction
-    label_id = int(_CLF.predict(X)[0])
-    proba = float(_CLF.predict_proba(X)[0, label_id]) if hasattr(_CLF, "predict_proba") else None
-    label_text = _LE.inverse_transform([label_id])[0]
-    mapping = {"Reject": 0, "Hire": 1}
-    label_int = mapping.get(label_text, 0)
-
-    return {
-        "label": label_int,
-        "label_text": label_text,
-        "proba": proba,
-        "extracted_skills": skills,
-        "exp_years": int(exp_years),
-    }
 def predict_from_pdf_with_offer(path_pdf: str,
                                 offre_obj=None,
                                 offer_description: str | None = None,
                                 projects_count: int = 0,
-                                debug_topn: int = 0,         # <-- NEW
-                                debug_print: bool = False):  # <-- NEW
+                                debug_topn: int = 0,
+                                debug_print: bool = False):
     """
-    Lecture du CV (PDF) + comparaison à l'OFFRE:
-      - extrait compétences CV et années d'expérience
-      - construit la description d'offre (ou utilise offer_description fournie)
-      - embed BERT: [CV_skills_text] et [offer_description]
-      - calcule similarité cosinus
-      - concat features: [emb_cv (768), emb_offer (768), cos_sim (1), num_scaled (2)] => 1539
-      - prédit via le classifieur entraîné "offer-aware"
-
-    Retourne le label + proba + debug (skills, exp, cos_sim, offer_desc_used)
+    Inférence alignée sur l'entraînement 'offer-aware':
+      X = [emb_cv | emb_offer | cos(skills,desc) | num_scaled(Years, Projects, EduRank)]
     """
-    # 1) Lire texte CV + skills + exp
+    # ---- 1) Lire texte + extractions CV ----
     try:
         cv_text = _read_pdf_text(path_pdf) or ""
     except Exception:
         cv_text = ""
-
-    skills = extract_skills_from_cv(path_pdf)              # liste
+    skills = extract_skills_from_cv(path_pdf)
     exp_years = infer_experience_years_from_text(cv_text)
-    _, exp_phrase = _exp_bucket_and_phrase(exp_years)
     edu_phrase = _extract_education_phrase_from_text(cv_text)
-    edu_phrase = _extract_education_phrase_from_text(cv_text)
-    print("DEBUG EDU ->", edu_phrase)  # devrait renvoyer "Diplôme d'ingénieur (Bac+5)" ici
+    edu_rank = _degree_rank(edu_phrase)
 
-
-    # 2) Construire la description d'offre
+    # ---- 2) Description d'offre sémantique ----
     if offer_description is None:
         offer_description = _build_offer_description(offre_obj) if offre_obj is not None else ""
 
-   # 5) textes à embedder
+    # ---- 3) Embeddings + cosinus principal ----
     skills_text = ", ".join(skills) if skills else cv_text
-    exp_text    = f"experience: {exp_phrase}" if exp_phrase else ""
-    edu_text    = f"education: {edu_phrase}" if edu_phrase else ""
+    emb_cv    = _embed_cls(skills_text)         # (768,)
+    emb_offer = _embed_cls(offer_description)   # (768,)
+    cos_sk_desc = _cosine_sim(emb_cv, emb_offer)
 
-    # 6) embeddings BERT
-    emb_cv     = _embed_cls(skills_text)       # (768,)
-    emb_offer  = _embed_cls(offer_description) # (768,)
-    emb_exp    = _embed_cls(exp_text)          # (768,)
-    emb_edu    = _embed_cls(edu_text)          # (768,)
+    # ---- 4) Numériques -> scaler (même colonnes/ordre qu'au train) ----
+    cols = getattr(_SCALER, 'feature_names_in_', ['Experience (Years)', 'Projects Count', 'EduRank'])
+    num_df = pd.DataFrame(
+        [[int(exp_years), int(projects_count), float(edu_rank)]],
+        columns=cols
+    )
+    num = _SCALER.transform(num_df)  # (1,3)
 
-    # 7) similarités
-    cos_sk_desc  = _cosine_sim(emb_cv,   emb_offer)
-    cos_exp_desc = _cosine_sim(emb_exp,  emb_offer)
-    cos_edu_desc = _cosine_sim(emb_edu,  emb_offer)
-
-
-    # 5) Numériques (mêmes colonnes que le scaler appris)
-    cols = getattr(_SCALER, 'feature_names_in_', ['Experience (Years)', 'Projects Count'])
-    num_df = pd.DataFrame([[int(exp_years), int(projects_count)]], columns=cols)
-    num = _SCALER.transform(num_df)  # (1,2)
-
-    # 6) Concat dans l’ordre de l’entraînement: [emb_skills | emb_desc | cos_sim | num_scaled]
+    # ---- 5) Concat EXACTEMENT comme au train ----
     X = np.hstack([
-        emb_cv.reshape(1, -1),           # 768
-        emb_offer.reshape(1, -1),        # 768
-        np.array([[cos_sk_desc]], dtype=float),   # +1
-        np.array([[cos_exp_desc]], dtype=float),  # +1
-        np.array([[cos_edu_desc]], dtype=float),  # +1
-        num                                         # +2  => 1541
+        emb_cv.reshape(1, -1),               # 768
+        emb_offer.reshape(1, -1),            # 768
+        np.array([[float(cos_sk_desc)]], float),  # 1
+        num                                  # 3   => 1540
     ])
 
+    # ---- 6) Prédiction ----
     label_id = int(_CLF.predict(X)[0])
     proba = float(_CLF.predict_proba(X)[0, label_id]) if hasattr(_CLF, "predict_proba") else None
     label_text = _LE.inverse_transform([label_id])[0]
     mapping = {"Reject": 0, "Hire": 1}
     label_int = mapping.get(label_text, 0)
-    
-    return {
+
+    # ---- 7) Sortie ----
+    out = {
         "label": label_int,
         "label_text": label_text,
         "proba": proba,
         "extracted_skills": skills,
         "exp_years": int(exp_years),
-        "exp_phrase": exp_phrase,
         "edu_phrase": edu_phrase,
+        "edu_rank": int(edu_rank),
         "cos_sim_skills_desc": float(cos_sk_desc),
-        "cos_sim_exp_desc": float(cos_exp_desc),
-        "cos_sim_edu_desc": float(cos_edu_desc),
         "offer_description_used": offer_description
-    
     }
+    if debug_print and debug_topn > 0:
+        out["top_skill_sims"] = _top_skill_sims(skills, offer_description, topn=debug_topn)
+    return out

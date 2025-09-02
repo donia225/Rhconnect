@@ -234,25 +234,26 @@ def modifier_offre(request, id):
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
-@permission_classes([AllowAny])  # mets IsAuthenticated si tu veux sécuriser
+@permission_classes([AllowAny])
 def upload_cv(request):
-    if not getattr(settings, "ML_ENABLED", False):
-        return Response({"error": "ML is disabled on this build."}, status=503)
+    # if not getattr(settings, "ML_ENABLED", False):
+    #     return Response({"error": "ML is disabled on this build."}, status=503)
     from ml_models import predict_cv as pcv
     tmp_path = None
     try:
-        fichier_cv = request.FILES.get('cv')
-        candidat_id = request.data.get('candidat')
-        offre_id = request.data.get('offre')
-        projects_count_in = request.data.get('projects_count')  # optionnel
+        # ---- 0) Entrées requises
+        fichier_cv   = request.FILES.get('cv')
+        candidat_id  = request.data.get('candidat')
+        offre_id     = request.data.get('offre')
+        projects_in  = request.data.get('projects_count')  # optionnel
 
         if not fichier_cv or not candidat_id or not offre_id:
             return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
 
         candidat = get_object_or_404(Candidat, id=candidat_id)
-        offre = get_object_or_404(OffreEmploi, id=offre_id)
+        offre    = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # --- 1) Vérif extension + write temp
+        # ---- 1) Vérif extension + écriture fichier temporaire
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
         _, ext = os.path.splitext(name)
         ext = ext.lower()
@@ -264,52 +265,46 @@ def upload_cv(request):
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # --- 2) projects_count (priorité au front, sinon candidat)
+        # ---- 2) projects_count (priorité au front, sinon valeur du candidat)
         try:
-            projects_count = int(projects_count_in) if projects_count_in is not None \
+            projects_count = int(projects_in) if projects_in is not None \
                              else int(getattr(candidat, "projects_count", 0) or 0)
         except Exception:
             projects_count = 0
 
-        # --- 3) PRÉDICTION offer-aware
+        # ---- 3) PRÉDICTION (offer-aware, version alignée bloc 2)
         pred = pcv.predict_from_pdf_with_offer(
             tmp_path,
-            offre_obj=offre,         # _build_offer_description(offre) utilisé en interne
-            offer_description=None,  # None => utilise l'objet offre
+            offre_obj=offre,         # _build_offer_description(offre) est appelé en interne
+            offer_description=None,
             projects_count=projects_count,
-            debug_topn=15,         # affiche/retourne les 15 meilleurs
-            debug_print=True  
+            debug_topn=15,
+            debug_print=True
         )
 
+        # ---- 4) Logs utiles (adaptés aux nouvelles clés)
         print("=== AI PREDICTION ===")
         print(f"Label: {pred.get('label_text')} ({pred.get('label')}) | Proba: {float(pred.get('proba') or 0):.3f}")
 
-        offer_txt = (pred.get('offer_description_used') or '')
+        offer_txt = pred.get('offer_description_used') or ''
         print("---- OFFER DESCRIPTION ----")
         print(offer_txt[:1000])
 
         skills_list = pred.get('extracted_skills') or []
         print("---- CV SKILLS ----")
         print(", ".join(skills_list[:40]))
-        
-        print("---- CV META ----")
-        print(f"Experience: {int(pred.get('exp_years') or 0)} ans ({pred.get('exp_phrase') or 'N/A'})")
-        print(f"Education: {pred.get('edu_phrase') or 'N/A'}")
 
-        print("---- COSINE SIMS ----")
-        print(
-        "skills↔desc: %.3f | exp↔desc: %.3f | edu↔desc: %.3f" % (
-        float(pred.get('cos_sim_skills_desc') or 0.0),
-        float(pred.get('cos_sim_exp_desc') or 0.0),
-        float(pred.get('cos_sim_edu_desc') or 0.0),
-    )
-)
+        print("---- CV META ----")
+        print(f"Experience: {int(pred.get('exp_years') or 0)} ans")
+        print(f"Education: {pred.get('edu_phrase') or 'N/A'} (rank={pred.get('edu_rank')})")
+
+        print("---- COSINE ----")
+        print("skills↔desc: %.3f" % float(pred.get('cos_sim_skills_desc') or 0.0))
         print("=======================\n")
 
-
-        #MAJ candidat 
+        # ---- 5) MAJ candidat (facultative)
         exp_years = int(pred.get("exp_years") or 0)
-        level = years_to_level(exp_years)
+        level = years_to_level(exp_years)  # ta fonction existante
 
         update_fields = []
         if hasattr(candidat, "cv"):
@@ -318,16 +313,16 @@ def upload_cv(request):
         if hasattr(candidat, "niveau_experience"):
             candidat.niveau_experience = level
             update_fields.append("niveau_experience")
-        if hasattr(candidat, "projects_count"):
-            if projects_count_in is not None:
-                try:
-                    candidat.projects_count = int(projects_count_in)
-                    update_fields.append("projects_count")
-                except Exception:
-                    pass
+        if hasattr(candidat, "projects_count") and projects_in is not None:
+            try:
+                candidat.projects_count = int(projects_in)
+                update_fields.append("projects_count")
+            except Exception:
+                pass
         if update_fields:
             candidat.save(update_fields=update_fields)
 
+        # ---- 6) Création candidature + payload de réponse
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
@@ -340,11 +335,10 @@ def upload_cv(request):
         data.update({
             "exp_years": exp_years,
             "niveau_experience": level,
-            "exp_phrase": pred.get("exp_phrase"),
             "edu_phrase": pred.get("edu_phrase"),
+            "edu_rank": pred.get("edu_rank"),
             "cos_sim_skills_desc": pred.get("cos_sim_skills_desc"),
-            "cos_sim_exp_desc": pred.get("cos_sim_exp_desc"),
-            "cos_sim_edu_desc": pred.get("cos_sim_edu_desc"),
+            # plus de 'exp_phrase' / 'cos_sim_exp_desc' / 'cos_sim_edu_desc' dans le nouveau modèle
         })
         return Response(data, status=201)
 
