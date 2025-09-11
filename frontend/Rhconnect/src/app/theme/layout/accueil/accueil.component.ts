@@ -18,11 +18,11 @@ ngAfterViewInit(): void {
   document.body.appendChild(script);
   setTimeout(() => {
     AOS.init({
-      once: true,      // animations ne se répètent pas
-      delay: 100,      // délai d’init
-      duration: 600,   // durée de transition
+      once: true,      
+      delay: 100,      
+      duration: 600, 
     });
-  }, 100); // ← laisse Angular finir de rendre la vue
+  }, 100);
 }
 
 

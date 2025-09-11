@@ -32,7 +32,6 @@ class CandidatSerializer(serializers.ModelSerializer):
             'cv',           # nom de fichier
             'cv_url',       # URL absolue
             'date_naissance',
-            'projects_count',
             'est_employe',
             'niveau_etude', 'niveau_etude_label',
             'niveau_experience', 'niveau_experience_label',

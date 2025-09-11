@@ -105,17 +105,32 @@ ngOnInit(): void {
     this.updatePagination();
   }
 
-  chargerOffres() {
-    this.offreService.getAllOffres().subscribe({
-      next: (data) => {
-        this.offres = data;
-         this.updatePagination();
-      },
-      error: (err) => {
-        console.error('Erreur lors du chargement des offres', err);
+chargerOffres() {
+  this.offreService.getAllOffres().subscribe({
+    next: (data) => {
+      this.offres = data ?? [];
+      this.sortNewestFirst(this.offres); // ✅ le plus récent d’abord
+
+      // si un offreId arrive en query param, on le privilégie
+      const qid = this.route.snapshot.queryParamMap.get('offreId');
+      if (qid) {
+        const found = this.offres.find(o => String(o.id) === String(qid));
+        if (found) this.selectedOffer = found;
       }
-    });
-  }
+
+      this.updatePagination();
+
+      // si rien sélectionné, on prend la 1ère (la plus récente)
+      if (!this.selectedOffer && this.paginatedOffres.length) {
+        this.selectOffer(this.paginatedOffres[0]);
+      }
+    },
+    error: (err) => {
+      console.error('Erreur lors du chargement des offres', err);
+    }
+  });
+}
+
 @ViewChild('cvInput') cvInput!: ElementRef;
 
 handlePostulerClick() {
@@ -189,21 +204,39 @@ onFileSelected(event: any) {
   });
 }
 
-  filterOffres() {
+filterOffres() {
   const term = this.searchTerm.trim().toLowerCase();
 
   if (!term) {
     this.filteredOffres = [...this.offres];
   } else {
     this.filteredOffres = this.offres.filter(offre =>
-      offre.titre.toLowerCase().includes(term) ||
-      offre.description.toLowerCase().includes(term)
+      (offre.titre || '').toLowerCase().includes(term) ||
+      (offre.description || '').toLowerCase().includes(term)
     );
   }
-  this.selectedOffer = null;
+
   this.page = 1;
-  this.updatePagination();
+  this.updatePagination(); // ↦ auto-sélection dans updatePagination()
 }
+
+onSearchSubmit(e: Event) {
+  e.preventDefault();
+  this.filterOffres();
+}
+
+
+private sortNewestFirst(list: any[]) {
+  list.sort((a, b) => {
+    const da = Date.parse(a?.created_at || a?.date_publication || '');
+    const db = Date.parse(b?.created_at || b?.date_publication || '');
+    if (!Number.isNaN(db - da)) return db - da;     // on a des dates valides
+    return (b?.id ?? 0) - (a?.id ?? 0);             // fallback par id
+  });
+}
+
+trackById(_i: number, item: any) { return item?.id; }
+
  updatePagination() {
   const source = this.filteredOffres.length ? this.filteredOffres : this.offres;
 

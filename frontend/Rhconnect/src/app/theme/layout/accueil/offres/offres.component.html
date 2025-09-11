@@ -1,23 +1,36 @@
 <!-- ======= Offres Section ======= -->
 
 <section id="offres" class="offres-container">
-  <div class="top-bar">
-    <div class="search-bar">
-      <div class="search-wrapper">
-        <input 
-          type="text" 
-          [(ngModel)]="searchTerm" 
-          (input)="filterOffres()" 
-          placeholder="Search . . ." 
-          class="search-input"
-        />
-        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">×</button>
-        <button class="search-btn" disabled>
-          <i class="feather icon-search"></i>
-        </button>
-      </div>
+ <div class="top-bar">
+  <form class="search-bar" (submit)="onSearchSubmit($event)">
+    <div class="search-wrapper">
+      <input
+        type="text"
+        name="q"
+        [(ngModel)]="searchTerm"
+        (keyup.enter)="onSearchSubmit($event)"
+        placeholder="Rechercher une offre, un mot-clé…"
+        class="search-input"
+      />
+
+      <button
+        *ngIf="searchTerm"
+        type="button"
+        class="clear-btn"
+        aria-label="Effacer"
+        (click)="clearSearch()"
+      >
+        ×
+      </button>
+
+      <button type="submit" class="search-btn">
+        <i class="feather icon-search"></i>
+        <span>Rechercher</span>
+      </button>
     </div>
-  </div>
+  </form>
+</div>
+
 
 
 
@@ -25,7 +38,7 @@
   <div class="offers-list">
     <div 
       class="offer-card" 
-      *ngFor="let offer of paginatedOffres; let i = index" 
+     *ngFor="let offer of paginatedOffres; let i = index; trackBy: trackById"
       (click)="selectOffer(offer)"
       [class.active]="selectedOffer === offer">
       <h3>{{ offer.titre }}</h3>

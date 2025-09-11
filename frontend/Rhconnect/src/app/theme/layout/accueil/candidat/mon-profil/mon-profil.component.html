@@ -16,13 +16,37 @@
         <input formControlName="date_naissance" type="date" />
       </div>
       <div class="form-row">
-        <label>Adresse</label>
-        <input formControlName="adresse" type="text" />
-      </div>
+      <label>Adresse</label>
+      <input
+        formControlName="adresse"
+        type="text"
+        placeholder="N° et rue, ville…"
+      />
+      <small class="err" *ngIf="
+        profilForm.get('adresse')?.touched &&
+        profilForm.get('adresse')?.errors
+      ">
+        Adresse trop courte ou invalide (au moins 5 caractères, lettres/chiffres autorisés).
+      </small>
+    </div>
       <div class="form-row">
-        <label>Téléphone</label>
-        <input formControlName="numero_tel" type="text" />
-      </div>
+      <label>Téléphone</label>
+      <input
+        formControlName="numero_tel"
+        type="tel"
+        inputmode="numeric"
+        maxlength="8"
+        placeholder="Ex: 20901234"
+        (input)="keepDigitsOnly('numero_tel')"
+      />
+      <small class="err" *ngIf="
+        profilForm.get('numero_tel')?.touched &&
+        profilForm.get('numero_tel')?.hasError('tnPhone')
+      ">
+        Numéro invalide : 8 chiffres tunisiens. Préfixes mobiles : Ooredoo (20–29), Orange (50–59),
+        TT (90–99). Fixe : 70–79.
+      </small>
+    </div>
       <div class="form-row">
         <label>Niveau d’étude</label>
         <select formControlName="niveau_etude">
@@ -34,24 +58,11 @@
         </select>
       </div>
   
-  <!-- <div class="form-row">
-        <label>Niveau d’expérience</label>
-        <select formControlName="niveau_experience">
-          <option value="">-- Sélectionner --</option>
-          <option value="Aucune expérience">Aucune expérience</option>
-          <option value="Moins d’un an">Moins d’un an</option>
-          <option value="Entre 1 et 2 ans">Entre 1 et 2 ans</option>
-          <option value="Entre 2 et 5 ans">Entre 2 et 5 ans</option>
-          <option value="Entre 5 et 10 ans">Entre 5 et 10 ans</option>
-          <option value="Plus que 10 ans">Plus que 10 ans</option>
-        </select>
-      </div> -->
-        <div class="form-row">
-        <label>Projects count</label>
-        <input formControlName="projects_count" type="text"  />
-      </div>
+      
   
-      <button type="submit" class="save-btn">Enregistrer</button>
+       <div class="actions">
+    <button type="submit" class="save-btn">Enregistrer</button>
+  </div>
     </form>
   </div>
   

@@ -1,50 +1,68 @@
 
 <!-- ======= Hero Section ======= -->
 <section id="hero" class="hero d-flex align-items-center">
+   <div class="hero-bg-decor" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+  </div>
+    <div class="hero-dots" aria-hidden="true"></div>
   <div class="container">
     <div class="row gy-4 d-flex justify-content-between">
       <div class="col-lg-6 order-2 order-lg-1 d-flex flex-column justify-content-center">
-        <h1 data-aos="fade-up">Une plateforme RH intelligente pour simplifier et automatiser votre recrutement</h1>
+        <span class="hero-chip" data-aos="zoom-in">IA de matching temps réel</span>
+
+        <h1 data-aos="fade-up">
+          Une plateforme RH intelligente pour simplifier et automatiser votre recrutement
+        </h1>
 
         <div class="d-flex justify-content-start" data-aos="fade-up" data-aos-delay="200">
-          <a [routerLink]="['/offres']" class="btn-get-started">Rechercher une offre</a>
+          <a [routerLink]="['/offres']" class="btn-cta" data-aos="zoom-in">
+          <span>Rechercher une offre</span>
+            <i class="bi bi-arrow-right"></i>
+          </a>
 
         </div>
       </div>
-      <div class="col-lg-6 order-1 order-lg-2 hero-img" data-aos="zoom-out">
-        <img src="assets/images/hero.png" class="img-fluid hero-image" alt="Recrutement">
+       <div class="col-lg-6 order-1 order-lg-2 hero-img" data-aos="zoom-out">
+        <!-- wrapper + anneau tournant -->
+        <div class="hero-art">
+          <div class="orbit" aria-hidden="true"></div>
+          <img src="assets/images/hero.png" class="img-fluid hero-image" alt="Recrutement">
+        </div>
+      </div>
+    </div>
+  </div>
+    <div class="scroll-cue" aria-hidden="true"></div>
+</section>
 
+<section class="contact-v2">
+  <div class="container">
+    <div class="grid">
+      <div class="contact-card" data-aos="fade-up">
+        <div class="icon"><i class="bi bi-geo-alt-fill"></i></div>
+        <div>
+          <h3>Adresse</h3>
+          <p>22 Avenue Des États Unis, Tunis 1002</p>
+        </div>
+      </div>
+
+      <div class="contact-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="icon"><i class="bi bi-envelope-fill"></i></div>
+        <div>
+          <h3>Email</h3>
+          <a href="mailto:uibcontact&#64;uib.com.tn">uibcontact&#64;uib.com.tn</a>
+        </div>
+      </div>
+
+      <div class="contact-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="icon"><i class="bi bi-phone-fill"></i></div>
+        <div>
+          <h3>Numéros utiles</h3>
+          <p>UIB Contact : 81 10 25 25<br>UIB Standard : 81 10 20 20 <br> UIB Phone : 88 40 12 12 </p>
+        </div>
       </div>
     </div>
   </div>
 </section>
-
-<section class="contact-modern-wrapper">
-  <div class="contact-modern-container">
-    <div class="info-box">
-      <i class="bi bi-geo-alt-fill"></i>
-      <div>
-        <h3>Adresse</h3>
-        <p>22 Avenue Des États Unis, Tunis 1002</p>
-      </div>
-    </div>
-
-    <div class="info-box">
-      <i class="bi bi-envelope-fill"></i>
-      <div>
-        <h3>Email</h3>
-        <a href="mailto:uibcontact@uib.com.tn">uibcontact&#64;uib.com.tn</a>
-      </div>
-    </div>
-
-    <div class="info-box">
-      <i class="bi bi-phone-fill"></i>
-      <div>
-        <h3>Téléphone</h3>
-        <p>71 218 130<br>71 218 139</p>
-      </div>
-    </div>
-  </div>
-</section>
-
 

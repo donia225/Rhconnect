@@ -26,6 +26,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
+from ml_models.ai_rag import evaluate_candidate
 
 
 def years_to_level(years: int) -> str:
@@ -231,6 +232,20 @@ def modifier_offre(request, id):
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+def _build_offer_description(offre) -> str:
+    parts = []
+    titre = getattr(offre, "titre", "") or ""
+    desc  = getattr(offre, "description", "") or ""
+    comp  = getattr(offre, "competences", "") or ""
+
+
+    if titre: parts.append(f"Titre: {titre}")
+    if desc:  parts.append(f"Description: {desc}")
+    if comp:  parts.append(f"Compétences: {comp}")
+  
+
+    out = "\n".join(parts).strip()
+    return out or "Offre sans détails fournis."
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
@@ -238,14 +253,16 @@ def modifier_offre(request, id):
 def upload_cv(request):
     # if not getattr(settings, "ML_ENABLED", False):
     #     return Response({"error": "ML is disabled on this build."}, status=503)
-    from ml_models import predict_cv as pcv
+
     tmp_path = None
     try:
-        # ---- 0) Entrées requises
         fichier_cv   = request.FILES.get('cv')
         candidat_id  = request.data.get('candidat')
         offre_id     = request.data.get('offre')
-        projects_in  = request.data.get('projects_count')  # optionnel
+
+        print("CT:", request.content_type,
+              "data keys:", list(request.data.keys()),
+              "files:", list(request.FILES.keys()))
 
         if not fichier_cv or not candidat_id or not offre_id:
             return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
@@ -253,92 +270,107 @@ def upload_cv(request):
         candidat = get_object_or_404(Candidat, id=candidat_id)
         offre    = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # ---- 1) Vérif extension + écriture fichier temporaire
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
         _, ext = os.path.splitext(name)
         ext = ext.lower()
-        if ext not in {".pdf", ".docx", ".doc"}:
-            return Response({"error": "Formats acceptés : .pdf, .docx, .doc"}, status=400)
+        if ext not in {".pdf", ".docx"}:
+            return Response({"error": "Formats acceptés : .pdf, .docx"}, status=400)
 
+        # Écrire le fichier sur disque pour l’extraction
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
             for chunk in fichier_cv.chunks():
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # ---- 2) projects_count (priorité au front, sinon valeur du candidat)
+        # projects_count (comme avant)
+        # try:
+        #     projects_count = int(projects_in) if projects_in is not None \
+        #                      else int(getattr(candidat, "projects_count", 0) or 0)
+        # except Exception:
+        #     projects_count = 0
+
+        # ====== NOUVEAU : Evaluation via RAG + Gemini ======
+        offer_text = _build_offer_description(offre)
         try:
-            projects_count = int(projects_in) if projects_in is not None \
-                             else int(getattr(candidat, "projects_count", 0) or 0)
-        except Exception:
-            projects_count = 0
+            rag_res = evaluate_candidate(offer_text, tmp_path)
+            decision  = str(rag_res.get("decision", "")).strip()
+            scores    = rag_res.get("match_scores", {}) or {}
+            overall   = int(scores.get("overall", 0) or 0)
+            missing = rag_res.get("missing_requirements", []) or []
+            if not isinstance(missing, list):
+                missing = [str(missing)]
 
-        # ---- 3) PRÉDICTION (offer-aware, version alignée bloc 2)
-        pred = pcv.predict_from_pdf_with_offer(
-            tmp_path,
-            offre_obj=offre,         # _build_offer_description(offre) est appelé en interne
-            offer_description=None,
-            projects_count=projects_count,
-            debug_topn=15,
-            debug_print=True
-        )
+            evidence = rag_res.get("evidence", {}) or {}
+            if not isinstance(evidence, dict):
+                evidence = {}
+            # petits aperçus pour la console
+            ev_prev = {
+                "skills": (evidence.get("skills") or [])[:3],
+                "education": (evidence.get("education") or [])[:3],
+                "experience": (evidence.get("experience") or [])[:3],
+            }
 
-        # ---- 4) Logs utiles (adaptés aux nouvelles clés)
-        print("=== AI PREDICTION ===")
-        print(f"Label: {pred.get('label_text')} ({pred.get('label')}) | Proba: {float(pred.get('proba') or 0):.3f}")
+            notes = rag_res.get("notes", "") or ""
+            notes = str(notes)
 
-        offer_txt = pred.get('offer_description_used') or ''
-        print("---- OFFER DESCRIPTION ----")
-        print(offer_txt[:1000])
+            # --- logs lisibles ---
+            print(
+                f"AI decision={decision} | overall={overall} | "
+                f"scores={scores}"
+            )
+            print("AI missing_requirements:", json.dumps(missing, ensure_ascii=False)[:600])
+            print("AI evidence (preview):", json.dumps(ev_prev, ensure_ascii=False))
+            print("AI notes:", (notes[:600] if notes else "<vide>"))
+            print(f"AI decision={decision} | overall={overall} | scores={scores}")
+       
+        except Exception as e:
+            return Response({"error": f"AI pipeline failed: {str(e)}"}, status=500)
+        print("type(rag_res)=", type(rag_res))
+        if not isinstance(rag_res, dict):
+            return Response({"error": "Unexpected AI output type"}, status=502)
 
-        skills_list = pred.get('extracted_skills') or []
-        print("---- CV SKILLS ----")
-        print(", ".join(skills_list[:40]))
+        if "error" in rag_res:
+            return Response({"error": rag_res["error"]}, status=500)
 
-        print("---- CV META ----")
-        print(f"Experience: {int(pred.get('exp_years') or 0)} ans")
-        print(f"Education: {pred.get('edu_phrase') or 'N/A'} (rank={pred.get('edu_rank')})")
-
-        print("---- COSINE ----")
-        print("skills↔desc: %.3f" % float(pred.get('cos_sim_skills_desc') or 0.0))
-        print("=======================\n")
-
-        # ---- 5) MAJ candidat (facultative)
-        exp_years = int(pred.get("exp_years") or 0)
-        level = years_to_level(exp_years)  # ta fonction existante
-
-        update_fields = []
+        # Parsing du JSON retourné
+        decision = str(rag_res.get("decision", "")).strip()
+        scores   = rag_res.get("match_scores", {}) or {}
+        overall  = int(scores.get("overall", 0) or 0)
+        exp_years = float(rag_res.get("exp_years", 0.0) or 0.0)
+        # ====== MAJ candidat (comme avant) ======
         if hasattr(candidat, "cv"):
             candidat.cv = fichier_cv
-            update_fields.append("cv")
         if hasattr(candidat, "niveau_experience"):
-            candidat.niveau_experience = level
-            update_fields.append("niveau_experience")
-        if hasattr(candidat, "projects_count") and projects_in is not None:
             try:
-                candidat.projects_count = int(projects_in)
-                update_fields.append("projects_count")
+                candidat.niveau_experience = years_to_level(int(exp_years))
             except Exception:
                 pass
-        if update_fields:
-            candidat.save(update_fields=update_fields)
+        # if hasattr(candidat, "projects_count") and projects_in is not None:
+        #     try:
+        #         candidat.projects_count = int(projects_in)
+        #     except Exception:
+        #         pass
+    
+        candidat.save()
 
-        # ---- 6) Création candidature + payload de réponse
+
         candidature = Candidature.objects.create(
             candidat=candidat,
             offre=offre,
-            statut='EN_ATTENTE',
-            label=pred.get("label"),
-            ai_score=round((pred.get("proba") or 0) * 100, 2),
+            statut='EN_ATTENTE',          
+            label=decision,
+            ai_score=overall,
         )
 
         data = CandidatureSerializer(candidature, context={'request': request}).data
         data.update({
+            "rag_decision": decision,
+            "rag_scores": scores,
             "exp_years": exp_years,
-            "niveau_experience": level,
-            "edu_phrase": pred.get("edu_phrase"),
-            "edu_rank": pred.get("edu_rank"),
-            "cos_sim_skills_desc": pred.get("cos_sim_skills_desc"),
-            # plus de 'exp_phrase' / 'cos_sim_exp_desc' / 'cos_sim_edu_desc' dans le nouveau modèle
+            "rag_missing": rag_res.get("missing_requirements", []),
+            "rag_evidence": rag_res.get("evidence", {}),
+            
+            
         })
         return Response(data, status=201)
 
@@ -403,8 +435,7 @@ def candidat_profil(request):
             'niveau_experience': candidat.niveau_experience,
             'numero_tel': candidat.numero_tel,
             'adresse': candidat.adresse,
-            'cv': candidat.cv.url if candidat.cv else None,
-            'projects_count': candidat.projects_count
+            'cv': candidat.cv.url if candidat.cv else None
         }
         return Response(data)
 
@@ -499,24 +530,7 @@ def get_candidatures_gestionnaire_rh(request):
         })
 
     return Response(result)
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def update_label(request, candidature_id):
-    try:
 
-        candidature = Candidature.objects.get(id=candidature_id, offre__recruteur=request.user)
-
-        label = request.data.get("label")
-        if label not in [0, 1, "0", "1"]:
-            return Response({"error": "Label invalide. Doit être 0 ou 1."}, status=400)
-
-        candidature.label = int(label)
-        candidature.save()
-
-        return Response({"success": "Label mis à jour avec succès."})
-
-    except Candidature.DoesNotExist:
-        return Response({"error": "Candidature introuvable ou vous n'êtes pas autorisé à la modifier."}, status=404)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])

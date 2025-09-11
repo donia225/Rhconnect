@@ -128,56 +128,76 @@
 .top-bar {
   width: 100%;
   display: flex;
-  justify-content: flex-end;
-  padding: 10px 30px 0;
-
-  .search-bar {
-    .search-wrapper {
-      display: flex;
-      align-items: center;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 40px;
-      padding: 2px 10px;
-      width: 260px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-
-      .search-input {
-        flex: 1;
-        border: none;
-        outline: none;
-        font-size: 14px;
-        padding: 8px 10px;
-        border-radius: 30px;
-      }
-
-      .clear-btn {
-        background: none;
-        border: none;
-        font-size: 16px;
-        color: #777;
-        cursor: pointer;
-        margin-right: 4px;
-      }
-
-      .search-btn {
-        background-color: #00aaff;
-        border: none;
-        color: white;
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        i {
-          font-size: 14px;
-        }
-      }
-    }
-  }
+  justify-content: center;     // ✅ centré
+  padding: 20px 0 10px;
 }
+
+.search-bar {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #dfe3f7;
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  width: min(720px, 92%);      // ✅ large et centré
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .06);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  padding: 10px 6px;
+  border-radius: 999px;
+}
+
+.clear-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #7b88b6;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+
+  &:hover { background: #f2f5ff; color: #4b5bdc; }
+}
+
+.search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #3f51ff, #2f85ff);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .2s ease;
+
+  i { font-size: 16px; line-height: 0; }
+
+  &:hover { box-shadow: 0 8px 20px rgba(63, 81, 255, .25); }
+  &:active { transform: translateY(1px); }
+}
+
+/* responsive : un peu plus compact sous 480px */
+@media (max-width: 480px) {
+  .search-wrapper { padding: 4px 6px 4px 12px; }
+  .search-btn { padding: 8px 12px; }
+}
+
 .button-group {
   display: flex;
   justify-content: flex-end; // ➤ aligne à droite
