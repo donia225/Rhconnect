@@ -60,6 +60,13 @@
   margin-top: 0 !important;
 }
 
+.toast-top-center {
+  top: 30px !important;           /* distance depuis le haut */
+  left: 50% !important;           /* centre horizontal */
+  transform: translateX(-50%) !important; /* recentre */
+  right: auto !important;
+}
+
 
 
 

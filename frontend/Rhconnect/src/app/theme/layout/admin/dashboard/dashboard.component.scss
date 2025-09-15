@@ -70,6 +70,38 @@
     }
   }
 }
+.btn-retain {
+  background: #e8f9f0;
+  color: #198754; // vert bootstrap
+  border: 1px solid #198754;
+  border-radius: 50px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #198754;
+    color: #fff;
+  }
+}
+
+.btn-discard {
+  background: #fdeaea;
+  color: #dc3545; // rouge bootstrap
+  border: 1px solid #dc3545;
+  border-radius: 50px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #dc3545;
+    color: #fff;
+  }
+}
+.btn-group-actions {
+  display: flex;
+  gap: 0.5rem; // espace horizontal entre les boutons
+  justify-content: center; // centre dans la cellule (optionnel)
+}
 
 
 

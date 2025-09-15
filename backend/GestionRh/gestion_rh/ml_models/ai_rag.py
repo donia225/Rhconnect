@@ -163,18 +163,12 @@ def _read_pdf(path: str) -> str:
     out = [p.get_text("text") for p in doc]
     return "\n".join(out).strip()
 
-def _read_docx(path: str) -> str:
-    from docx import Document as Docx
-    d = Docx(path)
-    return "\n".join(p.text for p in d.paragraphs).strip()
 
 def extract_text_any(path: str) -> str:
     ext = os.path.splitext(path)[1].lower()
     if ext == ".pdf":
         return _read_pdf(path)
-    if ext == ".docx":
-        return _read_docx(path)
-    raise ValueError("Formats supportés: .pdf, .docx")
+    raise ValueError("Formats supportés: .pdf")
 
 
 # ========================== LLM & Vectorstore ==========================

@@ -11,6 +11,8 @@ import { Router } from '@angular/router';
 import { ProfilService } from 'src/app/services/profil/profil.service';
 import { ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
+
 
 
 
@@ -46,7 +48,8 @@ export class OffresComponent implements OnInit {
     private http: HttpClient,
     private router: Router,
     private profilService:ProfilService,
-     private route: ActivatedRoute
+     private route: ActivatedRoute,
+       private toastr: ToastrService,
   ) {}
 
 ngOnInit(): void {
@@ -186,24 +189,36 @@ onFileSelected(event: any) {
   }
 
   // ✅ Vérifie que l'offre est sélectionnée
-  if (!this.selectedOffer || !this.candidatId) {
-    alert("Veuillez d'abord sélectionner une offre.");
+   if (!this.selectedOffer || !this.candidatId) {
+    this.toastr.warning("Veuillez d'abord sélectionner une offre.", "⚠️", {
+      positionClass: 'toast-top-center'
+    });
     return;
   }
 
+  // 🔹 Vérifie le format du fichier avant l'upload
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  if (ext !== 'pdf') {
+    this.toastr.error("Le CV doit être en PDF seulement.", "📄", {
+      positionClass: 'toast-top-center'
+    });
+    return;
+  }
   const offreId = this.selectedOffer.id;
 
   this.uploadService.uploadCV(file, offreId, this.candidatId).subscribe({
     next: () => {
-      alert("✅ CV déposé avec succès !");
+      this.toastr.success("✅ CV déposé avec succès !", "", {
+        positionClass: 'toast-top-center'
+      });
     },
     error: (err) => {
       console.error("Erreur d'upload du CV :", err);
-      alert("Erreur lors du dépôt du CV.");
+      const msg = err.error?.error || "Erreur lors du dépôt du CV.";
+      this.toastr.error(msg, "❌", { positionClass: 'toast-top-center' });
     }
   });
 }
-
 filterOffres() {
   const term = this.searchTerm.trim().toLowerCase();
 

@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.conf import settings
 
 class User(AbstractUser):
+    
     ROLE_CHOICES = (
         ('candidat', 'Candidat'),
         ('gestionnaire_rh', 'Gestionnaire RH'),
@@ -15,6 +16,11 @@ class User(AbstractUser):
 
     groups = models.ManyToManyField(Group, related_name="recrutement_users")
     user_permissions = models.ManyToManyField(Permission, related_name="recrutement_users_permissions")
+    @property
+    def full_name(self):
+        return (f"{self.first_name} {self.last_name}").strip() or self.username
+
+   
 
     def __str__(self):
         return f"{self.username} - {self.role}"
@@ -60,14 +66,33 @@ class NiveauEtude(models.TextChoices):
     MBA        = 'mba',        'MBA / Mastère spécialisé'
     DOCTORAT   = 'doctorat',   'Doctorat'
 class OffreEmploi(models.Model):
-    titre = models.CharField(max_length=255)
+    titre = models.CharField(max_length=100)
     description = models.TextField()
     salaire = models.FloatField()
     competences = models.TextField(blank=True, null=True)
-    type_poste = models.CharField(max_length=100, blank=True, null=True)
-    experience = models.CharField(max_length=100, blank=True, null=True)
+    type_poste = models.CharField(max_length=20, blank=True, null=True)
+    EXPERIENCE_CHOICES = [
+        ('aucune', 'Aucune'),
+        ('moins_1_an', "Moins de 1 an"),
+        ('entre_1_2_ans', "1 à 2 ans"),
+        ('entre_2_5_ans', "2 à 5 ans"),
+        ('entre_5_10_ans', "5 à 10 ans"),
+        ('plus_10_ans', "Plus de 10 ans"),
+    ]
+    experience = models.CharField(max_length=50, choices=EXPERIENCE_CHOICES, blank=True, null=True)
     niveau_etude = models.JSONField(default=list, blank=True)
-    disponibilite = models.CharField(max_length=100, blank=True, null=True)
+    DISPONIBILITE_CHOICES = [
+        ('plein_temps', 'Plein temps'),
+        ('mi_temps', 'Mi-temps'),
+        ('temps_partiel_weekend', 'Temps partiel (week-end)'),
+        ('temps_partiel_soir', 'Temps partiel (soir)'),
+        ('horaires_flexibles', 'Horaires flexibles'),
+        ('travail_en_shifts', 'Travail en shifts (2x8/3x8)'),
+        ('saisonnier', 'Saisonnier'),
+    ]
+    disponibilite = models.CharField(
+        max_length=100, choices=DISPONIBILITE_CHOICES, blank=True, null=True
+    )
     MODALITE_CHOICES = [
         ('sur_site', 'Sur site'),
         ('hybride', 'Hybride'),

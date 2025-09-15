@@ -273,8 +273,11 @@ def upload_cv(request):
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
         _, ext = os.path.splitext(name)
         ext = ext.lower()
-        if ext not in {".pdf", ".docx"}:
-            return Response({"error": "Formats acceptés : .pdf, .docx"}, status=400)
+        if ext != ".pdf":
+            return Response(
+        {"error": "Le CV doit être en PDF seulement."},
+        status=400
+    )
 
         # Écrire le fichier sur disque pour l’extraction
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
@@ -282,12 +285,7 @@ def upload_cv(request):
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # projects_count (comme avant)
-        # try:
-        #     projects_count = int(projects_in) if projects_in is not None \
-        #                      else int(getattr(candidat, "projects_count", 0) or 0)
-        # except Exception:
-        #     projects_count = 0
+   
 
         # ====== NOUVEAU : Evaluation via RAG + Gemini ======
         offer_text = _build_offer_description(offre)
@@ -498,10 +496,13 @@ def get_candidatures_recruteur(request):
 
     result = []
     for c in qs:
+        u = c.candidat.user
+        full_name = (u.get_full_name().strip()  # first_name + last_name
+                     or u.username)
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
         result.append({
             'id': c.id,
-            'candidat': c.candidat.user.last_name,
+            'candidat': full_name,
             'offre': c.offre.titre,
             'statut': c.statut,
             'cv_link': cv_url,
@@ -518,13 +519,19 @@ def get_candidatures_gestionnaire_rh(request):
 
     result = []
     for c in candidatures:
+        u = c.candidat.user
+        full_name = (u.get_full_name().strip()  # first_name + last_name
+                     or u.username)
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
         result.append({
             'id': c.id,
-            'candidat': c.candidat.user.last_name,
+            'candidat': full_name,
             'offre': c.offre.titre,
             'statut': c.statut,
             'cv_link': cv_url,
+            'label': c.label,
+            'ai_score': c.ai_score,
+
             
       
         })

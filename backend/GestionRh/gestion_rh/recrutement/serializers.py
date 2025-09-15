@@ -13,7 +13,7 @@ TITLE_RE = r"^[A-Za-zÀ-ÿ'’`.,()\- ]{3,120}$"
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'role', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'full_name', 'role', 'email']
 
 class CandidatSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -54,10 +54,18 @@ class OffreEmploiSerializer(serializers.ModelSerializer):
         allow_empty=True, required=True
     )
     salaire = serializers.FloatField(min_value=1)
+
+    # 👇 nouveaux champs "label"
+    experience_label = serializers.CharField(source='get_experience_display', read_only=True)
+    disponibilite_label = serializers.CharField(source='get_disponibilite_display', read_only=True)
+    modalite_label = serializers.CharField(source='get_modalite_display', read_only=True)
+
     class Meta:
         model = OffreEmploi
         fields = '__all__'
         read_only_fields = ('id', 'date_publication', 'nb_candidatures')
+                            
+                    
     def get_nb_candidatures(self, obj):
         return obj.candidatures.count()
     def validate_titre(self, v):

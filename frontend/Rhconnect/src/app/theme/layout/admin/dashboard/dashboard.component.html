@@ -34,10 +34,10 @@
       <div *ngFor="let item of kpiMatchingAvg">
         <div class="d-flex justify-content-between align-items-center small">
           <span>{{ item.offre }}</span>
-          <span>{{ item.avg }}%</span>
+           <span>{{ item.avg | number:'1.0-1' }}%</span>
         </div>
         <div class="progress mb-2" style="height: 6px;">
-          <div class="progress-bar bg-info" [style.width.%]="item.avg"></div>
+            <div class="progress-bar bg-info" [style.width.%]="item.avg || 0"></div>
         </div>
       </div>
       <p class="text-muted small mb-0">Qualité moyenne des profils</p>
@@ -47,22 +47,40 @@
   <!-- Colonne 2 : Tableau -->
   <div [class.col-md-8]="role === 'gestionnaire_rh'" [class.col-md-12]="role !== 'gestionnaire_rh'">
     <div class="filter-bar mb-4 d-flex flex-wrap align-items-center gap-3">
-      <select class="filter-select" [(ngModel)]="selectedOffre">
+     <select class="filter-select" [(ngModel)]="selectedOffre" (ngModelChange)="onOffreChange()">
         <option value="" disabled selected hidden>Choisir une offre</option>
         <option *ngFor="let offre of offresDisponibles; trackBy: trackByOffre" [value]="offre">
           {{ offre }}
         </option>
       </select>
   <!-- Filtre par statut -->
-  <select class="filter-select" [(ngModel)]="selectedStatut">
-    <option value="">Tous les statuts</option>
-    <option value="EN_ATTENTE">En attente</option>
-    <option value="ACCEPTEE">Acceptée</option>
-    <option value="REJETEE">Rejetée</option>
-  </select>
+<select *ngIf="role === 'gestionnaire_rh'"
+        class="filter-select"
+        [(ngModel)]="selectedStatut"
+        (ngModelChange)="onStatutChange()">
+  <option value="" disabled selected hidden>Sélectionner statut</option>
+  <option value="EN_ATTENTE">En attente</option>
+  <option value="ACCEPTEE">Acceptée</option>
+  <option value="REJETEE">Rejetée</option>
+</select>
 
-  <!-- Réinitialiser -->
-  <button class="btn btn-outline-primary btn-sm reset-btn" (click)="resetFiltres()">🔄 Réinitialiser</button>
+<!-- Recruteur : "Tous les statuts" -->
+<select *ngIf="role !== 'gestionnaire_rh'"
+        class="filter-select"
+        [(ngModel)]="selectedStatut"
+        (ngModelChange)="onStatutChange()">
+  <option value="">Tous les statuts</option>
+  <option value="EN_ATTENTE">En attente</option>
+  <option value="ACCEPTEE">Acceptée</option>
+  <option value="REJETEE">Rejetée</option>
+</select>
+
+<button class="btn btn-outline-primary btn-sm reset-btn" (click)="resetFiltres()">
+  🔄 Réinitialiser
+</button>
+
+
+ 
 </div>
 
     <app-card cardTitle="Liste des candidatures">
@@ -72,26 +90,30 @@
             <tr>
               <th>Candidat</th>
               <th>Offre</th>
-          
-              <th>Statut</th>
               <th *ngIf="role !== 'gestionnaire_rh'">CV</th>
-              <th *ngIf="role !== 'gestionnaire_rh'">Action</th>
-              <th *ngIf="role !== 'gestionnaire_rh'">Label</th>
-              <th *ngIf="role === 'gestionnaire_rh'">Embauche</th>
+               <th *ngIf="role !== 'gestionnaire_rh'">Score</th>
+              <th *ngIf="role !== 'gestionnaire_rh'">Décision IA</th>
+                <th *ngIf="role !== 'gestionnaire_rh'">Décision du recruteur</th>
+                <th>Statut</th>
+              <th *ngIf="role === 'gestionnaire_rh' && hasEmbauchables">Embauche</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of candidaturesFiltrees">
+            <tr *ngFor="let c of candidaturesFiltreesPaged; trackBy: trackById">
               <td>{{ c.candidat }}</td>
               <td>{{ c.offre }}</td>
-              <td>{{ c.statut }}</td>
+          
+
               <td *ngIf="role !== 'gestionnaire_rh'">
                 <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">📄 Voir CV</a>
               </td>
+             
               <td *ngIf="role !== 'gestionnaire_rh'">
-                <button class="btn btn-success btn-sm me-1" (click)="updateStatut(c.id, 'ACCEPTEE')">Accepter</button>
-                <button class="btn btn-danger btn-sm" (click)="updateStatut(c.id, 'REJETEE')">Rejeter</button>
-              </td>
+              <span class="badge" [ngClass]="getScoreClass(c.ai_score)">
+                {{ c.ai_score }}%
+              </span>
+            </td>
+
            <!-- Colonne décision (lecture seule) -->
           <td *ngIf="role !== 'gestionnaire_rh'">
             <span class="badge"
@@ -103,12 +125,46 @@
                 : '—' }}
             </span>
           </td>
+          <td *ngIf="role !== 'gestionnaire_rh'">
+  <div class="btn-group-actions">
+    <button class="btn btn-retain btn-sm d-flex align-items-center"
+            (click)="updateStatut(c.id, 'ACCEPTEE')">
+      <i class="bi bi-check-circle me-1"></i> Retenir
+    </button>
+    <button class="btn btn-discard btn-sm d-flex align-items-center"
+            (click)="updateStatut(c.id, 'REJETEE')">
+      <i class="bi bi-x-circle me-1"></i> Écarter
+    </button>
+  </div>
+</td>
+    <td>
+  <span class="badge"
+        [class.bg-secondary]="c.statut === 'EN_ATTENTE'"
+        [class.bg-success]="c.statut === 'ACCEPTEE'"
+        [class.bg-danger]="c.statut === 'REJETEE'">
+    {{ c.statut === 'EN_ATTENTE' ? '⏳ En attente' 
+      : c.statut === 'ACCEPTEE' ? '✅ Retenue' 
+      : '❌ Écartée' }}
+  </span>
+</td>
 
 
-              <td *ngIf="role === 'gestionnaire_rh'">
-                <button class="btn btn-primary btn-sm" (click)="confirmerEmbauche(c.id)">✅ Confirmer embauche</button>
-              </td>
+
+           <td *ngIf="role === 'gestionnaire_rh' && hasEmbauchables">
+  <button *ngIf="c.statut === 'ACCEPTEE'" class="btn btn-primary btn-sm" (click)="confirmerEmbauche(c.id)">
+    ✅ Confirmer embauche
+  </button>
+</td>
+
             </tr>
+    
+<div class="d-flex justify-content-center my-3"
+     *ngIf="role === 'gestionnaire_rh' && hasMore">
+  <button class="btn btn-outline-primary" (click)="loadMore()">
+    Voir plus
+  </button>
+</div>
+
           </tbody>
         </table>
       </div>
