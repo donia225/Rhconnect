@@ -25,8 +25,9 @@ export class DashboardComponent implements OnInit {
   kpiPieData: number[] = [];
   kpiTopOffers: any[] = [];
   kpiMatchingAvg: { offre: string, avg: number }[] = [];
-  page = 1;
-  pageSize = 10;
+  currentPage = 1;
+  pageSize = 10;                 
+  paginateRecruiter = true; 
   validatedThisMonth = 0;
   private pieChart: any;
 
@@ -35,6 +36,7 @@ export class DashboardComponent implements OnInit {
    ngOnInit(): void {
     const userInfo = this.authService.getUserInfo();
     this.role = userInfo?.role || '';
+    this.pageSize = (this.role === 'gestionnaire_rh') ? 10 : 25;
     if (this.role === 'gestionnaire_rh') {
     this.selectedStatut = 'ACCEPTEE';
   }
@@ -56,8 +58,11 @@ export class DashboardComponent implements OnInit {
       this.initCharts();
     });
   }
-onOffreChange()  { this.page = 1; this.initKpis(); }
-onStatutChange() { this.page = 1; this.initKpis(); }
+  get usePagination(): boolean {
+  return this.role === 'gestionnaire_rh' || this.paginateRecruiter;
+}
+onOffreChange()  { this.currentPage = 1; this.initKpis(); }
+onStatutChange() { this.currentPage = 1; this.initKpis(); }
 private parseScore(raw: any): number {
   if (raw == null) return NaN;
 
@@ -76,6 +81,7 @@ private parseScore(raw: any): number {
 
   return NaN;
 }
+
 
   initKpis(): void {
     const source = this.candidaturesFiltrees; 
@@ -186,16 +192,33 @@ private fetchValidatedThisMonth(): void {
   ];
   this.pieChart.validateData();
 }
-// updateLabel(id: number, label: number) {
-//   this.offreService.updateLabel(id, label).subscribe({
-//     next: () => {
-//       console.log("✅ Label mis à jour");
-//     },
-//     error: (err) => {
-//       console.error("❌ Erreur lors de la mise à jour du label", err);
-//     }
-//   });
-// }
+
+
+private parseDate(raw: any): Date | null {
+  if (!raw) return null;
+  const s = String(raw);
+  let d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+
+  const n = Number(s);
+  if (Number.isFinite(n)) {
+    d = new Date(n > 1e12 ? n : n * 1000); // ms ou s
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+private byNewestDesc = (a: any, b: any): number => {
+  const ad = this.parseDate(a.created_at || a.createdAt || a.submitted_at || a.date);
+  const bd = this.parseDate(b.created_at || b.createdAt || b.submitted_at || b.date);
+  if (ad && bd && bd.getTime() !== ad.getTime()) return bd.getTime() - ad.getTime();
+  if (ad && !bd) return -1;
+  if (!ad && bd) return 1;
+  // fallback sur id décroissant
+  if (typeof a.id === 'number' && typeof b.id === 'number' && a.id !== b.id) return b.id - a.id;
+  return 0;
+};
+
 
  updateStatut(id: number, statut: string): void {
     this.offreService.updateStatut(id, statut).subscribe(() => {
@@ -212,26 +235,43 @@ private fetchValidatedThisMonth(): void {
 }
 
 get candidaturesFiltrees(): any[] {
-    let result = this.candidatures;
-    if (this.selectedOffre) result = result.filter(c => c.offre === this.selectedOffre);
-    if (this.selectedStatut) result = result.filter(c => c.statut === this.selectedStatut);
-    return result;
-  }
+  let result = this.candidatures;
+  if (this.selectedOffre) result = result.filter(c => c.offre === this.selectedOffre);
+  if (this.selectedStatut) result = result.filter(c => c.statut === this.selectedStatut);
+  return result.slice().sort(this.byNewestDesc); // ← tri “plus récentes d’abord”
+}
+
 get candidaturesFiltreesPaged(): any[] {
   const arr = this.candidaturesFiltrees;
-  // RH pagine, recruteur voit tout
-  return this.role === 'gestionnaire_rh' ? arr.slice(0, this.page * this.pageSize) : arr;
+ if (!this.usePagination) return arr;  // recruteur sans pagination => tout
+  const start = (this.currentPage - 1) * this.pageSize;
+  return arr.slice(start, start + this.pageSize);
+}
+get totalPages(): number {
+  return Math.max(1, Math.ceil(this.candidaturesFiltrees.length / this.pageSize));
+}
+get paginationRange(): (number | string)[] {
+  const total = this.totalPages, cur = this.currentPage, delta = 2;
+  const out: (number | string)[] = [];
+  const start = Math.max(1, cur - delta);
+  const end   = Math.min(total, cur + delta);
+  if (start > 1) { out.push(1); if (start > 2) out.push('…'); }
+  for (let p = start; p <= end; p++) out.push(p);
+  if (end < total) { if (end < total - 1) out.push('…'); out.push(total); }
+  return out;
 }
 
-  loadMore(): void {
-    this.page++;
-  }
-
- get hasMore(): boolean {
-  // "Voir plus" n’a de sens que pour RH
-  return this.role === 'gestionnaire_rh'
-      && this.candidaturesFiltrees.length > this.page * this.pageSize;
+goPage(p: number | string): void {
+  if (!this.usePagination) return;
+  const page = Number(p);
+  if (!Number.isFinite(page)) return;
+  if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+  this.currentPage = page;
 }
+
+
+
+
   trackById(_i: number, c: any) { return c.id; }
 
 
@@ -264,7 +304,7 @@ get hasEmbauchables(): boolean {
 resetFiltres(): void {
   this.selectedOffre = '';
   this.selectedStatut = (this.role === 'gestionnaire_rh') ? 'ACCEPTEE' : '';
-  this.page = 1;
+  this.currentPage = 1;
   this.initKpis();
 }
 

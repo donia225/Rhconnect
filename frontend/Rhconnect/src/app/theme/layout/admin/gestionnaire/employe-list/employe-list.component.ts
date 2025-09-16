@@ -4,20 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { EmployeService } from 'src/app/services/employe/employe.service';
 
+type PlanRow = { libelle: string; delai: string | null; evaluation_fin_cycle: string };
 
 @Component({
   selector: 'app-employe-list',
-  imports:[CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './employe-list.component.html'
 })
 export class EmployeListComponent implements OnInit {
   employes: any[] = [];
   selectedEmploye: any = null;
   suivis: any[] = [];
-  ajoutVisible = false;
   changerPosteVisible = false;
-  
-NOTE_LABELS: Record<string, string> = {
+
+  NOTE_LABELS: Record<string, string> = {
     technique: 'Technique',
     communication: 'Communication',
     performance: 'Performance',
@@ -35,51 +35,55 @@ NOTE_LABELS: Record<string, string> = {
     fiabilite: 'Fiabilité'
   };
 
-   suiviForm: any = {
-    ancien_poste: '',
-    nouveau_poste: '',
-    date_changement: '',
-    est_promotion: false,
-    commentaire: '',
-    objectifs: <string[]>[],
-    notes: {
-      technique: null,
-      communication: null,
-      performance: null,
-      travail_d_equipe: null,
-      leadership: null
-    },
-  };
+  suiviForm: {
+    ancien_poste: string;
+    nouveau_poste: string;
+    date_changement: string;
+    est_promotion: boolean;
+    commentaire: string;
+    notes: Record<string, number | null>;
+    objectifs_plan: PlanRow[];
+  } = this.blankForm();
 
   constructor(private employeService: EmployeService) {}
 
   ngOnInit() {
-     this.loadEmployes();
-
-  // 👇 Souscrire pour écouter les rechargements demandés
-  this.employeService.reload$.subscribe(() => {
     this.loadEmployes();
-  });
+    this.employeService.reload$.subscribe(() => this.loadEmployes());
+  }
+
+  private blankForm() {
+    return {
+      ancien_poste: '',
+      nouveau_poste: '',
+      date_changement: '',
+      est_promotion: false,
+      commentaire: '',
+      notes: {
+        technique: null,
+        communication: null,
+        performance: null,
+        travail_d_equipe: null,
+        leadership: null
+      } as Record<string, number | null>,
+      objectifs_plan: [] as PlanRow[]
+    };
   }
 
   loadEmployes() {
-    this.employeService.getEmployes().subscribe((data: any) => {
-      this.employes = data;
-    });
+    this.employeService.getEmployes().subscribe((data: any) => (this.employes = data));
   }
-getNoteValue(key: string): number | null {
-  return this.suiviForm.notes[key] ?? null;
-}
-setNoteValue(key: string, value: any) {
-  this.suiviForm.notes[key] = (value === '' || value == null) ? null : Number(value);
-}
 
+  getNoteValue(key: string): number | null {
+    return this.suiviForm.notes[key] ?? null;
+  }
+  setNoteValue(key: string, value: any) {
+    this.suiviForm.notes[key] = (value === '' || value == null) ? null : Number(value);
+  }
 
- selectEmploye(emp: any) {
+  selectEmploye(emp: any) {
     this.selectedEmploye = emp;
-    this.ajoutVisible = false;
     this.employeService.getSuivis(emp.id).subscribe((data: any) => {
-      // data = { employe: {...}, suivi_carriere: [...] } d'après le serializer
       this.suivis = data.suivi_carriere ?? data;
     });
   }
@@ -87,56 +91,63 @@ setNoteValue(key: string, value: any) {
   ouvrirFormulaire(emp: any) {
     this.selectedEmploye = emp;
     this.changerPosteVisible = false;
-    this.suiviForm = {
-      ancien_poste: emp.poste_actuel,
-      nouveau_poste: '',
-      date_changement: '',
-      est_promotion: false,
-      commentaire: '',
-      objectifs: [],
-      notes: {
-        technique: null,
-        communication: null,
-        performance: null,
-        travail_d_equipe: null,
-        leadership: null
-      },
-      
-    };
-  }
-   addObjectif() {
-    this.suiviForm.objectifs.push('');
-  }
-  removeObjectif(i: number) {
-    this.suiviForm.objectifs.splice(i, 1);
+    this.suiviForm = this.blankForm();
+    this.suiviForm.ancien_poste = emp.poste_actuel;
+    // 1 ligne vide par défaut dans le tableau
+    this.addPlanRow();
   }
 
-ajouterSuivi() {
-    // Nettoyage des notes nulles et objectifs vides
-    const notes: any = {};
-    Object.keys(this.suiviForm.notes || {}).forEach(k => {
-      const v = this.suiviForm.notes[k];
-      if (v !== null && v !== undefined && v !== '') notes[k] = Number(v);
+  addPlanRow() {
+    this.suiviForm.objectifs_plan.push({ libelle: '', delai: '', evaluation_fin_cycle: '' });
+  }
+  removePlanRow(i: number) {
+    this.suiviForm.objectifs_plan.splice(i, 1);
+  }
+
+  ajouterSuivi() {
+  // 1) nettoyer les notes (ne pas comparer à '')
+  const notes: Record<string, number> = {};
+  Object.keys(this.suiviForm.notes || {}).forEach((k: string) => {
+    const v = this.suiviForm.notes[k]; // v: number | null
+    if (v !== null && v !== undefined) {
+      notes[k] = Number(v);
+    }
+  });
+
+  // 2) sérialiser le plan dans le commentaire (backend actuel)
+  const rows = (this.suiviForm.objectifs_plan || [])
+    .filter(r => (r.libelle || '').trim());
+
+  let commentaire = (this.suiviForm.commentaire || '').trim();
+  if (rows.length) {
+    const lines = rows.map(r => {
+      const parts = [r.libelle.trim()];
+      if (r.delai) parts.push(`Délai: ${r.delai}`);
+      if (r.evaluation_fin_cycle) parts.push(`Évaluation: ${r.evaluation_fin_cycle}`);
+      return `- ${parts.join(' | ')}`;
     });
-    const objectifs = (this.suiviForm.objectifs || []).map((s: string) => s.trim()).filter(Boolean);
+    commentaire = `${commentaire}\n\n[Fixation des objectifs]\n${lines.join('\n')}`.trim();
+  }
 
-    const payload = {
+
+    const payload: any = {
       employe: this.selectedEmploye.id,
-      ancien_poste: this.suiviForm.ancien_poste || null,
-      nouveau_poste: this.suiviForm.nouveau_poste,
-      date_changement: this.suiviForm.date_changement,
       est_promotion: !!this.suiviForm.est_promotion,
-      commentaire: this.suiviForm.commentaire || '',
-      objectifs,
-      notes,
-      autres_commentaires: this.suiviForm.autres_commentaires || ''
+      commentaire,
+      notes
+      // ⬇️ Quand tu ajoutes le champ côté API, dé-commente :
+      // objectifs_plan: rows
     };
+    if (this.changerPosteVisible && this.suiviForm.nouveau_poste?.trim()) {
+  payload.ancien_poste = this.suiviForm.ancien_poste || null;
+  payload.nouveau_poste = this.suiviForm.nouveau_poste.trim();
+  payload.date_changement = this.suiviForm.date_changement || null;
+}
 
     this.employeService.ajouterSuivi(payload).subscribe({
       next: () => {
         alert('Suivi ajouté avec succès.');
-        // Recharge les suivis de l’employé sélectionné
-        this.selectEmploye(this.selectedEmploye);
+        this.selectEmploye(this.selectedEmploye); // refresh
       },
       error: (err) => {
         console.error(err);
@@ -144,7 +155,4 @@ ajouterSuivi() {
       }
     });
   }
-
-
-
 }

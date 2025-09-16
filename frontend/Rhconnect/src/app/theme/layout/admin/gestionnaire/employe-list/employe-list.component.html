@@ -21,17 +21,17 @@
             <strong>{{ emp.date_embauche | date: 'longDate' }}</strong>
           </p>
         </div>
+
         <div class="card-footer bg-transparent border-0">
           <a class="btn btn-outline-primary btn-sm w-100"
              [routerLink]="['/admin/gestion-carriere/suivi', emp.id]">
             📊 Voir suivi de carrière
           </a>
 
-          <button
-            class="btn btn-outline-success btn-sm w-100 mt-2"
-            (click)="ouvrirFormulaire(emp)"
-            data-bs-toggle="modal"
-            data-bs-target="#ajoutSuiviModal">
+          <button class="btn btn-outline-success btn-sm w-100 mt-2"
+                  (click)="ouvrirFormulaire(emp)"
+                  data-bs-toggle="modal"
+                  data-bs-target="#ajoutSuiviModal">
             ➕ Ajouter un suivi
           </button>
         </div>
@@ -39,8 +39,9 @@
     </div>
   </div>
 
-  <!-- ✅ Modal d’ajout de suivi -->
-  <div class="modal fade" id="ajoutSuiviModal" tabindex="-1" aria-labelledby="ajoutSuiviLabel" aria-hidden="true">
+  <!-- Modal d’ajout de suivi -->
+  <div class="modal fade" id="ajoutSuiviModal" tabindex="-1"
+       aria-labelledby="ajoutSuiviLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <form (ngSubmit)="ajouterSuivi()" #formAjout="ngForm">
@@ -63,8 +64,10 @@
               <input type="text" class="form-control" [value]="selectedEmploye?.departement" readonly>
             </div>
 
-            <!-- Bouton pour afficher les champs de changement -->
-            <button type="button" class="btn btn-sm btn-outline-primary mb-3" (click)="changerPosteVisible = true">
+            <!-- Bouton : afficher changement de poste -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary mb-3"
+                    (click)="changerPosteVisible = true">
               ✏️ Changer le poste
             </button>
 
@@ -72,63 +75,96 @@
             <div *ngIf="changerPosteVisible">
               <div class="mb-3">
                 <label>Ancien poste :</label>
-                <input type="text" class="form-control" [(ngModel)]="suiviForm.ancien_poste" name="ancien_poste" readonly>
+                <input type="text" class="form-control"
+                       [(ngModel)]="suiviForm.ancien_poste" name="ancien_poste" readonly>
               </div>
 
               <div class="mb-3">
                 <label>Nouveau poste :</label>
-                <input type="text" class="form-control" [(ngModel)]="suiviForm.nouveau_poste" name="nouveau_poste" required>
+                <input type="text" class="form-control"
+                       [(ngModel)]="suiviForm.nouveau_poste" name="nouveau_poste" required>
               </div>
 
               <div class="mb-3">
                 <label>Date de changement :</label>
-                <input type="date" class="form-control" [(ngModel)]="suiviForm.date_changement" name="date_changement" required>
+                <input type="date" class="form-control"
+                       [(ngModel)]="suiviForm.date_changement" name="date_changement" required>
               </div>
             </div>
 
             <div class="form-check mb-3">
-              <input type="checkbox" class="form-check-input" [(ngModel)]="suiviForm.est_promotion" name="est_promotion">
-              <label class="form-check-label">
-                Est une promotion ?
-              </label>
+              <input type="checkbox" class="form-check-input"
+                     [(ngModel)]="suiviForm.est_promotion" name="est_promotion">
+              <label class="form-check-label">Est une promotion ?</label>
             </div>
 
+            <!-- Commentaire -->
             <div class="mb-3">
               <label>Commentaire :</label>
               <textarea class="form-control" [(ngModel)]="suiviForm.commentaire" name="commentaire"></textarea>
             </div>
 
-            <!-- ✅ Objectifs (dynamiques) -->
-            <div class="mb-3">
-              <label class="form-label">Objectifs</label>
-              <div class="vstack gap-2">
-                <div class="input-group" *ngFor="let obj of suiviForm.objectifs; let i = index">
-                  <input type="text" class="form-control" [(ngModel)]="suiviForm.objectifs[i]" name="objectif_{{i}}" placeholder="Ex: Obtenir certification X">
-                  <button type="button" class="btn btn-outline-danger" (click)="removeObjectif(i)">Supprimer</button>
-                </div>
-                <button type="button" class="btn btn-outline-secondary btn-sm w-auto" (click)="addObjectif()">+ Ajouter un objectif</button>
-              </div>
-            </div>
-
-            <!-- ✅ Notes (0..10) -->
+            <!-- Notes (0..10) -->
             <div class="mb-2">
               <label class="form-label">Notes (0 à 10)</label>
               <div class="row g-2">
-          <div class="col-md-4" *ngFor="let kv of (suiviForm.notes | keyvalue)">
-  <label class="form-label">
-    {{ NOTE_LABELS[$any(kv.key)] || kv.key }}
-  </label>
-
-  <input type="number" class="form-control" min="0" max="10" step="0.5"
-         [ngModel]="getNoteValue($any(kv.key))"
-         (ngModelChange)="setNoteValue($any(kv.key), $event)"
-         name="note_{{$any(kv.key)}}">
-</div>
-
+                <div class="col-md-6 col-lg-4" *ngFor="let kv of (suiviForm.notes | keyvalue)">
+                  <label class="form-label">
+                    {{ NOTE_LABELS[$any(kv.key)] || kv.key }}
+                  </label>
+                  <input type="number" class="form-control" min="0" max="10" step="0.5"
+                         [ngModel]="getNoteValue($any(kv.key))"
+                         (ngModelChange)="setNoteValue($any(kv.key), $event)"
+                         name="note_{{$any(kv.key)}}">
+                </div>
               </div>
             </div>
 
-         
+            <!-- Fixation des objectifs (TABLEAU) -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Fixation des objectifs</label>
+
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr class="table-light">
+                      <th>Objectif</th>
+                      <th style="width: 190px;">Délai</th>
+                      <th style="width: 260px;">Évaluation (fin de cycle)</th>
+                      <th style="width: 48px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of suiviForm.objectifs_plan; let i = index">
+                      <td>
+                        <input type="text" class="form-control"
+                               [(ngModel)]="row.libelle"
+                               name="plan_libelle_{{i}}"
+                               placeholder="Ex : Mettre en place X…" />
+                      </td>
+                      <td>
+                        <input type="date" class="form-control"
+                               [(ngModel)]="row.delai"
+                               name="plan_delai_{{i}}" />
+                      </td>
+                      <td>
+                        <input type="text" class="form-control"
+                               [(ngModel)]="row.evaluation_fin_cycle"
+                               name="plan_eval_{{i}}"
+                               placeholder="à renseigner en fin de cycle" />
+                      </td>
+                      <td class="text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                (click)="removePlanRow(i)">&times;</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                      (click)="addPlanRow()">+ Ajouter un objectif</button>
+            </div>
           </div>
 
           <div class="modal-footer">

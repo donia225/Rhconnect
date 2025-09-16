@@ -144,9 +144,8 @@ class SuiviCarriereEmploye(models.Model):
     date_changement = models.DateField(auto_now_add=True)
     est_promotion = models.BooleanField(default=False)
     commentaire = models.TextField(blank=True, null=True)
-    objectifs = models.JSONField(default=list, blank=True)
     notes = models.JSONField(default=dict, blank=True) 
-
+    objectifs_plan = models.JSONField(default=list, blank=True)   # [{libelle, delai, evaluation_fin_cycle}]
     def __str__(self):
         return f"{self.employe.user.username} -> {self.nouveau_poste}"
 

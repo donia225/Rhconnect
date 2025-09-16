@@ -156,17 +156,35 @@
   </button>
 </td>
 
-            </tr>
-    
-<div class="d-flex justify-content-center my-3"
-     *ngIf="role === 'gestionnaire_rh' && hasMore">
-  <button class="btn btn-outline-primary" (click)="loadMore()">
-    Voir plus
-  </button>
-</div>
-
+  </tr>
+  
           </tbody>
+ 
+
+
         </table>
+         <div class="pagination-container"
+       *ngIf="usePagination && totalPages > 1"
+       aria-label="Pagination candidatures">
+    <div class="page-item" [class.disabled]="currentPage === 1">
+      <button class="page-link" type="button"
+              (click)="goPage(currentPage - 1)" [disabled]="currentPage === 1">«</button>
+    </div>
+
+    <ng-container *ngFor="let p of paginationRange">
+      <div class="page-item"
+           [class.active]="p === currentPage"
+           [class.disabled]="p === '…'">
+        <button *ngIf="p !== '…'" class="page-link" type="button" (click)="goPage(+p)">{{ p }}</button>
+        <span *ngIf="p === '…'" class="page-link page-ellipsis">…</span>
+      </div>
+    </ng-container>
+
+    <div class="page-item" [class.disabled]="currentPage === totalPages">
+      <button class="page-link" type="button"
+              (click)="goPage(currentPage + 1)" [disabled]="currentPage === totalPages">»</button>
+    </div>
+  </div>
       </div>
     </app-card>
   </div>

@@ -1,9 +1,11 @@
-<!-- src/app/theme/layout/admin/gestion-carriere/suivi-carriere/suivi-carriere.component.html -->
+
 <div class="container mt-4">
   <h3>Suivi de carrière de {{ employeNom }}</h3>
 
   <ul class="list-group mt-3">
     <li *ngFor="let s of suivis" class="list-group-item">
+
+      <!-- En-tête : date + postes + badge promo -->
       <div class="d-flex justify-content-between align-items-center">
         <div>
           📅 {{ s.date_changement }} :
@@ -13,33 +15,47 @@
         </div>
       </div>
 
+      <!-- Commentaire -->
       <div *ngIf="s.commentaire" class="mt-2 text-muted">
         📝 {{ s.commentaire }}
       </div>
 
-      <!-- Objectifs -->
-      <div *ngIf="s.objectifs?.length" class="mt-2">
-        🎯 <strong>Objectifs</strong>
-        <ul class="mb-0 ps-4">
-          <li *ngFor="let o of s.objectifs">{{ o }}</li>
-        </ul>
-      </div>
+  
 
       <!-- Notes -->
       <div *ngIf="s.notes && (s.notes | keyvalue).length" class="mt-2">
-  ⭐ <strong>Notes</strong>
-  <div class="row mt-1">
-    <div class="col-md-4" *ngFor="let kv of (s.notes | keyvalue)">
-      <span class="text-muted">
-        {{ NOTE_LABELS[$any(kv.key)] || kv.key }}:
-      </span>
-      <span class="fw-semibold">{{ kv.value }}/10</span>
-    </div>
-  </div>
-</div>
+        ⭐ <strong>Notes</strong>
+        <div class="row mt-1">
+          <div class="col-md-4" *ngFor="let kv of (s.notes | keyvalue)">
+            <span class="text-muted">{{ NOTE_LABELS[$any(kv.key)] || kv.key }} :</span>
+            <span class="fw-semibold">{{ kv.value }}/10</span>
+          </div>
+        </div>
+      </div>
 
+      <!-- 🎯 Fixation des objectifs (Objectif / Délai / Évaluation fin de cycle) -->
+      <div *ngIf="s.objectifs_plan?.length" class="mt-3">
+        🎯 <strong>Fixation des objectifs</strong>
+        <div class="table-responsive mt-2">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr class="table-light">
+                <th>Objectif</th>
+                <th style="width:180px;">Délai</th>
+                <th>Évaluation (fin de cycle)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let o of s.objectifs_plan">
+                <td>{{ o.libelle }}</td>
+                <td>{{ o.delai || '—' }}</td>
+                <td>{{ o.evaluation_fin_cycle || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-   
     </li>
   </ul>
 

@@ -1,70 +1,112 @@
-.table-styling {
-  border-radius: 10px;
+/* === Palette === */
+$primary: #3f51ff;
+$danger: rgba(239, 41, 66, 0.9);
+$muted: #6b7280;
+
+/* === Bouton primaire global (Publier une offre) === */
+.btn.btn-primary {
+  background: $primary;
+  border-color: $primary;
+  &:hover { filter: brightness(0.95); }
+}
+
+/* === Table === */
+.table-styling{
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  background-color: #fff;
-
-  th {
-    background-color: #dceeff;
-    color: #2b4b6f;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 13px;
-  }
-
-  td {
-    vertical-align: middle;
-  }
-}
-
-.badge-skill {
-  background-color: #eef2f7;
-  color: #333;
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-size: 12px;
-  margin: 2px;
-  display: inline-block;
-}
-.table-styling td,
-.table-styling th {
-  border-right: 1px solid #e0e0e0;
-}
-
-.table-styling td:last-child,
-.table-styling th:last-child {
-  border-right: none;
-}
-.table-styling {
+  background: #fff;
   border-collapse: separate;
   border-spacing: 0;
-}
-.btn-icon {
-  background: none;
-  border: none;
-  padding: 5px;
-  font-size: 18px;
-  cursor: pointer;
-}
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1040;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.5);
-}
-::ng-deep .modal-header {
-  background-color: rgba(239, 41, 66, 0.9) !important;  /* ta couleur rouge */
-  color: white !important;
-}
-::ng-deep .modal-content {
-  box-shadow: none !important;
-  border: none !important;
+  box-shadow: 0 6px 24px rgba(2, 6, 23, .06);
+
+  thead th{
+    position: sticky; top: 0; z-index: 1;
+    background: rgba(63,81,255,.08); /* #3f51ff à 8% */
+    color: #1f2a44;
+    font-weight: 700;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    border-bottom: 2px solid $primary;
+    padding-block: .9rem;
+  }
+
+  th, td{
+    vertical-align: middle;
+    border-right: 1px solid #eef1f6;
+    padding: .8rem 1rem;
+  }
+  th:last-child, td:last-child { border-right: 0; }
+
+  tbody tr{
+    transition: background .2s ease, box-shadow .2s ease, transform .05s ease;
+    &:nth-child(even){ background: #fafbff; }
+    &:hover{
+      background: rgba(63,81,255,.06);
+      box-shadow: inset 4px 0 0 $primary;
+    }
+  }
+
+  /* Colonne “Candidatures” en badge discret */
+  td:nth-child(6){
+    font-weight: 600; color: #0f172a;
+    .count{ background: rgba(63,81,255,.08); color: $primary; padding: .15rem .55rem; border-radius: 999px; }
+  }
 }
 
-::ng-deep .modal-footer {
-  border-top: none !important;
-  background: transparent !important;
+/* === Chips de compétences === */
+.badge-skill{
+  display: inline-flex; align-items: center; gap: .25rem;
+  background: rgba(63,81,255,.08);
+  color: #1f2937;
+  border: 1px solid rgba(63,81,255,.22);
+  border-radius: 999px;
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  margin: 2px 4px 2px 0;
+  white-space: nowrap;
+}
+
+.badge-skill.more{
+  background: transparent;
+  color: $primary;
+  border-color: rgba(63,81,255,.4);
+  font-weight: 700;
+  &:hover{ background: rgba(63,81,255,.08); }
+}
+
+/* === Icônes d’actions === */
+.btn-icon{
+  background: none; border: 0; padding: .35rem; font-size: 18px; cursor: pointer;
+  color: $muted; transition: color .2s ease, transform .05s ease;
+  &:hover{ color: $primary; transform: translateY(-1px); }
+}
+.btn-icon.text-primary{ color: $primary; &:hover{ filter: brightness(.9); } }
+.btn-icon.text-danger{ color: $danger; &:hover{ filter: brightness(.95); } }
+
+/* === Modal aux couleurs (tu avais déjà la header) === */
+::ng-deep .modal-header{
+  background: $danger !important;
+  color: #fff !important;
+}
+::ng-deep .modal-content{ border: 0 !important; box-shadow: 0 12px 36px rgba(2,6,23,.18) !important; }
+::ng-deep .modal-footer{ border-top: 0 !important; }
+
+/* === Pagination ronde, centrée, bleue === */
+.pagination-container{
+  display: flex; justify-content: center; align-items: center;
+  gap: 6px; width: 100%; margin-top: 12px;
+}
+
+.page-item{
+  .page-link{
+    display: flex; justify-content: center; align-items: center;
+    width: 36px; height: 36px; padding: 0; border: 0; border-radius: 999px;
+    background: transparent; color: $primary; font-weight: 600;
+    transition: background .2s ease, color .2s ease; cursor: pointer; user-select: none;
+    &:hover{ background: rgba(63,81,255,.1); }
+  }
+  &.active .page-link{ background: $primary; color: #fff; }
+  &.disabled .page-link, .page-link[disabled]{ color: #b8c0cc; pointer-events: none; }
+  .page-ellipsis{ cursor: default; color: #9aa4b2; }
 }

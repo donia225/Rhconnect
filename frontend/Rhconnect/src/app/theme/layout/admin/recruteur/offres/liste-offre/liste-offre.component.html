@@ -19,32 +19,40 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let offre of offres; let i = index">
+        <tr  *ngFor="let offre of offresPaged; let i = index">
           <td>{{ offre.titre }}</td>
           <td>{{ offre.type_poste}}</td>
           <td>{{ offre.experience_label || offre.experience }}</td>
-          <td>
-          <ng-container *ngFor="let comp of offre.competences.split(',')">
-          <span class="badge-skill">{{ comp.trim() }}</span>
-          </ng-container>
-          </td>
+          <td class="skills-cell" [title]="offre._skills.join(', ')">
+  <ng-container *ngFor="let comp of offre._skills | slice:0:4">
+    <span class="badge-skill">{{ comp }}</span>
+  </ng-container>
+
+  <button *ngIf="offre._skills.length > 4"
+          class="badge-skill more"
+          type="button"
+          (click)="ouvrirModal(offre)">
+    +{{ offre._skills.length - 4 }}
+  </button>
+</td>
 
          <td>{{ offre.date_publication | date: 'd MMMM y':'':'fr-FR' }}</td>
-         <td>{{ offre.nb_candidatures }}</td>
+        <td><span class="count">{{ offre.nb_candidatures }}</span></td>
+
 
           <td>
             <!-- 🔄 Modifier  -->
-          <a [routerLink]="['/admin/offres/modifier', offre.id]" class="btn-icon text-warning me-2" title="Modifier">
-          <i class="feather icon-edit"></i>
-          </a>
+       <a [routerLink]="['/admin/offres/modifier', offre.id]" class="btn-icon text-primary me-2" title="Modifier">
+  <i class="feather icon-edit"></i>
+</a>
             <!-- ❌ Supprimer -->
-            <button (click)="supprimerOffre(offre.id)" class="btn-icon text-danger me-2" title="Supprimer">
-            <i class="feather icon-trash-2"></i>
-            </button>
+          <button (click)="supprimerOffre(offre.id)" class="btn-icon text-danger me-2" title="Supprimer">
+  <i class="feather icon-trash-2"></i>
+</button>
             <!-- 👁️ Voir -->
-          <button (click)="ouvrirModal(offre)" class="btn-icon text-primary" title="Voir">
-            <i class="feather icon-eye"></i>
-          </button>
+         <button (click)="ouvrirModal(offre)" class="btn-icon text-primary" title="Voir">
+  <i class="feather icon-eye"></i>
+</button>
 
           </td>
         </tr>
@@ -84,10 +92,27 @@
     </div>
   </div>
 </ng-template>
+<div class="pagination-container" *ngIf="totalPages > 1" aria-label="Pagination offres">
+    <div class="page-item" [class.disabled]="currentPage === 1">
+      <button class="page-link" type="button" (click)="goPage(currentPage - 1)" [disabled]="currentPage === 1">«</button>
+    </div>
+
+    <ng-container *ngFor="let p of paginationRange">
+      <div class="page-item" [class.active]="p === currentPage" [class.disabled]="p === '…'">
+        <button *ngIf="p !== '…'" class="page-link" type="button" (click)="goPage(+p)">{{ p }}</button>
+        <span *ngIf="p === '…'" class="page-link page-ellipsis">…</span>
+      </div>
+    </ng-container>
+
+    <div class="page-item" [class.disabled]="currentPage === totalPages">
+      <button class="page-link" type="button" (click)="goPage(currentPage + 1)" [disabled]="currentPage === totalPages">»</button>
+    </div>
+  </div>
 
     <ng-template #noOffre>
       <p class="text-center">Aucune offre d'emploi disponible.</p>
     </ng-template>
+
   </div>
 </app-card>
   

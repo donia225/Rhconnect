@@ -102,6 +102,60 @@
   gap: 0.5rem; // espace horizontal entre les boutons
   justify-content: center; // centre dans la cellule (optionnel)
 }
+.pagination-container {
+  display: flex;
+  justify-content: center;   /* centre horizontalement */
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.page-item {
+  .page-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    color: #3f51ff;
+    font-weight: 500;
+    background-color: transparent;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    cursor: pointer;           /* curseur main */
+    user-select: none;         /* pas de sélection de texte */
+    outline: none;             /* optionnel */
+  }
+
+  .page-link:hover {
+    background-color: rgba(63, 81, 255, 0.1);
+  }
+
+  &.active .page-link {
+    background-color: #3f51ff;
+    color: #fff;
+    font-weight: bold;
+    box-shadow: none;          /* supprime halo */
+  }
+
+  &.disabled .page-link,
+  .page-link[disabled] {
+    color: #bbb;
+    background-color: transparent;
+    pointer-events: none;
+    cursor: default;
+  }
+
+  /* Ellipse (…): style léger */
+  .page-ellipsis {
+    cursor: default;
+    color: #999;
+  }
+}
+
 
 
 

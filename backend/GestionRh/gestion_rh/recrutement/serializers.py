@@ -126,20 +126,23 @@ ALLOWED_NOTES = {
     'assiduite','gestion_stress','securite_conformite','apprentissage','fiabilite'
 }
 class SuiviCarriereEmployeSerializer(serializers.ModelSerializer):
-    objectifs = serializers.ListField(
-        child=serializers.CharField(max_length=300),
-        required=False, allow_empty=True
-    )
+   
     notes = serializers.DictField(
         child=serializers.FloatField(min_value=0, max_value=10),
         required=False
     )
+    objectifs_plan = serializers.ListField(
+        child=serializers.DictField(), required=False, allow_empty=True
+    )
+   
+    nouveau_poste = serializers.CharField(required=False, allow_blank=True)
 
+    date_changement = serializers.DateField(required=False, allow_null=True)
     class Meta:
         model = SuiviCarriereEmploye
         fields = [
             'id','employe','ancien_poste','nouveau_poste','date_changement',
-            'est_promotion','commentaire','objectifs','notes'
+            'est_promotion','commentaire','notes', 'objectifs_plan'
         ]
     def validate_notes(self, notes):
         unknown = [k for k in notes.keys() if k not in ALLOWED_NOTES]
@@ -147,7 +150,22 @@ class SuiviCarriereEmployeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Clés non reconnues: {', '.join(unknown)}")
         return notes
 
-
+    def validate_objectifs_plan(self, items):
+        out = []
+        for i, it in enumerate(items or []):
+            lib = (it.get('libelle') or '').strip()
+            if not lib:
+                raise serializers.ValidationError(f"Ligne {i+1}: 'libelle' est requis.")
+            delai = it.get('delai') or None   # 'YYYY-MM-DD' ou vide
+            eval_fin = (it.get('evaluation_fin_cycle') or '').strip()
+            out.append({'libelle': lib, 'delai': delai, 'evaluation_fin_cycle': eval_fin})
+        return out
+    def create(self, validated_data):
+     
+        if not validated_data.get('nouveau_poste'):
+            emp = validated_data['employe']
+            validated_data['nouveau_poste'] = emp.poste_actuel
+        return super().create(validated_data)
 class EmployeProfilEtSuivisSerializer(serializers.Serializer):
     employe = EmployeSerializer()
     suivi_carriere = SuiviCarriereEmployeSerializer(many=True)
