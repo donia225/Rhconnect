@@ -26,7 +26,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
-from ml_models.ai_rag import evaluate_candidate
+
 
 
 def years_to_level(years: int) -> str:
@@ -253,6 +253,7 @@ def _build_offer_description(offre) -> str:
 def upload_cv(request):
     # if not getattr(settings, "ML_ENABLED", False):
     #     return Response({"error": "ML is disabled on this build."}, status=503)
+    from ml_models.ai_rag import evaluate_candidate
 
     tmp_path = None
     try:

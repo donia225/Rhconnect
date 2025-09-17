@@ -1,5 +1,3 @@
-# app/ai_rag.py  — RAG + Évaluation IA (version robuste, braces échappées)
-
 import os
 import re
 import json
