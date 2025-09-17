@@ -43,6 +43,7 @@ urlpatterns = [
     path('modifier-suivi/<int:suivi_id>/', modifier_suivi_carriere, name='modifier-suivi'),
 
 
+
     path('', include(router.urls)),
 ] 
 
