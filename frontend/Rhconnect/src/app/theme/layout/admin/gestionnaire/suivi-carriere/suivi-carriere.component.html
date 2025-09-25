@@ -1,101 +1,185 @@
+<div class="page container py-4">
 
-<div class="container mt-4">
-  <h3>Suivi de carrière de {{ employeNom }}</h3>
+  <!-- HERO -->
+  <header class="page-hero card shadow-sm">
+    <div class="hero-left">
+      <h1 class="title">Suivi de carrière de <span class="text-primary">{{ employeNom }}</span></h1>
+      <div class="subtitle text-muted">
+        {{ posteActuel || '—' }}
+        <span *ngIf="departement"> • {{ departement }}</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="pill">
+        <i class="bi bi-briefcase me-1"></i>
+        {{ posteActuel || '—' }}
+      </div>
+      <div class="pill">
+        <i class="bi bi-building me-1"></i>
+        {{ departement || '—' }}
+      </div>
+    </div>
+  </header>
 
-  <ul class="list-group mt-3">
-    <li *ngFor="let s of suivis" class="list-group-item">
+  <!-- KPI STRIP -->
+  <section class="kpi-grid">
+    <article class="kpi-card kpi--tenure">
+      <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="kpi-meta">
+        <div class="kpi-label">Ancienneté</div>
+        <div class="kpi-value">{{ kpi.anciennete || '—' }}</div>
+        <div class="kpi-hint" *ngIf="dateEmbauche">Depuis le {{ dateEmbauche | date:'d MMMM y' }}</div>
+      </div>
+    </article>
 
-      <!-- En-tête : date + postes + badge promo -->
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          📅 {{ s.date_changement }} :
-          <strong>{{ s.ancien_poste || '—' }}</strong> ➜
-          <strong>{{ s.nouveau_poste }}</strong>
-          <span *ngIf="s.est_promotion" class="badge bg-success ms-2">Promotion</span>
+    <article class="kpi-card kpi--changes">
+      <div class="kpi-icon"><i class="bi bi-arrow-left-right"></i></div>
+      <div class="kpi-meta">
+        <div class="kpi-label">Changements de poste</div>
+        <div class="kpi-value">{{ kpi.totalChangements }}</div>
+        <div class="kpi-hint">{{ kpi.totalChangements ? 'Historique des mouvements' : '—' }}</div>
+      </div>
+    </article>
+
+    <article class="kpi-card kpi--promos">
+      <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="kpi-meta">
+        <div class="kpi-label">Promotions</div>
+        <div class="kpi-value">{{ kpi.totalPromotions }}</div>
+        <div class="kpi-hint">{{ kpi.totalPromotions ? 'Félicitations !' : '—' }}</div>
+      </div>
+    </article>
+
+    <article class="kpi-card kpi--avg">
+      <div class="kpi-icon"><i class="bi bi-clock-history"></i></div>
+      <div class="kpi-meta">
+        <div class="kpi-label">Durée moyenne</div>
+        <div class="kpi-value">{{ kpi.dureeMoyenneChangement || '—' }}</div>
+        <div class="kpi-hint">{{ kpi.totalChangements >= 2 ? 'Calculée sur l’historique' : 'Données insuffisantes' }}</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="timeline-wrap">
+    <div class="timeline">
+      <div class="tl-item card shadow-sm" *ngFor="let s of suivis" [ngClass]="{promotion: s.est_promotion}">
+        <div class="tl-dot">
+          <i class="bi" [ngClass]="s.est_promotion ? 'bi-award' : 'bi-arrow-right-circle'"></i>
         </div>
+
+        <div class="tl-content card-body">
+          <!-- header ligne -->
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="tl-title">
+                <span class="text-muted me-1">
+                  <i class="bi bi-calendar-date me-1"></i>{{ s.date_changement | date:'d MMMM y' }}
+                </span>
+                <b>{{ s.ancien_poste || '—' }}</b>
+                <span class="mx-1">➜</span>
+                <b>{{ s.nouveau_poste }}</b>
+              </div>
+              <div class="mt-1">
+                <span class="badge-soft" [ngClass]="s.est_promotion ? 'soft-success' : 'soft-primary'">
+                  <i class="bi" [ngClass]="s.est_promotion ? 'bi-arrow-up-right' : 'bi-arrow-left-right'"></i>
+                  {{ s.est_promotion ? 'Promotion' : 'Changement' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- commentaire -->
+          <div *ngIf="s.commentaire" class="text-muted mt-2">
+            <i class="bi bi-chat-quote me-1"></i>{{ s.commentaire }}
+          </div>
+
+          <!-- notes -->
+          <div *ngIf="s.notes && (s.notes | keyvalue).length" class="mt-3">
+            <div class="small text-muted mb-1"><i class="bi bi-stars me-1"></i>Notes</div>
+            <div class="row g-2">
+              <div class="col-md-4" *ngFor="let kv of (s.notes | keyvalue)">
+                <span class="text-muted">{{ NOTE_LABELS[$any(kv.key)] || kv.key }} :</span>
+                <span class="ms-1 align-middle">
+                  <ng-container *ngFor="let t of getStars(kv.value)">
+                    <i class="bi me-1"
+                       [ngClass]="{
+                         'bi-star-fill text-warning': t === 'full',
+                         'bi-star-half text-warning': t === 'half',
+                         'bi-star text-warning': t === 'empty'
+                       }"></i>
+                  </ng-container>
+                  <small class="text-muted ms-1">({{ kv.value }}/10)</small>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- objectifs -->
+     <div *ngIf="s.objectifs_plan?.length" class="mt-3">
+  <details class="objectifs">
+    <summary class="obj-summary">
+      <i class="bi bi-bullseye me-1"></i> Fixation des objectifs
+      <span class="count">{{ s.objectifs_plan.length }}</span>
+    </summary>
+
+    <!-- Desktop : table -->
+    <div class="table-responsive d-none d-md-block mt-2">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr class="table-light">
+            <th>Objectif</th>
+            <th style="width:180px;">Délai</th>
+            <th>Évaluation (fin de cycle)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let o of visibleObjectives(s)">
+            <td>
+              <div class="obj-text">{{ o.libelle }}</div>
+            </td>
+            <td>{{ o.delai || '—' }}</td>
+            <td>{{ o.evaluation_fin_cycle || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Voir plus / moins -->
+      <div class="more-row" *ngIf="hasHiddenObjectives(s)">
+        <button type="button" class="link-like" (click)="toggleObjectivesList(s)">
+          {{ showAllObjectives(s) ? 'Voir moins' : 'Voir plus' }}
+        </button>
+        <span class="text-muted small ms-1" *ngIf="!showAllObjectives(s)">
+          ({{ s.objectifs_plan.length - 3 }} autres)
+        </span>
       </div>
+    </div>
 
-      <!-- Commentaire -->
-      <div *ngIf="s.commentaire" class="mt-2 text-muted">
-        📝 {{ s.commentaire }}
-      </div>
+    <!-- Mobile : liste -->
+    <ul class="obj-list d-md-none mt-2">
+      <li *ngFor="let o of visibleObjectives(s)">
+        <div class="obj-title">{{ o.libelle }}</div>
+        <div class="small text-muted">
+          <i class="bi bi-calendar-event me-1"></i>{{ o.delai || '—' }}
+          <span class="dot">•</span>
+          <i class="bi bi-clipboard-check me-1"></i>{{ o.evaluation_fin_cycle || '—' }}
+        </div>
+      </li>
+    </ul>
 
-  
-
-      <!-- Notes -->
-      <div *ngIf="s.notes && (s.notes | keyvalue).length" class="mt-2">
-        ⭐ <strong>Notes</strong>
-        <div class="row mt-1">
-          <div class="col-md-4" *ngFor="let kv of (s.notes | keyvalue)">
-            <span class="text-muted">{{ NOTE_LABELS[$any(kv.key)] || kv.key }} :</span>
-            <span class="fw-semibold">{{ kv.value }}/10</span>
+    <div class="more-row d-md-none" *ngIf="hasHiddenObjectives(s)">
+      <button type="button" class="link-like" (click)="toggleObjectivesList(s)">
+        {{ showAllObjectives(s) ? 'Voir moins' : 'Voir plus' }}
+      </button>
+      <span class="text-muted small ms-1" *ngIf="!showAllObjectives(s)">
+        ({{ s.objectifs_plan.length - 3 }} autres)
+      </span>
+    </div>
+  </details>
           </div>
         </div>
       </div>
+    </div>
+  </section>
 
-      <!-- 🎯 Fixation des objectifs (Objectif / Délai / Évaluation fin de cycle) -->
-      <div *ngIf="s.objectifs_plan?.length" class="mt-3">
-        🎯 <strong>Fixation des objectifs</strong>
-        <div class="table-responsive mt-2">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr class="table-light">
-                <th>Objectif</th>
-                <th style="width:180px;">Délai</th>
-                <th>Évaluation (fin de cycle)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let o of s.objectifs_plan">
-                <td>{{ o.libelle }}</td>
-                <td>{{ o.delai || '—' }}</td>
-                <td>{{ o.evaluation_fin_cycle || '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </li>
-  </ul>
-
-  <!-- KPI cards -->
-  <div class="row mt-3">
-    <div class="col-md-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h5 class="card-title">Poste actuel</h5>
-        <p class="mb-0">{{ posteActuel }}</p>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h5 class="card-title">Département</h5>
-        <p class="mb-0">{{ departement }}</p>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h5 class="card-title">Ancienneté</h5>
-        <p class="mb-0">{{ kpi.anciennete }}</p>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h5 class="card-title">Changements de poste</h5>
-        <p class="mb-0">{{ kpi.totalChangements }}</p>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h5 class="card-title">Promotions</h5>
-        <p class="mb-0">{{ kpi.totalPromotions }}</p>
-      </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h5 class="card-title">Durée moyenne entre changements</h5>
-        <p class="mb-0">{{ kpi.dureeMoyenneChangement }}</p>
-      </div>
-    </div>
-  </div>
 </div>

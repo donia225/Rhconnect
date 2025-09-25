@@ -1,14 +1,10 @@
 .pcoded-navbar {
-  background: linear-gradient(
-      rgba(239, 41, 66, 0.9),
-      rgba(239, 41, 66, 0.9)
-    ),
-    url('/assets/images/offre.png');
+  background: linear-gradient(rgba(239,41,66,0.9), rgba(239,41,66,0.9)),
+              url('/assets/images/offre.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center 40px;
-  color: white;
-
+  color: #fff;
   box-shadow: none;
   border-right: none;
 
@@ -17,37 +13,17 @@
     align-items: center;
     font-size: 16px;
     padding: 12px 20px;
-    color: white;
+    color: #fff;
     text-decoration: none;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
-      .nav-icon {
-    margin-right: 12px;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-    .pcoded-mtext {
-      white-space: nowrap;
-      font-size: 15px;
-    }
 
-    i.feather {
-      vertical-align: middle;
-      margin-right: 10px;
-      font-size: 18px;
-    }
-  }
+    .nav-icon { margin-right: 12px; font-size: 18px; flex-shrink: 0; }
+    .pcoded-mtext { white-space: nowrap; font-size: 15px; }
 
-  .pcoded-menu-item {
-    .nav-link {
-      padding: 12px 20px;
-
-      .pcoded-mtext {
-        font-size: 15px;
-      }
-    }
+    i.feather { vertical-align: middle; margin-right: 10px; font-size: 18px; }
   }
 
   .nav-label {
@@ -58,34 +34,22 @@
     text-transform: uppercase;
   }
 
-  .nav-item {
-    a {
-      display: flex;
-      align-items: center;
-      font-size: 16px;
-      padding: 12px 20px;
-      color: white;
-      font-weight: 500;
+  .nav-item a {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    padding: 12px 20px;
+    color: #fff;
+    font-weight: 500;
 
-      .pcoded-micon {
-        font-size: 20px;
-        margin-right: 12px;
-      }
-    }
+    .pcoded-micon { font-size: 20px; margin-right: 12px; }
   }
 }
-.pcoded-main-container,
-.pcoded-content,
-.main-container,
-.wrapper,
-body {
-  box-shadow: none !important;
-  border-left: none !important;
-}
-// ✅ Style pour le lien actif avec bande latérale
+
+/* ✅ état actif */
 .nav-item .nav-link.active-link {
   position: relative;
-  background-color: rgba(255, 255, 255, 0.15);// optionnel: fond léger
+  background-color: rgba(255, 255, 255, 0.15);
   font-weight: 600;
   border-radius: 4px;
 
@@ -97,6 +61,16 @@ body {
     bottom: 8px;
     width: 4px;
     border-radius: 2px;
-    background-color: white; // 💙 bleu ciel comme ta capture
+    background-color: #fff;
   }
+}
+
+/* pas d’ombres parasites */
+.pcoded-main-container,
+.pcoded-content,
+.main-container,
+.wrapper,
+body {
+  box-shadow: none !important;
+  border-left: none !important;
 }

@@ -1,178 +1,248 @@
-<div class="container py-4">
-  <h2 class="mb-4">
-    <i class="bi bi-people-fill text-primary"></i>
-    Liste des employés
-  </h2>
+<div class="page container py-4">
 
-  <div class="row g-4">
-    <div class="col-md-4" *ngFor="let emp of employes">
-      <div class="card shadow-sm border-0 h-100">
-        <div class="card-body">
-          <h5 class="card-title mb-1">
-            {{ emp.user.first_name }} {{ emp.user.last_name }}
-          </h5>
-          <p class="card-text text-muted mb-2">
-            <i class="bi bi-briefcase-fill me-1 text-success"></i>
-            {{ emp.poste_actuel }}
-          </p>
-          <p class="mb-0">
-            <i class="bi bi-calendar-check-fill me-1 text-info"></i>
-            Embauché le :
-            <strong>{{ emp.date_embauche | date: 'longDate' }}</strong>
-          </p>
-        </div>
+  <!-- Header + outils -->
+<!-- HERO HEADER -->
+<header class="page-hero">
+  <div class="left">
+    <span class="icon-bubble">
+      <i class="bi bi-people-fill"></i>
+    </span>
 
-        <div class="card-footer bg-transparent border-0">
-          <a class="btn btn-outline-primary btn-sm w-100"
-             [routerLink]="['/admin/gestion-carriere/suivi', emp.id]">
-            📊 Voir suivi de carrière
-          </a>
-
-          <button class="btn btn-outline-success btn-sm w-100 mt-2"
-                  (click)="ouvrirFormulaire(emp)"
-                  data-bs-toggle="modal"
-                  data-bs-target="#ajoutSuiviModal">
-            ➕ Ajouter un suivi
-          </button>
-        </div>
-      </div>
+    <div class="title-wrap">
+      <h1 class="title">Liste des employés</h1>
+      <div class="subtitle">Vue d’ensemble • RH</div>
     </div>
+
+    <span class="count-badge">{{ filteredEmployes.length }}</span>
   </div>
 
-  <!-- Modal d’ajout de suivi -->
-  <div class="modal fade" id="ajoutSuiviModal" tabindex="-1"
-       aria-labelledby="ajoutSuiviLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form (ngSubmit)="ajouterSuivi()" #formAjout="ngForm">
-          <div class="modal-header">
-            <h5 class="modal-title" id="ajoutSuiviLabel">
-              Ajouter un suivi pour {{ selectedEmploye?.user.first_name }}
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+  <div class="right">
+    <div class="search">
+      <i class="bi bi-search"></i>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="applyFilters()"
+        placeholder="Rechercher (nom, poste, département)…"
+        aria-label="Recherche"
+      />
+    </div>
+
+    <select class="form-select filter" [(ngModel)]="selectedDept" (change)="applyFilters()">
+      <option value="">Tous les départements</option>
+      <option *ngFor="let d of deptOptions" [value]="d">{{ d }}</option>
+    </select>
+  </div>
+</header>
+
+
+  <!-- Grille -->
+  <div *ngIf="!loading; else skeletonGrid" class="emp-grid">
+    <article class="emp-card" *ngFor="let emp of filteredEmployes">
+      <div class="emp-header">
+        <ng-container *ngIf="emp?.user?.avatar; else fallbackAvatar">
+    <img [src]="toUrl(emp.user.avatar)" class="avatar" alt="Avatar" />
+  </ng-container>
+       <ng-template #fallbackAvatar>
+    <div class="avatar avatar-fallback">{{ initials(emp) }}</div>
+  </ng-template>
+
+        <div class="meta">
+          <div class="name">{{ emp.user.first_name }} {{ emp.user.last_name }}</div>
+          <div class="sub">
+            <i class="bi bi-briefcase me-1"></i> {{ emp.poste_actuel || '—' }}
+            <span class="dot">•</span>
+            <i class="bi bi-building me-1"></i> {{ emp.departement || '—' }}
           </div>
-
-          <div class="modal-body">
-            <!-- Infos fixes -->
-            <div class="mb-3">
-              <label>Poste actuel :</label>
-              <input type="text" class="form-control" [value]="selectedEmploye?.poste_actuel" readonly>
-            </div>
-
-            <div class="mb-3">
-              <label>Département :</label>
-              <input type="text" class="form-control" [value]="selectedEmploye?.departement" readonly>
-            </div>
-
-            <!-- Bouton : afficher changement de poste -->
-            <button type="button"
-                    class="btn btn-sm btn-outline-primary mb-3"
-                    (click)="changerPosteVisible = true">
-              ✏️ Changer le poste
-            </button>
-
-            <!-- Changement de poste -->
-            <div *ngIf="changerPosteVisible">
-              <div class="mb-3">
-                <label>Ancien poste :</label>
-                <input type="text" class="form-control"
-                       [(ngModel)]="suiviForm.ancien_poste" name="ancien_poste" readonly>
-              </div>
-
-              <div class="mb-3">
-                <label>Nouveau poste :</label>
-                <input type="text" class="form-control"
-                       [(ngModel)]="suiviForm.nouveau_poste" name="nouveau_poste" required>
-              </div>
-
-              <div class="mb-3">
-                <label>Date de changement :</label>
-                <input type="date" class="form-control"
-                       [(ngModel)]="suiviForm.date_changement" name="date_changement" required>
-              </div>
-            </div>
-
-            <div class="form-check mb-3">
-              <input type="checkbox" class="form-check-input"
-                     [(ngModel)]="suiviForm.est_promotion" name="est_promotion">
-              <label class="form-check-label">Est une promotion ?</label>
-            </div>
-
-            <!-- Commentaire -->
-            <div class="mb-3">
-              <label>Commentaire :</label>
-              <textarea class="form-control" [(ngModel)]="suiviForm.commentaire" name="commentaire"></textarea>
-            </div>
-
-            <!-- Notes (0..10) -->
-            <div class="mb-2">
-              <label class="form-label">Notes (0 à 10)</label>
-              <div class="row g-2">
-                <div class="col-md-6 col-lg-4" *ngFor="let kv of (suiviForm.notes | keyvalue)">
-                  <label class="form-label">
-                    {{ NOTE_LABELS[$any(kv.key)] || kv.key }}
-                  </label>
-                  <input type="number" class="form-control" min="0" max="10" step="0.5"
-                         [ngModel]="getNoteValue($any(kv.key))"
-                         (ngModelChange)="setNoteValue($any(kv.key), $event)"
-                         name="note_{{$any(kv.key)}}">
-                </div>
-              </div>
-            </div>
-
-            <!-- Fixation des objectifs (TABLEAU) -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Fixation des objectifs</label>
-
-              <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                  <thead>
-                    <tr class="table-light">
-                      <th>Objectif</th>
-                      <th style="width: 190px;">Délai</th>
-                      <th style="width: 260px;">Évaluation (fin de cycle)</th>
-                      <th style="width: 48px;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of suiviForm.objectifs_plan; let i = index">
-                      <td>
-                        <input type="text" class="form-control"
-                               [(ngModel)]="row.libelle"
-                               name="plan_libelle_{{i}}"
-                               placeholder="Ex : Mettre en place X…" />
-                      </td>
-                      <td>
-                        <input type="date" class="form-control"
-                               [(ngModel)]="row.delai"
-                               name="plan_delai_{{i}}" />
-                      </td>
-                      <td>
-                        <input type="text" class="form-control"
-                               [(ngModel)]="row.evaluation_fin_cycle"
-                               name="plan_eval_{{i}}"
-                               placeholder="à renseigner en fin de cycle" />
-                      </td>
-                      <td class="text-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm"
-                                (click)="removePlanRow(i)">&times;</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <button type="button" class="btn btn-outline-secondary btn-sm"
-                      (click)="addPlanRow()">+ Ajouter un objectif</button>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Enregistrer</button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          </div>
-        </form>
+        </div>
       </div>
+
+      <div class="emp-body">
+        <div class="chip">
+          <i class="bi bi-calendar-check me-1"></i>
+          Embauché le <b>{{ emp.date_embauche | date:'longDate' }}</b>
+        </div>
+      </div>
+
+      <div class="emp-actions">
+        <a class="btn btn-primary-soft"
+           [routerLink]="['/admin/gestion-carriere/suivi', emp.id]">
+          <i class="bi bi-bar-chart-line me-1"></i>
+          Voir suivi
+        </a>
+
+        <button class="btn btn-success-soft"
+                [disabled]="isAddLocked(emp.id)"
+                [ngClass]="{ disabled: isAddLocked(emp.id) }"
+                (click)="onClickAdd(emp)"
+                [attr.data-bs-toggle]="isAddLocked(emp.id) ? null : 'modal'"
+                [attr.data-bs-target]="isAddLocked(emp.id) ? null : '#ajoutSuiviModal'"
+                [attr.title]="isAddLocked(emp.id) ? 'Un suivi vient d’être ajouté. Utilisez Modifier.' : null">
+          <i class="bi bi-plus-circle me-1"></i>
+          Ajouter
+        </button>
+
+        <button class="btn btn-warning-soft"
+                (click)="ouvrirEditionDernierSuivi(emp)"
+                data-bs-toggle="modal"
+                data-bs-target="#ajoutSuiviModal">
+          <i class="bi bi-pencil-square me-1"></i>
+          Modifier
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Skeleton -->
+  <ng-template #skeletonGrid>
+    <div class="emp-grid">
+      <article class="emp-card skeleton" *ngFor="let i of [1,2,3,4,5,6]"></article>
+    </div>
+  </ng-template>
+
+<!-- Modal d’ajout de suivi -->
+<div class="modal fade" id="ajoutSuiviModal" tabindex="-1"
+     aria-labelledby="ajoutSuiviLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+     <form (ngSubmit)="onSubmit()" #formAjout="ngForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ajoutSuiviLabel">
+  {{ modeForm === 'create'
+      ? ('Ajouter un suivi pour ' + (selectedEmploye?.user?.first_name || ''))
+      : ('Modifier le suivi de ' + (selectedEmploye?.user?.first_name || '')) }}
+</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+
+        <!-- ✅ un seul modal-body + *ngIf -->
+        <div class="modal-body" *ngIf="selectedEmploye as emp">
+          <!-- Profil (éditable) -->
+          <div class="mb-3">
+            <label>Département :</label>
+            <input type="text" class="form-control"
+                   [ngModel]="emp.departement"
+                   (ngModelChange)="emp.departement = $event"
+                   name="departement">
+          </div>
+
+          <div class="mb-3">
+            <label>Poste actuel :</label>
+            <input type="text" class="form-control"
+                   [ngModel]="emp.poste_actuel"
+                   (ngModelChange)="emp.poste_actuel = $event"
+                   name="poste_actuel">
+          </div>
+
+          <!-- Bouton : afficher changement de poste -->
+        <button type="button"
+        class="btn btn-sm btn-outline-primary mb-3"
+        (click)="changerPosteVisible = !changerPosteVisible">
+  ✏️ Changer le poste
+</button>
+
+          <!-- Changement de poste -->
+          <div *ngIf="changerPosteVisible">
+            <div class="mb-3">
+              <label>Ancien poste :</label>
+              <input type="text" class="form-control"
+                     [(ngModel)]="suiviForm.ancien_poste" name="ancien_poste" readonly>
+            </div>
+            <div class="mb-3">
+              <label>Nouveau poste :</label>
+              <input type="text" class="form-control"
+                     [(ngModel)]="suiviForm.nouveau_poste" name="nouveau_poste" 
+                     [required]="changerPosteVisible">
+            </div>
+            <div class="mb-3">
+              <label>Date de changement :</label>
+              <input type="date" class="form-control"
+                     [(ngModel)]="suiviForm.date_changement" name="date_changement"
+                      [required]="changerPosteVisible">
+            </div>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input"
+                   [(ngModel)]="suiviForm.est_promotion" name="est_promotion">
+            <label class="form-check-label">Est une promotion ?</label>
+          </div>
+
+          <!-- Commentaire -->
+          <div class="mb-3">
+            <label>Commentaire :</label>
+            <textarea class="form-control"
+                      [(ngModel)]="suiviForm.commentaire" name="commentaire"></textarea>
+          </div>
+
+          <!-- Notes (0..10) -->
+          <div class="mb-2">
+            <label class="form-label">Notes (0 à 10)</label>
+            <div class="row g-2">
+              <div class="col-md-6 col-lg-4" *ngFor="let kv of (suiviForm.notes | keyvalue)">
+                <label class="form-label">{{ NOTE_LABELS[$any(kv.key)] || kv.key }}</label>
+                <input type="number" class="form-control" min="0" max="10" step="0.5"
+                       [ngModel]="getNoteValue($any(kv.key))"
+                       (ngModelChange)="setNoteValue($any(kv.key), $event)"
+                       name="note_{{$any(kv.key)}}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Fixation des objectifs -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Fixation des objectifs</label>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr class="table-light">
+                    <th>Objectif</th>
+                    <th style="width: 190px;">Délai</th>
+                    <th style="width: 260px;">Évaluation (fin de cycle)</th>
+                    <th style="width: 48px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of suiviForm.objectifs_plan; let i = index">
+                    <td>
+                      <input type="text" class="form-control"
+                             [(ngModel)]="row.libelle"
+                             name="plan_libelle_{{i}}"
+                             placeholder="Ex : Mettre en place X…">
+                    </td>
+                    <td>
+                      <input type="date" class="form-control"
+                             [(ngModel)]="row.delai"
+                             name="plan_delai_{{i}}">
+                    </td>
+                    <td>
+                      <input type="text" class="form-control"
+                             [(ngModel)]="row.evaluation_fin_cycle"
+                             name="plan_eval_{{i}}"
+                             placeholder="à renseigner en fin de cycle">
+                    </td>
+                    <td class="text-end">
+                      <button type="button" class="btn btn-outline-danger btn-sm"
+                              (click)="removePlanRow(i)">&times;</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    (click)="addPlanRow()">+ Ajouter un objectif</button>
+          </div>
+        </div> <!-- /modal-body -->
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">
+  {{ modeForm === 'create' ? 'Enregistrer' : 'Mettre à jour' }}
+</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
+
 </div>

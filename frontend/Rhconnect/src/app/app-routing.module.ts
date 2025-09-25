@@ -25,6 +25,8 @@ import { EmployeLayoutComponent } from './theme/layout/employe/employe-layout/em
 import { SidebarEmployeComponent } from './theme/layout/employe/sidebar-employe/sidebar-employe.component';
 import { NavbarEmployeComponent } from './theme/layout/employe/navbar-employe/navbar-employe.component';
 import { RedirectionGuard } from './services/auth/redirection.guard';
+import { EmployeDashboardComponent } from './theme/layout/employe/employe-dashboard/employe-dashboard.component';
+import { MonSuiviComponent } from './theme/layout/employe/mon-suivi/mon-suivi.component';
 
 registerLocaleData(localeFr);
 
@@ -47,7 +49,10 @@ export const routes: Routes = [
   path: 'employe',
   component: EmployeLayoutComponent,
   children: [
+    { path: '', redirectTo: 'dashboard', pathMatch: 'full' }, // ⬅️ par défaut = dashboard
+    { path: 'dashboard', component: EmployeDashboardComponent },
     { path: 'profil', component: EmployeProfilComponent },
+    {path:'mon-suivi',component:MonSuiviComponent},
     {path: 'sidebar', component: SidebarEmployeComponent},
     {path: 'navbar', component: NavbarEmployeComponent}
     

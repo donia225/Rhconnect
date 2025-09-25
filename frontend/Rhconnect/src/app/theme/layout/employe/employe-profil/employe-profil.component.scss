@@ -1,66 +1,134 @@
-/* NAVBAR */
-.navbar {
-  height: 60px;
-  background: #ffffff;
-  border-bottom: 1px solid #ddd;
+/* === Carte générale === */
+.card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  }
+}
+
+/* === Avatar === */
+.avatar-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(15,23,42,.1);
+  border: 3px solid #f1f5f9;
+}
+.avatar-sm {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+
+/* === Grille pour les infos === */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+
+  .col-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+/* === Label + Valeur === */
+.label {
+  font-size: 0.8rem;
+  color: #64748b; /* slate-500 */
+  margin-bottom: 2px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value {
+  font-size: 1rem;
+  color: #0f172a; /* slate-900 */
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* === Badges (email) === */
+.badge {
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  background: #f1f5f9; /* gris clair */
+  color: #334155; /* slate-700 */
+}
+
+/* === Titre de section === */
+.card-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b; /* slate-800 */
+  margin-bottom: 1rem;
+  border-left: 3px solid #3b82f6; /* bleu moderne */
+  padding-left: 8px;
+}
+
+/* === Container général === */
+.container {
+  max-width: 1000px;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .avatar-lg {
+    width: 60px;
+    height: 60px;
+  }
+}
+/* Lignes "label | valeur" */
+.kv-list, .kv-form {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 220px 1fr; /* label | value */
   align-items: center;
-  padding: 0 2rem;
+  gap: 10px;
 
-  .logo {
-    height: 40px;
+  .label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
   }
-
-  .user {
-    font-weight: 500;
-
-    button {
-      margin-left: 1rem;
-      background: none;
-      border: none;
-      color: #e53935;
-      cursor: pointer;
-    }
+  .value {
+    font-size: 1rem;
+    color: #0f172a;
+    font-weight: 600;
+    word-break: break-word;
   }
 }
 
-/* LAYOUT */
-.layout {
-  display: flex;
-  height: calc(100vh - 60px);
-
-  .sidebar {
-    width: 200px;
-    background: #f9f9f9;
-    border-right: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-
-    a {
-      margin-bottom: 1rem;
-      text-decoration: none;
-      color: #333;
-      font-weight: 500;
-
-      &.active {
-        font-weight: 700;
-        color: #1976d2;
-      }
-    }
-  }
-
-  .content {
-    flex: 1;
-    padding: 2rem;
-
-    .card {
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      margin-bottom: 2rem;
-    }
-  }
+/* Form control dans la grille */
+.kv-form .form-control {
+  max-width: 520px;
 }
+
+/* Avatar déjà fourni dans ton SCSS précédent */
+.avatar-lg {
+  width: 72px; height: 72px; border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(15,23,42,.1);
+  border: 3px solid #f1f5f9;
+}
+

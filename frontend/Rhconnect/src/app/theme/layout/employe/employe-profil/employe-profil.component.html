@@ -1,28 +1,125 @@
-<!-- 
+<div class="container py-4" *ngIf="profil; else loading">
+  <!-- En-tête -->
+ <div class="card p-4 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <!-- ✅ Aperçu avatar -->
+    <img [src]="avatarPreview || profil.avatar || 'assets/images/user/avatar-1.jpg'"
+         alt="avatar"
+         class="avatar-lg" />
 
+      <div class="flex-grow-1">
+        <div class="h4 mb-1">{{ profil.prenom }} {{ profil.nom }}</div>
+        <span class="badge">{{ profil.email }}</span>
+        <div class="text-muted small mt-1">Identité & contact</div>
+      </div>
+      <div class="text-end">
+        <button class="btn btn-outline-primary btn-sm" (click)="toggleEdit()">
+          {{ editMode ? 'Annuler' : 'Modifier mon profil' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
-<div class="layout">
-  
+  <div class="row g-4">
+    <!-- Informations personnelles -->
+    <div class="col-lg-7">
+      <div class="card p-3">
+        <div class="card-title">Informations personnelles</div>
 
-  <main class="content">
-  Ton contenu existant du profil employé 
-    <div class="card">
-      <h4>{{ profil?.prenom }} {{ profil?.nom }}</h4>
-      <p><strong>Poste :</strong> {{ profil?.poste_actuel }}</p>
-      <p><strong>Date d'embauche :</strong> {{ profil?.date_embauche }}</p>
-      <p><strong>Département :</strong> {{ profil?.departement }}</p>
+        <!-- MODE LECTURE -->
+        <div *ngIf="!editMode" class="kv-list">
+          <div class="kv">
+            <div class="label">Prénom</div>
+            <div class="value">{{ profil.prenom || '—' }}</div>
+          </div>
+          <div class="kv">
+            <div class="label">Nom</div>
+            <div class="value">{{ profil.nom || '—' }}</div>
+          </div>
+          <div class="kv">
+            <div class="label">Téléphone</div>
+            <div class="value">{{ profil.numero_tel || '—' }}</div>
+          </div>
+          <div class="kv">
+            <div class="label">Date de naissance</div>
+            <div class="value">
+              {{ profil.date_naissance ? (profil.date_naissance | date:'longDate') : '—' }}
+            </div>
+          </div>
+          <div class="kv">
+            <div class="label">Adresse</div>
+            <div class="value">{{ profil.adresse || '—' }}</div>
+          </div>
+        </div>
+
+        <!-- MODE ÉDITION -->
+        <form *ngIf="editMode" (ngSubmit)="save()" class="kv-form">
+          <div class="kv">
+            <div class="label">Prénom</div>
+            <input class="form-control" [(ngModel)]="edit.prenom" name="prenom">
+          </div>
+          <div class="kv">
+            <div class="label">Nom</div>
+            <input class="form-control" [(ngModel)]="edit.nom" name="nom">
+          </div>
+          <div class="kv">
+            <div class="label">Téléphone</div>
+            <input class="form-control" [(ngModel)]="edit.numero_tel" name="numero_tel">
+          </div>
+          <div class="kv">
+            <div class="label">Date de naissance</div>
+            <input type="date" class="form-control"
+                   [(ngModel)]="edit.date_naissance" name="date_naissance">
+          </div>
+          <div class="kv">
+            <div class="label">Adresse</div>
+            <input class="form-control" [(ngModel)]="edit.adresse" name="adresse">
+          </div>
+
+          <div class="kv">
+    <div class="label">Photo de profil</div>
+    <div class="d-flex align-items-center gap-3">
+      <input type="file" accept="image/*" class="form-control" (change)="onFile($event)">
+      <img *ngIf="avatarPreview" [src]="avatarPreview" alt="preview" class="avatar-sm" />
+    </div>
+  </div>
+
+          <div class="text-end mt-3">
+            <button type="button" class="btn btn-light me-2" (click)="toggleEdit()">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <div class="card">
-      <h5>📈 Suivi de carrière</h5>
-      <ul class="list-group">
-        <li *ngFor="let s of suivi" class="list-group-item">
-          📅 {{ s.date_changement }} :
-          {{ s.ancien_poste || '—' }} ➜ <strong>{{ s.nouveau_poste }}</strong>
-          <span *ngIf="s.est_promotion" class="badge bg-success">Promotion</span>
-        </li>
-      </ul>
+    <!-- Informations professionnelles (lecture seule) -->
+    <div class="col-lg-5">
+      <div class="card p-3">
+        <div class="card-title">Informations professionnelles</div>
+
+        <div class="kv-list">
+          <div class="kv">
+            <div class="label">Poste actuel</div>
+            <div class="value">{{ profil.poste_actuel || '—' }}</div>
+          </div>
+          <div class="kv">
+            <div class="label">Département</div>
+            <div class="value">{{ profil.departement || '—' }}</div>
+          </div>
+          <div class="kv">
+            <div class="label">Date d’embauche</div>
+            <div class="value">
+              {{ profil.date_embauche ? (profil.date_embauche | date:'longDate') : '—' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="text-muted small mt-2">Ces informations sont gérées par les RH.</div>
+      </div>
     </div>
-  </main>
+  </div>
 </div>
-   -->
+
+<ng-template #loading>
+  <div class="container py-4 text-muted">Chargement…</div>
+</ng-template>

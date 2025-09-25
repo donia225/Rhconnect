@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from .views import OffresDuRecruteurAPIView, ajouter_offre, ajouter_suivi_carriere, candidat_profil,deja_postule, confirmer_embauche, employe_profil_et_suivi, get_candidat_id, get_candidatures_by_candidat, get_candidatures_gestionnaire_rh, get_suivis_employe, list_candidats, liste_offres, login_user, mes_candidatures, modifier_offre, modifier_suivi_carriere, register_user, request_password_reset, reset_password, supprimer_offre, update_statut_candidature, upload_cv, get_candidatures_recruteur
+from .views import OffresDuRecruteurAPIView, ajouter_offre, ajouter_suivi_carriere, candidat_profil,deja_postule, confirmer_embauche, employe_profil_et_suivi, get_candidat_id, get_candidatures_by_candidat, get_candidatures_gestionnaire_rh, get_suivis_employe, list_candidats, liste_offres, login_user, mes_candidatures, modifier_offre, register_user, request_password_reset, reset_password, supprimer_offre, update_employe_profile, update_statut_candidature, upload_avatar, upload_cv, get_candidatures_recruteur
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -9,7 +9,7 @@ from .views import EmployeViewSet, SuiviCarriereEmployeViewSet
 
 router = DefaultRouter()
 router.register(r'employes', EmployeViewSet)
-router.register(r'suivis', SuiviCarriereEmployeViewSet)
+router.register(r'suivi-carriere', SuiviCarriereEmployeViewSet, basename='suivi-carriere')
 
 urlpatterns = [
     path('register/', register_user, name='register'),
@@ -33,14 +33,15 @@ urlpatterns = [
     path('mes-candidatures/', mes_candidatures, name='mes_candidatures'),
     path('profil-candidat/', candidat_profil, name='candidat_profil'),
     path('candidatures-recruteur', get_candidatures_recruteur, name='get_candidatures_recruteur'),
-    # path("update-label/<int:candidature_id>", update_label),
     path('candidature/<int:id>/update-statut', update_statut_candidature, name='update-statut-candidature'),
     path('confirmer-embauche/<int:candidature_id>/', confirmer_embauche),
     path('candidatures-gestionnaire/', get_candidatures_gestionnaire_rh, name='get_candidatures'),
-    path('profil-employe/', employe_profil_et_suivi, name='employe_profil_et_suivi'),
     path('suivis/<int:employe_id>/', get_suivis_employe, name='get_suivis_employe'),
     path('ajouter-suivi/', ajouter_suivi_carriere, name='ajouter-suivi'),
-    path('modifier-suivi/<int:suivi_id>/', modifier_suivi_carriere, name='modifier-suivi'),
+    path('profil-employe/', employe_profil_et_suivi, name='employe_profil_et_suivi'),
+    path('profil-employe/update/', update_employe_profile, name='update_employe_profile'),
+    path('profil-employe/avatar/', upload_avatar, name='upload_avatar'),
+ 
 
 
 

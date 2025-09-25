@@ -1,0 +1,165 @@
+:host {
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(16, 24, 40, .08);
+  --muted: #6b7280;
+  --ink: #0f172a;
+  display: block;
+}
+
+/* ========== HERO HEADER ========= */
+.page-hero {
+  position: sticky; top: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; margin: -8px 0 16px;
+  background: rgba(255,255,255,.75); backdrop-filter: blur(6px);
+  border: 1px solid #f1f5f9; border-radius: 18px; box-shadow: var(--shadow);
+}
+.page-hero .left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.icon-bubble{ width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,#e3f2fd,#eef2ff);color:#2563eb;}
+.title-wrap{min-width:0;}
+.title{margin:0;font-size:clamp(1.25rem,1.1rem + 1vw,1.75rem);font-weight:800;letter-spacing:-.02em;color:#0b2a66;}
+.subtitle{color:var(--muted);font-size:.9rem;margin-top:2px;}
+.count-badge{margin-left:8px;background:#eef2ff;color:#4f46e5;padding:.2rem .55rem;border-radius:999px;font-size:.9rem;font-weight:700;box-shadow:inset 0 0 0 1px #e0e7ff;}
+.page-hero .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.search{position:relative;display:flex;align-items:center;background:#fff;border-radius:999px;padding:.45rem .75rem;box-shadow:var(--shadow);}
+.search i{margin-right:.45rem;color:var(--muted);}
+.search input{border:none;outline:none;min-width:260px;background:transparent;color:var(--ink);}
+.filter{min-width:220px;border-radius:999px;border:none;box-shadow:var(--shadow);}
+
+/* ========== GRID & CARDS ========= */
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px;}
+.emp-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px;transition:.15s ease;}
+.emp-card:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(16,24,40,.12);}
+.emp-header{display:flex;gap:12px;align-items:center;}
+.avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.avatar-fallback{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:#1f2937;font-weight:700;background:linear-gradient(135deg,#e3f2fd,#f3e5f5);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.meta .name{font-weight:700;color:var(--ink);}
+.meta .sub{color:var(--muted);font-size:.92rem;display:flex;align-items:center;gap:.35rem;}
+.meta .sub .dot{color:#cbd5e1;}
+.emp-body .chip{display:inline-flex;align-items:center;gap:.35rem;background:#f1f5f9;color:#0f172a;border-radius:999px;padding:.35rem .6rem;font-size:.88rem;}
+.emp-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:4px;}
+
+/* Soft buttons */
+.btn{border-radius:999px;font-weight:600;}
+.btn-primary-soft{background:#eef2ff;color:#4f46e5;border:1px solid #e0e7ff;}
+.btn-primary-soft:hover{background:#e0e7ff;}
+.btn-success-soft{background:#ecfdf5;color:#16a34a;border:1px solid #bbf7d0;}
+.btn-success-soft:hover{background:#d1fae5;}
+.btn-success-soft.disabled,.btn-success-soft:disabled{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;}
+.btn-warning-soft{background:#fff7ed;color:#f97316;border:1px solid #fed7aa;}
+.btn-warning-soft:hover{background:#ffedd5;}
+
+/* Skeleton */
+.skeleton{height:170px;position:relative;overflow:hidden;border-radius:var(--radius);background:#e5e7eb;}
+.skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.6),rgba(255,255,255,0));transform:translateX(-100%);animation:shimmer 1.2s infinite;}
+@keyframes shimmer{100%{transform:translateX(100%);}}
+
+/* ========== MODAL MODERNE ========= */
+.modal-modern{
+  border:none; border-radius:20px; overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.96));
+  box-shadow:0 20px 60px rgba(16,24,40,.18);
+}
+.modal-modern .modal-header{
+  background:#f8fafc; border-bottom:1px solid #eef2f7;
+  padding:14px 18px;
+}
+.modal-modern .modal-title{font-weight:800; letter-spacing:-.01em;}
+.chip-mode{
+  display:inline-flex; align-items:center; gap:.45rem;
+  padding:.25rem .55rem; border-radius:999px; font-weight:700; font-size:.8rem;
+  border:1px solid #e0e7ff; color:#4f46e5; background:#eef2ff;
+}
+.chip-mode.edit{border-color:#fed7aa;color:#f97316;background:#fff7ed;}
+.modal-modern .modal-body{padding:16px 18px 6px;}
+
+.section{margin-bottom:16px;}
+.section-title{
+  font-weight:700; display:flex; align-items:center; gap:.5rem;
+  margin-bottom:8px; color:#0f172a;
+}
+.section-title i{color:#6366f1;}
+.card.soft{border-radius:14px; border:1px solid #eef2f7; padding:14px; background:#fff;}
+.form-control.modern{
+  border-radius:12px; border:1px solid #e5e7eb; background:#fff;
+  box-shadow:0 1px 2px rgba(16,24,40,.04) inset;
+}
+.form-control.modern:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102,241,.15);}
+
+.btn-ghost{
+  border:1px dashed #e5e7eb; background:#fff; color:#1f2937;
+  border-radius:999px; font-weight:600; padding:.45rem .9rem;
+}
+.btn-ghost:hover{background:#f8fafc;}
+
+.btn-icon{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;padding:0;}
+
+.modern-table thead th{background:#f8fafc; border-bottom:1px solid #eef2f7;}
+.modern-table tbody tr td{vertical-align:middle;}
+.modern-table input.form-control{height:36px;}
+
+.sticky-footer{
+  position:sticky; bottom:0; background:#fff; border-top:1px solid #eef2f7;
+  padding:12px 16px; display:flex; gap:10px; justify-content:flex-end;
+}
+
+/* Responsive */
+@media (max-width: 992px) { .filter{min-width:180px;} }
+@media (max-width: 768px) {
+  .page-hero{flex-direction:column;align-items:stretch;gap:10px;}
+  .page-hero .right{justify-content:stretch;}
+  .search input{min-width:0;width:100%;}
+  .emp-actions{grid-template-columns:1fr;}
+}
+/* =========================
+   MODE COMPACT POUR LE MODAL
+   ========================= */
+.modal-modern .modal-body {
+  /* un peu moins d’air dans le body */
+  padding: 10px 14px 8px;
+}
+
+/* espace vertical entre sections */
+.modal-modern .section {
+  margin-bottom: 10px;
+}
+
+/* espace sous le titre de section */
+.modal-modern .section-title {
+  margin-bottom: 6px;  /* était 8px */
+}
+
+/* gouttières verticales des grids à l’intérieur des sections */
+.modal-modern .section .row {
+  --bs-gutter-y: .5rem; /* par défaut .75rem avec g-3 */
+}
+
+/* champs plus compacts */
+.modal-modern .form-control.modern {
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+}
+
+/* textarea moins haut par défaut (évite un à-plat visuel) */
+.modal-modern textarea.form-control.modern {
+  min-height: 90px; /* ajuste 80–120 selon ton goût */
+}
+
+/* carte "Changer le poste" un peu plus serrée */
+.modal-modern .card.soft {
+  padding: 12px;
+}
+
+/* table des objectifs : entête + top margin réduits */
+.modal-modern .modern-table thead th {
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
+.modal-modern .table-responsive {
+  margin-top: .4rem !important; /* remplace mt-2 du HTML */
+}
+
+/* ligne d’actions fixée en bas, sans excès d’air */
+.modal-modern .sticky-footer {
+  padding: 10px 12px;
+}

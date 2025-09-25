@@ -30,9 +30,11 @@ interface SuiviCarriere {
   imports: [CommonModule],
   standalone: true,
   templateUrl: './suivi-carriere.component.html',
+  styleUrls: ['./suivi-carriere.component.scss'] 
 })
 export class SuiviCarriereComponent implements OnInit {
   employeId!: number;
+  expandedObjectiveLists = new Set<number>();
 
   suivis: SuiviCarriere[] = [];
   employeNom = '';
@@ -138,4 +140,44 @@ export class SuiviCarriereComponent implements OnInit {
     }
     this.kpi.dureeMoyenneChangement = '—';
   }
+
+
+  getStars(score: number | null | undefined): ('full' | 'half' | 'empty')[] {
+  const types: Array<'full' | 'half' | 'empty'> = [];
+  const outOfTen = typeof score === 'number' ? score : 0;
+  // Passage sur 5
+  const outOfFive = Math.max(0, Math.min(5, outOfTen / 2));
+  // Arrondi au 0.5 le plus proche
+  const rounded = Math.round(outOfFive * 2) / 2;
+
+  const full = Math.floor(rounded);
+  const half = rounded - full === 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+
+  for (let i = 0; i < full; i++) types.push('full');
+  if (half) types.push('half');
+  for (let i = 0; i < empty; i++) types.push('empty');
+
+  return types;
+}
+fmtDate(d?: string | null) {
+  if (!d) return '—';
+  const t = new Date(d);
+  return isNaN(t.getTime()) ? d : t.toLocaleDateString(undefined, { day:'2-digit', month:'long', year:'numeric' });
+}
+showAllObjectives(s: SuiviCarriere): boolean {
+  return this.expandedObjectiveLists.has(s.id);
+}
+toggleObjectivesList(s: SuiviCarriere) {
+  this.showAllObjectives(s)
+    ? this.expandedObjectiveLists.delete(s.id)
+    : this.expandedObjectiveLists.add(s.id);
+}
+visibleObjectives(s: SuiviCarriere) {
+  const list = s.objectifs_plan || [];
+  return this.showAllObjectives(s) ? list : list.slice(0, 3);
+}
+hasHiddenObjectives(s: SuiviCarriere) {
+  return (s.objectifs_plan?.length || 0) > 3;
+}
 }

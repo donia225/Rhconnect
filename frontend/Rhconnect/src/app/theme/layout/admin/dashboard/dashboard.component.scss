@@ -154,6 +154,12 @@
     cursor: default;
     color: #999;
   }
+  .ai-cell { white-space: nowrap; }
+.ai-offcanvas { width: min(560px, 92vw); }
+.ai-section { margin-bottom: 1rem; }
+.badge.bg-success-subtle { background:#e9f7ef; color:#1e7e34; }
+.badge.bg-danger-subtle  { background:#fdecea; color:#b02a37; }
+
 }
 
 

@@ -55,7 +55,6 @@ class OffreEmploiSerializer(serializers.ModelSerializer):
     )
     salaire = serializers.FloatField(min_value=1)
 
-    # 👇 nouveaux champs "label"
     experience_label = serializers.CharField(source='get_experience_display', read_only=True)
     disponibilite_label = serializers.CharField(source='get_disponibilite_display', read_only=True)
     modalite_label = serializers.CharField(source='get_modalite_display', read_only=True)
@@ -101,11 +100,13 @@ class CandidatureSerializer(serializers.ModelSerializer):
     candidat = serializers.CharField(source="candidat.user.first_name", read_only=True)
     offre = serializers.CharField(source="offre.titre", read_only=True)
     cv_link = serializers.SerializerMethodField(read_only=True)
-    label_text = serializers.CharField(source="get_label_display", read_only=True)  # "Reject"/"Hire"
+    label_text = serializers.CharField(source="get_label_display", read_only=True)
 
     class Meta:
         model = Candidature
-        fields = ['id', 'candidat', 'offre', 'statut', 'cv_link', 'label', 'label_text', 'ai_score']
+        fields = ['id', 'candidat', 'offre', 'statut', 'cv_link', 'label', 'label_text',
+                   'ai_score', 'ai_notes', 'ai_strengths',  'ai_missing',  'ai_evidence'
+ ]
 
     def get_cv_link(self, obj):
         req = self.context.get('request')
@@ -166,6 +167,13 @@ class SuiviCarriereEmployeSerializer(serializers.ModelSerializer):
             emp = validated_data['employe']
             validated_data['nouveau_poste'] = emp.poste_actuel
         return super().create(validated_data)
+    def update(self, instance, validated_data):
+        resp = super().update(instance, validated_data)
+        nv = (validated_data.get('nouveau_poste') or '').strip()
+        if nv and instance.employe.poste_actuel != nv:
+            instance.employe.poste_actuel = nv
+            instance.employe.save(update_fields=['poste_actuel'])
+        return resp
 class EmployeProfilEtSuivisSerializer(serializers.Serializer):
     employe = EmployeSerializer()
     suivi_carriere = SuiviCarriereEmployeSerializer(many=True)

@@ -54,7 +54,7 @@ export default class LoginComponent implements OnInit {
         if (response.user.role === 'gestionnaire_rh' || response.user.role === 'recruteur') {
           this.router.navigate(['/admin/dashboard']);
         } else if (response.user.role === 'employe') {
-          this.router.navigate(['/employe/profil']);
+            this.router.navigate(['/employe/dashboard']);
         } else {
           this.router.navigate(['/']);
         }

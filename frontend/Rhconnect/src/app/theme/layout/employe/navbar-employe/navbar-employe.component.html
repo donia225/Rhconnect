@@ -1,20 +1,35 @@
 <nav class="navbar-employe">
   <img src="assets/images/rhc.png" class="navbar-logo" alt="Logo" />
 
-  <!-- ✅ MISE À JOUR : le parent "user-menu" entoure TOUT -->
   <div class="profile-container user-menu">
-    <div class="profile-toggle" (click)="toggleDropdown($event)">
-      <img src="assets/images/user/avatar-1.jpg" class="profile-avatar" alt="User Avatar" />
-      <span>{{ username }}</span>
+    <div
+      class="profile-toggle"
+      role="button"
+      tabindex="0"
+      (click)="toggleDropdown($event)"
+      (keydown.enter)="toggleDropdown($event)"
+      (keydown.space)="toggleDropdown($event)"
+      [class.open]="dropdownOpen"
+      [attr.aria-expanded]="dropdownOpen"
+      aria-haspopup="true"
+    >
+      <img
+        [src]="avatarUrl || 'assets/images/user/avatar-1.jpg'"
+        class="profile-avatar"
+        alt="User Avatar"
+      />
+      <span class="full-name">{{ fullName }}</span>
+      <i class="bi bi-chevron-down chevron" aria-hidden="true"></i>
     </div>
 
     <div class="user-dropdown" *ngIf="dropdownOpen">
-      <a class="dropdown-item" routerLink="/employe/profil">
-        <i class="bi bi-file-earmark-person me-2"></i>
+      <a class="dropdown-item" href="/employe/profil">
+        <i class="bi bi-person-circle me-2"></i>
         <span class="item-label">Mon Profil</span>
       </a>
-     
+
       <div class="dropdown-divider"></div>
+
       <button class="dropdown-item logout-btn" (click)="logout()">
         <i class="bi bi-box-arrow-right me-2"></i> Déconnexion
       </button>

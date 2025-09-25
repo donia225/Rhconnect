@@ -74,6 +74,16 @@
   <option value="ACCEPTEE">Acceptée</option>
   <option value="REJETEE">Rejetée</option>
 </select>
+<!-- Filtre par score -->
+<select class="filter-select"
+        [(ngModel)]="selectedScore"
+        (ngModelChange)="onScoreChange()">
+  <option value="">Tous les scores</option>
+  <option value="HIGH">> 70% (bons)</option>
+  <option value="MEDIUM">50–70% (moyens)</option>
+  <option value="LOW"> < 50% (faibles)</option>
+</select>
+
 
 <button class="btn btn-outline-primary btn-sm reset-btn" (click)="resetFiltres()">
   🔄 Réinitialiser
@@ -124,6 +134,64 @@
                 : c.label === 'Reject' ? '❌ Reject'
                 : '—' }}
             </span>
+           <button class="btn btn-link p-0 ms-2 align-middle"
+        [attr.title]="aiPreview(c.ai_notes)"
+        data-bs-toggle="offcanvas"
+        [attr.data-bs-target]="'#aiNotes'+c.id"
+        aria-label="Voir notes IA">
+  <i class="bi bi-lightbulb"></i>
+</button>
+
+<!-- drawer -->
+<div class="offcanvas offcanvas-end ai-offcanvas"
+     tabindex="-1"
+     [id]="'aiNotes'+c.id"
+     [attr.aria-labelledby]="'aiNotesLabel'+c.id">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" [id]="'aiNotesLabel'+c.id">
+      Notes IA – {{ c.candidat }}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+
+  <div class="offcanvas-body">
+
+    <div class="ai-section">
+      <h6 class="mb-2">Résumé</h6>
+      <ul class="mb-3">
+        <li><b>Score global :</b> {{ c.ai_score }}%</li>
+        <li><b>Décision IA :</b> {{ c.label || '—' }}</li>
+      </ul>
+    </div>
+
+    <div class="ai-section" *ngIf="c.ai_strengths?.length">
+      <h6 class="mb-2">Points forts</h6>
+      <div class="d-flex flex-wrap gap-2">
+        <span *ngFor="let s of c.ai_strengths" class="badge bg-success-subtle text-success">{{ s }}</span>
+      </div>
+    </div>
+
+    <div class="ai-section" *ngIf="c.ai_missing?.length">
+      <h6 class="mb-2">Compétences manquantes</h6>
+      <div class="d-flex flex-wrap gap-2">
+        <span *ngFor="let m of c.ai_missing" class="badge bg-danger-subtle text-danger">{{ m }}</span>
+      </div>
+    </div>
+
+    <div class="ai-section" *ngIf="c.ai_evidence?.length">
+      <h6 class="mb-2">Justifications (extraits)</h6>
+      <ul class="small">
+        <li *ngFor="let ev of c.ai_evidence">{{ ev }}</li>
+      </ul>
+    </div>
+
+    <div class="ai-section" *ngIf="c.ai_notes">
+      <h6 class="mb-2">Note IA</h6>
+      <p class="mb-0 text-body-secondary">{{ c.ai_notes }}</p>
+    </div>
+
+  </div>
+</div>
           </td>
           <td *ngIf="role !== 'gestionnaire_rh'">
   <div class="btn-group-actions">

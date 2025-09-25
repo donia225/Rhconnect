@@ -26,6 +26,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
+from django.db import transaction
 
 
 
@@ -251,19 +252,16 @@ def _build_offer_description(offre) -> str:
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])
 def upload_cv(request):
-    # if not getattr(settings, "ML_ENABLED", False):
-    #     return Response({"error": "ML is disabled on this build."}, status=503)
+
     from ml_models.ai_rag import evaluate_candidate
 
     tmp_path = None
-    try:
-        fichier_cv   = request.FILES.get('cv')
-        candidat_id  = request.data.get('candidat')
-        offre_id     = request.data.get('offre')
 
-        print("CT:", request.content_type,
-              "data keys:", list(request.data.keys()),
-              "files:", list(request.FILES.keys()))
+    try:
+        # -------- 1) Entrées --------
+        fichier_cv  = request.FILES.get('cv')
+        candidat_id = request.data.get('candidat')
+        offre_id    = request.data.get('offre')
 
         if not fichier_cv or not candidat_id or not offre_id:
             return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
@@ -271,110 +269,119 @@ def upload_cv(request):
         candidat = get_object_or_404(Candidat, id=candidat_id)
         offre    = get_object_or_404(OffreEmploi, id=offre_id)
 
+        # Vérifier extension PDF
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
         _, ext = os.path.splitext(name)
-        ext = ext.lower()
-        if ext != ".pdf":
-            return Response(
-        {"error": "Le CV doit être en PDF seulement."},
-        status=400
-    )
+        if ext.lower() != ".pdf":
+            return Response({"error": "Le CV doit être en PDF seulement."}, status=400)
 
-        # Écrire le fichier sur disque pour l’extraction
-        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        # Sauvegarde temporaire du fichier pour extraction
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             for chunk in fichier_cv.chunks():
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-   
-
-        # ====== NOUVEAU : Evaluation via RAG + Gemini ======
+        # -------- 2) Évaluation IA --------
         offer_text = _build_offer_description(offre)
         try:
             rag_res = evaluate_candidate(offer_text, tmp_path)
-            decision  = str(rag_res.get("decision", "")).strip()
-            scores    = rag_res.get("match_scores", {}) or {}
-            overall   = int(scores.get("overall", 0) or 0)
-            missing = rag_res.get("missing_requirements", []) or []
-            if not isinstance(missing, list):
-                missing = [str(missing)]
-
-            evidence = rag_res.get("evidence", {}) or {}
-            if not isinstance(evidence, dict):
-                evidence = {}
-            # petits aperçus pour la console
-            ev_prev = {
-                "skills": (evidence.get("skills") or [])[:3],
-                "education": (evidence.get("education") or [])[:3],
-                "experience": (evidence.get("experience") or [])[:3],
-            }
-
-            notes = rag_res.get("notes", "") or ""
-            notes = str(notes)
-
-            # --- logs lisibles ---
-            print(
-                f"AI decision={decision} | overall={overall} | "
-                f"scores={scores}"
-            )
-            print("AI missing_requirements:", json.dumps(missing, ensure_ascii=False)[:600])
-            print("AI evidence (preview):", json.dumps(ev_prev, ensure_ascii=False))
-            print("AI notes:", (notes[:600] if notes else "<vide>"))
-            print(f"AI decision={decision} | overall={overall} | scores={scores}")
-       
         except Exception as e:
             return Response({"error": f"AI pipeline failed: {str(e)}"}, status=500)
-        print("type(rag_res)=", type(rag_res))
+
         if not isinstance(rag_res, dict):
             return Response({"error": "Unexpected AI output type"}, status=502)
-
         if "error" in rag_res:
             return Response({"error": rag_res["error"]}, status=500)
 
-        # Parsing du JSON retourné
-        decision = str(rag_res.get("decision", "")).strip()
-        scores   = rag_res.get("match_scores", {}) or {}
-        overall  = int(scores.get("overall", 0) or 0)
-        exp_years = float(rag_res.get("exp_years", 0.0) or 0.0)
-        # ====== MAJ candidat (comme avant) ======
-        if hasattr(candidat, "cv"):
-            candidat.cv = fichier_cv
-        if hasattr(candidat, "niveau_experience"):
-            try:
-                candidat.niveau_experience = years_to_level(int(exp_years))
-            except Exception:
-                pass
-        # if hasattr(candidat, "projects_count") and projects_in is not None:
-        #     try:
-        #         candidat.projects_count = int(projects_in)
-        #     except Exception:
-        #         pass
-    
-        candidat.save()
+        decision   = str(rag_res.get("decision", "")).strip()
+        scores     = rag_res.get("match_scores", {}) or {}
+        overall    = int(scores.get("overall", 0) or 0)
+        exp_years  = float(rag_res.get("exp_years", 0.0) or 0.0)
 
+        # Normalisation des champs IA
+        missing = rag_res.get("missing_requirements", []) or []
+        if not isinstance(missing, list):
+            missing = [str(missing)]
 
-        candidature = Candidature.objects.create(
-            candidat=candidat,
-            offre=offre,
-            statut='EN_ATTENTE',          
-            label=decision,
-            ai_score=overall,
+        evidence = rag_res.get("evidence", {}) or {}
+        if not isinstance(evidence, dict):
+            evidence = {}
+
+        strengths = (
+            rag_res.get("strengths")
+            or rag_res.get("matched_skills")
+            or evidence.get("skills")
+            or []
         )
+        if not isinstance(strengths, list):
+            strengths = [str(strengths)]
 
+        # Aplatir evidence -> liste lisible
+        evidence_list = []
+        for key in ("skills", "education", "experience"):
+            items = evidence.get(key) or []
+            if isinstance(items, list):
+                for v in items[:6]:
+                    evidence_list.append(f"{key}: {v}")
+            elif items:
+                evidence_list.append(f"{key}: {items}")
+
+        notes = str(rag_res.get("notes", "") or "")
+
+                # après parsing rag_res
+        print(f"[AI] decision={decision} | overall={overall} | scores={scores}")
+        print("missing (top3):", (missing or [])[:3])
+        print("evidence sizes:", {k: len((evidence or {}).get(k) or []) for k in ("skills","education","experience")})
+        print("notes:", (notes[:200] if notes else "<vide>"))
+        
+
+        # -------- 3) Écritures DB atomiques --------
+        with transaction.atomic():
+            # MAJ candidat
+            if hasattr(candidat, "cv"):
+                candidat.cv = fichier_cv
+            if hasattr(candidat, "niveau_experience"):
+                try:
+                    candidat.niveau_experience = years_to_level(int(exp_years))
+                except Exception:
+                    pass
+            candidat.save()
+
+            # Création candidature avec champs IA persistés
+            candidature = Candidature.objects.create(
+                candidat=candidat,
+                offre=offre,
+                statut='EN_ATTENTE',
+                label=decision,
+                ai_score=overall,
+                ai_notes=notes,
+                ai_strengths=strengths,
+                ai_missing=missing,
+                ai_evidence=evidence_list,
+            )
+            print(f"[DB] Candidature #{candidature.id} créée pour {candidat} – offre {offre}")
+            print(f"[DB] AI score={candidature.ai_score}, decision={candidature.label}")
+            print(f"[DB] strengths={len(candidature.ai_strengths or [])}, "
+            f"missing={len(candidature.ai_missing or [])}, "
+            f"evidence={len(candidature.ai_evidence or [])}, "
+            f"notes_len={len(candidature.ai_notes or '')}")
+
+      
+   
+
+        # -------- 4) Réponse --------
         data = CandidatureSerializer(candidature, context={'request': request}).data
+        # Optionnel: inclure quelques détails bruts IA
         data.update({
             "rag_decision": decision,
             "rag_scores": scores,
             "exp_years": exp_years,
-            "rag_missing": rag_res.get("missing_requirements", []),
-            "rag_evidence": rag_res.get("evidence", {}),
-            
-            
         })
         return Response(data, status=201)
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
     finally:
         if tmp_path:
             try:
@@ -509,7 +516,12 @@ def get_candidatures_recruteur(request):
             'cv_link': cv_url,
             'label': c.label,                       
             'label_text': LABEL_TEXT.get(c.label),
-            'ai_score': getattr(c, 'ai_score', None)
+            'ai_score': getattr(c, 'ai_score', None),
+             'ai_notes': getattr(c, 'ai_notes', '') or '',
+            'ai_strengths': getattr(c, 'ai_strengths', []) or [],
+            'ai_missing': getattr(c, 'ai_missing', []) or [],
+            'ai_evidence': getattr(c, 'ai_evidence', []) or [],
+            
         })
     return Response(result, status=200)
 
@@ -593,43 +605,7 @@ def confirmer_embauche(request, candidature_id):
         return JsonResponse({'message': f"{user.get_full_name()} est maintenant employé."})
     except Exception as e:
         return Response({'error': str(e)}, status=400)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def employe_profil_et_suivi(request):
-    """
-    ⚙️ Vue pour l'espace Employé :
-    Retourne le profil Employé + historique suivi carrière.
-    """
-    user = request.user
-
-    if user.role != 'employe':
-        return Response({'error': 'Non autorisé'}, status=403)
-
-    try:
-        employe = Employe.objects.get(user=user)
-    except Employe.DoesNotExist:
-        return Response({'error': 'Employé introuvable'}, status=404)
-
-    # ✅ Profil de l'employé
-    profil = {
-        'id': employe.id,
-        'nom': user.last_name,
-        'prenom': user.first_name,
-        'poste_actuel': employe.poste_actuel,
-        'date_embauche': employe.date_embauche,
-        'departement': employe.departement
-    }
-
-    # ✅ Suivi carrière
-    suivis = employe.suivis.all().order_by('-date_changement').values(
-        'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion' , 'commentaire'
-    )
-
-    return Response({
-        'profil': profil,
-        'suivi_carriere': list(suivis)
-    })
+    
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def get_suivis_employe(request, employe_id):
@@ -654,20 +630,89 @@ def ajouter_suivi_carriere(request):
         serializer.save()
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
-
-@api_view(['PUT'])
+    
+#espace Employé : le profil Employé + historique suivi carrière.
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def modifier_suivi_carriere(request, suivi_id):
-    """
-    ✏️ Modifier un élément de suivi de carrière existant
-    """
-    try:
-        suivi = SuiviCarriereEmploye.objects.get(id=suivi_id)
-    except SuiviCarriereEmploye.DoesNotExist:
-        return Response({'error': 'Suivi introuvable'}, status=404)
+def employe_profil_et_suivi(request):
+   
+    user = request.user
 
-    serializer = SuiviCarriereEmployeSerializer(suivi, data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.errors, status=400)
+    if user.role != 'employe':
+        return Response({'error': 'Non autorisé'}, status=403)
+
+    try:
+        employe = Employe.objects.get(user=user)
+    except Employe.DoesNotExist:
+        return Response({'error': 'Employé introuvable'}, status=404)
+    
+    cand = getattr(user, 'candidat_profile', None)
+
+    def abs_url(f):
+        try:
+            return request.build_absolute_uri(f.url) if f and hasattr(f, 'url') else None
+        except Exception:
+            return None
+
+    # ✅ Profil de l'employé
+    profil = {
+        'id': employe.id,
+        'prenom': user.first_name,
+        'nom': user.last_name,
+        'email': user.email,
+        'avatar': abs_url(user.avatar),           
+        'numero_tel': getattr(cand, 'numero_tel', None),
+        'adresse': getattr(cand, 'adresse', None),
+        'date_naissance': getattr(cand, 'date_naissance', None),
+
+        'poste_actuel': employe.poste_actuel,
+        'departement': employe.departement,
+        'date_embauche': employe.date_embauche,
+    }   
+
+    # ✅ Suivi carrière
+    suivis = employe.suivis.all().order_by('-date_changement').values(
+        'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion' , 'commentaire', 'notes', 'objectifs_plan'
+    )
+         
+
+    return Response({
+        'profil': profil,
+        'suivi_carriere': list(suivis)
+    })
+# modifier profile employe
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def update_employe_profile(request):
+    user = request.user
+    if user.role != 'employe':
+        return Response({'error': 'Non autorisé'}, status=403)
+
+    payload = request.data or {}
+  
+    for k in ('first_name', 'last_name', 'email'):
+        if k in payload:
+            setattr(user, k, payload[k])
+
+    user.save()
+
+
+    cand, _ = Candidat.objects.get_or_create(user=user)
+    for k in ('numero_tel', 'adresse', 'date_naissance'):
+        if k in payload:
+            setattr(cand, k, payload[k])
+    cand.save()
+
+    return Response({'message': 'Profil mis à jour.'}, status=200)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_avatar(request):
+    user = request.user
+    if 'avatar' not in request.FILES:
+        return Response({'error': 'Fichier avatar manquant.'}, status=400)
+
+    user.avatar = request.FILES['avatar']
+    user.save()
+    return Response({'avatar': request.build_absolute_uri(user.avatar.url)}, status=200)
+
+

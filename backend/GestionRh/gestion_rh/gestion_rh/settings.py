@@ -38,6 +38,22 @@ ALLOWED_HOSTS = [
     "gestionrh-backend",    
 ]
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",   # <— important
+    },
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        # un logger dédié à ton module IA si tu veux
+        "ml": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
 
 AUTH_USER_MODEL = 'recrutement.User'
 # Application definition

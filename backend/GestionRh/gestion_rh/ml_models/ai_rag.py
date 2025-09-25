@@ -19,8 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 
-
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ml") 
 
 # ========================== Extracteur d'expérience (FR/EN) ==========================
 SCHEMA_EXPECTED = r"""RETOURNE UNIQUEMENT du JSON avec ce schéma :
@@ -171,7 +170,7 @@ def extract_text_any(path: str) -> str:
 
 # ========================== LLM & Vectorstore ==========================
 
-def make_llm(model: str = "gemini-1.5-flash", temperature: float = 0.0, max_output_tokens: int = 2048):
+def make_llm(model: str = "gemini-2.0-flash", temperature: float = 0.0, max_output_tokens: int = 2048):
     # response_mime_type est supporté par les versions récentes
     return ChatGoogleGenerativeAI(
         model=model,

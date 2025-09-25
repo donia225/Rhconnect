@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.conf import settings
+from django.db.models import JSONField 
 
 class User(AbstractUser):
     
@@ -13,6 +14,7 @@ class User(AbstractUser):
     )
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='candidat')
+    avatar = models.ImageField(upload_to='uploads/avatars/', null=True, blank=True)
 
     groups = models.ManyToManyField(Group, related_name="recrutement_users")
     user_permissions = models.ManyToManyField(Permission, related_name="recrutement_users_permissions")
@@ -122,7 +124,11 @@ class Candidature(models.Model):
     date_postulation = models.DateField(auto_now_add=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
     label = models.CharField(max_length=16, choices=[("Hire","Hire"), ("Reject","Reject")], null=True, blank=True)
-    ai_score = models.IntegerField(null=True, blank=True) 
+    ai_score = models.IntegerField(null=True, blank=True)
+    ai_notes = models.TextField(null=True, blank=True)
+    ai_strengths = JSONField(default=list, blank=True)
+    ai_missing = JSONField(default=list, blank=True)
+    ai_evidence = JSONField(default=list, blank=True)
 
 
     def __str__(self):
@@ -145,7 +151,7 @@ class SuiviCarriereEmploye(models.Model):
     est_promotion = models.BooleanField(default=False)
     commentaire = models.TextField(blank=True, null=True)
     notes = models.JSONField(default=dict, blank=True) 
-    objectifs_plan = models.JSONField(default=list, blank=True)   # [{libelle, delai, evaluation_fin_cycle}]
+    objectifs_plan = models.JSONField(default=list, blank=True)  
     def __str__(self):
         return f"{self.employe.user.username} -> {self.nouveau_poste}"
 

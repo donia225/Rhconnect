@@ -1,0 +1,90 @@
+<div class="suivi-container">
+  <!-- Header -->
+  <div *ngIf="!loading; else skeletonHeader" class="page-header card shadow-sm">
+    <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h2 class="h4 mb-1">Mon suivi de carrière</h2>
+        <div class="text-muted small">
+          {{ profil?.prenom }} {{ profil?.nom }} • {{ profil?.poste_actuel || '—' }}
+          <span *ngIf="profil?.departement"> • {{ profil?.departement }}</span>
+        </div>
+      </div>
+      <img
+        [src]="profil?.avatar || 'assets/images/user/avatar-1.jpg'"
+        class="rounded-circle object-fit-cover"
+        style="width:56px;height:56px;"
+        alt="Avatar"
+      />
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !suivis.length" class="empty card shadow-sm">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-layout-text-sidebar-reverse display-6 d-block mb-2"></i>
+      <div class="fw-semibold mb-1">Aucun historique pour le moment</div>
+      <div class="text-muted">Les mouvements de carrière apparaîtront ici.</div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div *ngIf="!loading && suivis.length" class="timeline">
+    <div class="tl-item card shadow-sm" *ngFor="let s of suivis; let i = index" [ngClass]="{promotion: s.est_promotion}">
+      <div class="tl-dot">
+        <i class="bi" [ngClass]="s.est_promotion ? 'bi-award' : 'bi-arrow-right-circle'"></i>
+      </div>
+
+      <div class="tl-content card-body">
+        <div class="tl-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <div class="tl-title">
+              <span class="text-muted">Le {{ fmtDate(s.date_changement) }} :</span>
+              <strong class="ms-1">{{ s.ancien_poste || '—' }}</strong>
+              <span class="mx-1">➜</span>
+              <strong>{{ s.nouveau_poste }}</strong>
+            </div>
+            <div class="tl-badges mt-1">
+              <span *ngIf="s.est_promotion" class="badge bg-success-subtle text-success">
+                <i class="bi bi-arrow-up-right me-1"></i>Promotion
+              </span>
+              <span *ngIf="!s.est_promotion" class="badge bg-primary-subtle text-primary">
+                <i class="bi bi-arrow-left-right me-1"></i>Changement
+              </span>
+            </div>
+          </div>
+          <div class="tl-date small text-muted">{{ fmtDate(s.date_changement) }}</div>
+        </div>
+
+        <div *ngIf="s.commentaire" class="tl-note text-muted mt-2">
+          <i class="bi bi-chat-quote me-1"></i>{{ s.commentaire }}
+        </div>
+
+        <div *ngIf="s.notes && (s.notes | keyvalue).length" class="tl-notes mt-3">
+          <div class="small text-muted mb-1">Notes</div>
+          <div class="note-chips">
+            <span class="note-chip" *ngFor="let kv of (s.notes | keyvalue)">
+              {{ kv.key }}: <b>{{ kv.value }}/10</b>
+            </span>
+          </div>
+        </div>
+
+        <div *ngIf="s.objectifs_plan?.length" class="tl-objectifs mt-3">
+          <div class="small text-muted mb-1">Objectifs</div>
+          <ul class="list-unstyled mb-0">
+            <li *ngFor="let o of s.objectifs_plan" class="objet-item">
+              <i class="bi bi-check2-circle me-2"></i>
+              <span class="fw-semibold">{{ o.libelle }}</span>
+              <span class="text-muted" *ngIf="o.delai"> · Délai: {{ o.delai }}</span>
+              <span class="text-muted" *ngIf="o.evaluation_fin_cycle"> · Éval: {{ o.evaluation_fin_cycle }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skeletons -->
+  <ng-template #skeletonHeader>
+    <div class="card shadow-sm mb-4 skeleton" style="height:92px;"></div>
+  </ng-template>
+</div>

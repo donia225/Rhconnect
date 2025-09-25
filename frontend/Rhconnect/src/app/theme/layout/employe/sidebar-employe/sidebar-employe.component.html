@@ -1,17 +1,24 @@
 <nav class="pcoded-navbar">
   <div class="pcoded-inner-navbar main-menu">
     <ul class="pcoded-item pcoded-left-item">
-      <li class="nav-label">Espace Employé</li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/employe/employe-profil">
-          <span class="pcoded-mtext">Mon Profil</span>
+      <li class="nav-label">ESPACE EMPLOYÉ</li>
+
+      <!-- Dashboard -->
+      <li class="nav-item"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }">
+        <a class="nav-link" [routerLink]="['/employe/dashboard']">
+          <i class="bi bi-speedometer2 me-2"></i>
+          <span class="pcoded-mtext">Dashboard</span>
         </a>
       </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/employe/suivi-carriere">
-          <span class="pcoded-mtext">Suivi de Carrière</span>
+       <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" [routerLink]="['/employe/mon-suivi']">
+          <i class="bi bi-briefcase me-2"></i>
+          <span class="pcoded-mtext">Mon suivi de carrière</span>
         </a>
       </li>
+
     </ul>
   </div>
 </nav>

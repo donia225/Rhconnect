@@ -30,13 +30,14 @@ export class DashboardComponent implements OnInit {
   paginateRecruiter = true; 
   validatedThisMonth = 0;
   private pieChart: any;
+  selectedScore: string = '';
 
   constructor(private offreService: OffreService, private toastr:ToastrService,  private authService: AuthService,  private employeService: EmployeService,){}
   // life cycle event
    ngOnInit(): void {
     const userInfo = this.authService.getUserInfo();
     this.role = userInfo?.role || '';
-    this.pageSize = (this.role === 'gestionnaire_rh') ? 10 : 25;
+    this.pageSize = (this.role === 'gestionnaire_rh') ? 10 : 10;
     if (this.role === 'gestionnaire_rh') {
     this.selectedStatut = 'ACCEPTEE';
   }
@@ -82,7 +83,10 @@ private parseScore(raw: any): number {
   return NaN;
 }
 
-
+onScoreChange() {
+  this.currentPage = 1;
+  this.initKpis(); // pour rafraîchir les KPI avec le filtre actif
+}
   initKpis(): void {
     const source = this.candidaturesFiltrees; 
 
@@ -238,6 +242,17 @@ get candidaturesFiltrees(): any[] {
   let result = this.candidatures;
   if (this.selectedOffre) result = result.filter(c => c.offre === this.selectedOffre);
   if (this.selectedStatut) result = result.filter(c => c.statut === this.selectedStatut);
+   if (this.selectedScore) {
+    result = result.filter(c => {
+      const score = this.parseScore(c.ai_score ?? c.score);
+      if (!Number.isFinite(score)) return false;
+
+      if (this.selectedScore === 'HIGH') return score > 70;
+      if (this.selectedScore === 'MEDIUM') return score >= 50 && score <= 70;
+      if (this.selectedScore === 'LOW') return score < 50;
+      return true;
+    });
+  }
   return result.slice().sort(this.byNewestDesc); // ← tri “plus récentes d’abord”
 }
 
@@ -306,6 +321,11 @@ resetFiltres(): void {
   this.selectedStatut = (this.role === 'gestionnaire_rh') ? 'ACCEPTEE' : '';
   this.currentPage = 1;
   this.initKpis();
+}
+aiPreview(note?: string): string {
+  if (!note) return 'Voir les explications IA';
+  const clean = note.replace(/\s+/g, ' ').trim();
+  return clean.length > 120 ? clean.slice(0, 120) + '…' : clean;
 }
 
 

@@ -1,0 +1,150 @@
+<div class="kpi-container">
+  <!-- ========= GREETING / HEADER ========= -->
+  <div *ngIf="!loading; else skeletonHeader" class="card shadow-sm mb-4">
+    <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div class="greeting-text">
+        <h2 class="h3 mb-1">
+          Bonjour,
+          <span class="text-primary">{{ profil?.prenom }} {{ profil?.nom }}</span> 👋
+        </h2>
+        <div class="text-muted small">
+          {{ profil?.poste_actuel || '—' }}
+          <span *ngIf="profil?.departement"> • {{ profil?.departement }}</span>
+        </div>
+      </div>
+      <img
+        [src]="profil?.avatar || 'assets/images/user/avatar-1.jpg'"
+        class="rounded-circle object-fit-cover"
+        style="width:56px;height:56px;"
+        alt="Avatar employé"
+      />
+    </div>
+  </div>
+
+  <!-- ========= KPIs ========= -->
+  <div class="kpi-grid" *ngIf="!loading; else skeletonKpis">
+    <article *ngFor="let k of kpis" class="kpi-card" [ngClass]="k.class">
+      <div class="kpi-icon">
+        <i class="bi" [ngClass]="k.icon" aria-hidden="true"></i>
+      </div>
+      <div class="kpi-meta">
+        <div class="kpi-label">{{ k.label }}</div>
+        <div class="kpi-value">{{ k.value || '—' }}</div>
+        <div class="kpi-hint" *ngIf="k.hint">{{ k.hint }}</div>
+      </div>
+    </article>
+  </div>
+
+  <!-- ========= CONTENT TO FILL THE PAGE ========= -->
+  <div *ngIf="!loading" class="below-kpis">
+    <!-- Actions rapides -->
+    <div class="card shadow-sm quick-actions">
+      <div class="card-body d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-primary" routerLink="/employe/profil">
+          <i class="bi bi-person-gear me-2"></i> Modifier mon profil
+        </a>
+        <a class="btn btn-outline-secondary" routerLink="/employe/mon-suivi">
+          <i class="bi bi-briefcase me-2"></i> Mon suivi de carrière
+        </a>
+        <a class="btn btn-outline-dark" routerLink="/employe/conges">
+          <i class="bi bi-calendar-plus me-2"></i> Demander un congé
+        </a>
+      </div>
+    </div>
+
+    <!-- Aperçu + Mini-timeline -->
+    <div class="row g-3">
+      <!-- Aperçu carrière -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm overview-card h-100">
+          <div class="card-body">
+            <h5 class="mb-3">Aperçu de carrière</h5>
+
+            <!-- Dernier mouvement -->
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <div class="icon-badge">
+                <i class="bi" [ngClass]="lastMove?.est_promotion ? 'bi-award' : 'bi-arrow-left-right'"></i>
+              </div>
+              <div>
+                <div class="text-muted small mb-1">Dernier mouvement — {{ fmtDate(lastMove?.date_changement) }}</div>
+                <div class="fw-semibold">
+                  {{ lastMove?.ancien_poste || '—' }} <span class="mx-1">➜</span> {{ lastMove?.nouveau_poste || '—' }}
+                  <span *ngIf="lastMove?.est_promotion" class="badge bg-success-subtle text-success ms-2">
+                    <i class="bi bi-arrow-up-right me-1"></i>Promotion
+                  </span>
+                </div>
+                <div class="text-muted mt-1" *ngIf="lastMove?.commentaire">
+                  <i class="bi bi-chat-quote me-1"></i>{{ lastMove?.commentaire }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Objectifs en cours -->
+            <div class="mb-2 d-flex align-items-center justify-content-between">
+              <div class="small text-muted">Objectifs en cours</div>
+              <a class="small" routerLink="/employe/mon-suivi">Voir détails</a>
+            </div>
+            <div class="objective-chips" *ngIf="currentObjectives?.length; else noObj">
+              <span class="obj-chip" *ngFor="let o of currentObjectives">
+                <i class="bi bi-check2-circle me-1"></i>{{ o.libelle }}
+              </span>
+            </div>
+            <ng-template #noObj>
+              <div class="text-muted">Aucun objectif défini.</div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini-timeline (3 derniers) -->
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="mb-0">Derniers mouvements</h5>
+              <a class="small" routerLink="/employe/mon-suivi">Tout l’historique</a>
+            </div>
+
+            <ul class="list-unstyled timeline-mini mb-0" *ngIf="last3?.length; else noMoves">
+              <li *ngFor="let m of last3">
+                <span class="dot" [ngClass]="m.est_promotion ? 'dot--green' : 'dot--blue'"></span>
+                <div class="tm-content">
+                  <div class="tm-title">
+                    {{ m.ancien_poste || '—' }} <span class="mx-1">➜</span> {{ m.nouveau_poste }}
+                    <span class="badge ms-2"
+                          [ngClass]="m.est_promotion ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'">
+                      <i class="bi" [ngClass]="m.est_promotion ? 'bi-arrow-up-right' : 'bi-arrow-left-right'"></i>
+                      {{ m.est_promotion ? 'Promotion' : 'Changement' }}
+                    </span>
+                  </div>
+                  <div class="text-muted small">{{ fmtDate(m.date_changement) }}</div>
+                </div>
+              </li>
+            </ul>
+            <ng-template #noMoves>
+              <div class="text-muted">Aucun mouvement pour le moment.</div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========= SKELETONS ========= -->
+  <ng-template #skeletonHeader>
+    <div class="card shadow-sm mb-4 skeleton p-4" style="height:92px;"></div>
+  </ng-template>
+
+  <ng-template #skeletonKpis>
+    <div class="kpi-grid">
+      <article class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]">
+        <div class="kpi-icon"></div>
+        <div class="kpi-meta">
+          <div class="kpi-label"></div>
+          <div class="kpi-value"></div>
+          <div class="kpi-hint"></div>
+        </div>
+      </article>
+    </div>
+  </ng-template>
+</div>
