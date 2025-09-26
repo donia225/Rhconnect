@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-""" ML_ENABLED = os.environ.get("ML_ENABLED", "0") == "1" """
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -110,10 +110,14 @@ ACCOUNT_AUTHENTICATION_METHOD = "username"  # Authentification via nom d'utilisa
 ACCOUNT_EMAIL_REQUIRED = True  # Exige un email pour l'inscription
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
     ),
 }
+
 
 # Autoriser Angular à faire des requêtes
 CORS_ALLOWED_ORIGINS = [
