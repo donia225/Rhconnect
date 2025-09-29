@@ -1,5 +1,4 @@
 # Angular build artifacts
-dist/
 .angular/
 node_modules/
 .cache/
