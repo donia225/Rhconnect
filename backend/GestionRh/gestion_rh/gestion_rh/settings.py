@@ -128,6 +128,7 @@ REST_FRAMEWORK = {
 
 # Autoriser Angular à faire des requêtes
 CORS_ALLOWED_ORIGINS = [
+    "http://34.42.155.127",
     "http://localhost:4200",  # Angular tourne sur ce port
 ]
 CORS_ALLOW_CREDENTIALS = True
