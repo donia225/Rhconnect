@@ -27,6 +27,7 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
 from django.db import transaction
+from ml_models.ai_rag import evaluate_candidate
 
 
 
@@ -253,7 +254,7 @@ def _build_offer_description(offre) -> str:
 @permission_classes([AllowAny])
 def upload_cv(request):
 
-    from ml_models.ai_rag import evaluate_candidate
+
 
     tmp_path = None
 

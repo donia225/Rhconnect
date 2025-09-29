@@ -21,7 +21,6 @@ from langchain_core.output_parsers import StrOutputParser
 
 logger = logging.getLogger("ml") 
 
-# ========================== Extracteur d'expérience (FR/EN) ==========================
 SCHEMA_EXPECTED = r"""RETOURNE UNIQUEMENT du JSON avec ce schéma :
 {{
   "decision": "Hire" | "Reject",
@@ -30,6 +29,8 @@ SCHEMA_EXPECTED = r"""RETOURNE UNIQUEMENT du JSON avec ce schéma :
   "evidence": {{"skills": [string], "education": [string], "experience": [string]}},
   "notes": string
 }}"""
+
+#extracteur d'experiences
 
 _MONTHS = {
     "jan": 1, "janv": 1, "janvier": 1, "january": 1,
@@ -141,26 +142,25 @@ def estimate_experience_years(resume_text: str, today: Optional[date] = None) ->
     return round(total_months / 12.0, 2)
 
 
-# ========================== API key & Embeddings ==========================
+#Api key + embeddings
 
 API_KEY = settings.GOOGLE_API_KEY
 if not API_KEY:
     raise RuntimeError("GOOGLE_API_KEY manquante (.env)")
 genai.configure(api_key=API_KEY)
 
-# Embeddings HF (rapides)
 EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 
-# ========================== Lecture fichiers ==========================
+#convertit pdf lel texte PyMuPDF
 
 def _read_pdf(path: str) -> str:
-    import fitz  # PyMuPDF
+    import fitz  
     doc = fitz.open(path)
     out = [p.get_text("text") for p in doc]
     return "\n".join(out).strip()
 
-
+#ye9bel ken pdf
 def extract_text_any(path: str) -> str:
     ext = os.path.splitext(path)[1].lower()
     if ext == ".pdf":
@@ -168,20 +168,22 @@ def extract_text_any(path: str) -> str:
     raise ValueError("Formats supportés: .pdf")
 
 
-# ========================== LLM & Vectorstore ==========================
+#llm w vector store
 
 def make_llm(model: str = "gemini-2.0-flash", temperature: float = 0.0, max_output_tokens: int = 2048):
-    # response_mime_type est supporté par les versions récentes
     return ChatGoogleGenerativeAI(
         model=model,
         temperature=temperature,
         max_output_tokens=max_output_tokens,
         model_kwargs={"response_mime_type": "application/json"}
     )
-
+#nekhdhou texte men cv w nrodou en vecteurs numeriques w n7otou f chroma , text splitter howa il decoupe le texte en morceau
 def build_vectorstore_from_text(text: str, resume_id: str) -> Chroma:
+    #découpage du texte en petits morceaux (chunks) chaque morceau maximum 1000 caracteres ya3ni ken cv fih 2500 caracteres kol morceau
+    #yekhedh 1000 caractere
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=180)
     chunks = splitter.split_text(text)
+    #chaque morceau est transformé en document eli howa langchain
     docs = [Document(page_content=c, metadata={"source": "resume", "resume_id": resume_id}) for c in chunks]
     client = chromadb.EphemeralClient()
     return Chroma.from_documents(
@@ -320,7 +322,7 @@ CONTEXTE CV (extraits récupérés) :
 ])
 
 
-# ========================== Helpers parsing JSON & coercion ==========================
+#y3awnounou bech nrodouu texte json
 
 def _strip_code_fences(s: str) -> str:
     """Retire les blocs Markdown ``` ... ``` ou ```json ... ```."""

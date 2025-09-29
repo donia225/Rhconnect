@@ -22,6 +22,7 @@ ENV_FILE = BASE_DIR / ".env"
 load_dotenv(ENV_FILE, override=True)
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+# GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -37,6 +38,14 @@ ALLOWED_HOSTS = [
     "192.168.1.172",          
     "gestionrh-backend",    
 ]
+IS_CLOUD_RUN = os.environ.get('K_SERVICE') is not None
+
+if IS_CLOUD_RUN:
+
+    ALLOWED_HOSTS = ['*']
+else:
+    
+    pass 
 
 LOGGING = {
     "version": 1,
@@ -113,9 +122,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+   
 }
 
 
@@ -173,9 +180,35 @@ TEMPLATES = [
 WSGI_APPLICATION = 'gestion_rh.wsgi.application'
 
 
+# CLOUD_SQL_CONN_NAME = os.environ.get('CLOUD_SQL_CONNECTION_NAME')
+# if CLOUD_SQL_CONN_NAME:
+#     # 1. Utilisation du socket Unix (méthode préférée sur Cloud Run)
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': 'rhdb_data', # Le nom de la BD que vous avez créé
+#             'USER': os.environ.get('DATABASE_USER'),
+#             'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
+            
+#             # Utilisation du chemin du socket Unix pour Cloud Run
+#             'HOST': '/cloudsql/{}'.format(CLOUD_SQL_CONN_NAME), 
+#             'PORT': '5432',
+#         }
+#     }
+# else:
+#     # 2. Configuration locale de secours (pour le développement local)
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': 'rhdb', 
+#             'USER': 'postgres',
+#             'PASSWORD': 'admin',  # Remplace par ton mot de passe PostgreSQL
+#             'HOST': 'localhost',
+#             'PORT': '5432',
+#         }
+#     }
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -185,7 +218,11 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
     }
+ 
 }
+
+
+
 
 
 
@@ -231,4 +268,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+
 
