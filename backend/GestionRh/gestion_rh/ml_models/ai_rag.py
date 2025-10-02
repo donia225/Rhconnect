@@ -152,7 +152,6 @@ genai.configure(api_key=API_KEY)
 EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 
-#convertit pdf lel texte PyMuPDF
 
 def _read_pdf(path: str) -> str:
     import fitz  
@@ -160,7 +159,7 @@ def _read_pdf(path: str) -> str:
     out = [p.get_text("text") for p in doc]
     return "\n".join(out).strip()
 
-#ye9bel ken pdf
+
 def extract_text_any(path: str) -> str:
     ext = os.path.splitext(path)[1].lower()
     if ext == ".pdf":
@@ -168,7 +167,7 @@ def extract_text_any(path: str) -> str:
     raise ValueError("Formats supportés: .pdf")
 
 
-#llm w vector store
+
 
 def make_llm(model: str = "gemini-2.0-flash", temperature: float = 0.0, max_output_tokens: int = 2048):
     return ChatGoogleGenerativeAI(
@@ -177,13 +176,12 @@ def make_llm(model: str = "gemini-2.0-flash", temperature: float = 0.0, max_outp
         max_output_tokens=max_output_tokens,
         model_kwargs={"response_mime_type": "application/json"}
     )
-#nekhdhou texte men cv w nrodou en vecteurs numeriques w n7otou f chroma , text splitter howa il decoupe le texte en morceau
+
 def build_vectorstore_from_text(text: str, resume_id: str) -> Chroma:
-    #découpage du texte en petits morceaux (chunks) chaque morceau maximum 1000 caracteres ya3ni ken cv fih 2500 caracteres kol morceau
-    #yekhedh 1000 caractere
+    
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=180)
     chunks = splitter.split_text(text)
-    #chaque morceau est transformé en document eli howa langchain
+  
     docs = [Document(page_content=c, metadata={"source": "resume", "resume_id": resume_id}) for c in chunks]
     client = chromadb.EphemeralClient()
     return Chroma.from_documents(
@@ -194,7 +192,7 @@ def build_vectorstore_from_text(text: str, resume_id: str) -> Chroma:
     )
 
 
-# ========================== Sélection sections "skills" ==========================
+#selection sections
 
 SECTION_PATTERNS = [
     r"\bcomp[eé]tences?\b",
@@ -244,18 +242,18 @@ def extract_experience_snippets(resume_text: str, resume_id: str) -> List[Docume
     lines = resume_text.splitlines()
     snippets = []
 
-    # 1) Titres de section Expérience
+
     for i, line in enumerate(lines):
         low = line.strip().lower()
         if any(re.search(p, low, flags=re.I) for p in EXP_SECTION_PATTERNS):
-            snip = "\n".join(lines[i:i+12]).strip()  # la section + quelques lignes
+            snip = "\n".join(lines[i:i+12]).strip()  
             if snip:
                 snippets.append(Document(
                     page_content=snip[:1800],
                     metadata={"source":"resume-priority","section":"experience","resume_id":resume_id},
                 ))
 
-    # 2) Lignes “datées” (repère des périodes)
+ 
     for i, line in enumerate(lines):
         L = line.strip()
         low = L.lower()
@@ -270,7 +268,7 @@ def extract_experience_snippets(resume_text: str, resume_id: str) -> List[Docume
                     metadata={"source":"resume-priority","section":"experience","resume_id":resume_id},
                 ))
 
-    # dédoublonne
+ 
     seen, outdocs = set(), []
     for d in snippets:
         k = d.page_content.strip()
@@ -290,7 +288,7 @@ def extract_education_snippets(resume_text: str, resume_id: str) -> List[Documen
     return out[:3]
 
 
-# ========================== Prompt (braces littérales échappées avec {{ }}) ==========================
+#prompt
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu es un évaluateur d'embauche très strict.
@@ -397,7 +395,7 @@ def _to_text(x) -> str:
         return json.dumps(x, ensure_ascii=False)
 
 
-# ========================== Orchestrateur RAG ==========================
+
 
 def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, Any]:
     # 1) Extraction texte CV
@@ -410,21 +408,21 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
     logger.info("evaluate_candidate: offer_len=%s, resume_path=%s", len(job_offer_text or ""), resume_file_path)
     logger.info("resume_text_len=%s", len(resume_text or ""))
 
-    # 2) Heuristique: estimation expérience totale
+
     exp_years = estimate_experience_years(resume_text)
 
-    # 3) Indexation éphémère
+
     resume_id = str(uuid.uuid4())
     vs = build_vectorstore_from_text(resume_text, resume_id)
 
-    # 4) Forcer l'inclusion des sections "skills"
+
     priority_docs = (
     extract_priority_sections(resume_text, resume_id) +
     extract_experience_snippets(resume_text, resume_id) +
-    extract_education_snippets(resume_text, resume_id)  # si tu l’ajoutes
+    extract_education_snippets(resume_text, resume_id)  
 )
 
-    # 5) Retrieval MMR (divers et filtré par ce CV)
+  
     retriever = vs.as_retriever(
         search_type="mmr",
         search_kwargs={
@@ -435,11 +433,11 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
         },
     )
     try:
-        retrieved = retriever.invoke(job_offer_text)  # versions récentes
+        retrieved = retriever.invoke(job_offer_text)  
     except AttributeError:
-        retrieved = retriever.get_relevant_documents(job_offer_text)  # fallback
+        retrieved = retriever.get_relevant_documents(job_offer_text)  
 
-    # 6) Merge + dédup
+  
     seen, ordered_docs = set(), []
     for d in priority_docs + retrieved:
         key = d.page_content.strip()
@@ -447,13 +445,13 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
             seen.add(key)
             ordered_docs.append(d)
 
-    # 7) Construit le contexte texte et appelle le LLM
+ 
     context_text = "\n\n".join(d.page_content for d in ordered_docs)
     MAX_CTX_CHARS = 20000
     if len(context_text) > MAX_CTX_CHARS:
         context_text = context_text[:MAX_CTX_CHARS]
 
-    # ⚠️ Coercition & gardes contre INVALID_PROMPT_INPUT
+
     job_offer_text = _to_text(job_offer_text).strip()
     context_text   = _to_text(context_text).strip()
 
@@ -481,7 +479,7 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
         logger.exception("Prompt error during LLM invoke")
         raise
 
-    # 8) Parse JSON (robuste)
+
     try:
         out: Dict[str, Any] = _lenient_json_load(str(raw))
     except Exception as e:
@@ -497,11 +495,11 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
     decision, scores.get("overall"), scores
 )
 
-# aperçu lisible (tronqué pour pas inonder la console)
+
     logger.info("AI missing_requirements (%d): %s",
             len(missing), json.dumps(missing, ensure_ascii=False)[:600])
 
-# ne montre que quelques items par section
+
     preview = {
     "skills": (evidence.get("skills") or [])[:3],
     "education": (evidence.get("education") or [])[:3],
@@ -512,7 +510,6 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
     logger.info("AI notes: %s", notes if notes else "<vide>")
     out["exp_years"] = exp_years
 
-    # 9) Cleanup de la collection éphémère
     try:
         vs.delete(where={"resume_id": resume_id})
     except Exception:
