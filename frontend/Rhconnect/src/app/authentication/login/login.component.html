@@ -1,80 +1,78 @@
 <div class="auth-wrapper">
   <div class="auth-content">
-<div class="auth-bg">
-  <span class="r"></span>
-  <span class="r s"></span>
-  <span class="r s"></span>
-  <span class="r"></span>
-</div>
+    <!-- Fond dynamique conservé -->
+    <div class="auth-bg">
+      <span class="r"></span>
+      <span class="r s"></span>
+      <span class="r s"></span>
+      <span class="r"></span>
+    </div>
 
-  <div class="card" style="box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <!-- Carte de connexion modernisée sans icône -->
+    <div class="login-card">
       <div class="card-body text-center">
-
-        <!-- Logo RHConnect -->
+        <!-- Logo -->
         <div class="mb-3">
-          <img src="assets/images/rh.png" alt="HRConnect Logo" style="width: 160px;" />
+          <img src="assets/images/rh.png" alt="HRConnect Logo" class="logo" />
         </div>
-     <div class="mb-3">
-        <i class="login-icon material-icons">lock_open</i>
 
-        </div>
-       <h3 class="mb-4" style="color: #d32f2f;">Login</h3>
+        <!-- Titre -->
+        <h3 class="login-title">Login</h3>
 
-        <!-- Formulaire Angular -->
+        <!-- Formulaire -->
         <form #loginForm="ngForm" (ngSubmit)="login(loginForm)">
           <!-- Email -->
-          <div class="input-group mb-3">
-            <input 
-              type="email" 
-              [(ngModel)]="credentials.email" 
-              name="email" 
-              placeholder="E-mail" 
-              class="form-control" 
-              required 
+          <div class="form-group mb-3">
+            <input
+              type="email"
+              [(ngModel)]="credentials.email"
+              name="email"
+              placeholder="E-mail"
+              class="form-control"
+              required
               pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-              #email="ngModel" />
+              #email="ngModel"
+            />
+            <small *ngIf="email.errors?.['pattern'] && email.touched" class="text-danger">
+              Veuillez entrer une adresse email valide.
+            </small>
+            <small *ngIf="email.errors?.['required'] && email.touched" class="text-danger">
+              L'adresse email est obligatoire.
+            </small>
           </div>
-          <small *ngIf="email.errors?.['pattern'] && email.touched" class="text-danger">
-            Veuillez entrer une adresse email valide.
-          </small>
-          <small *ngIf="email.errors?.['required'] && email.touched" class="text-danger">
-            L'adresse email est obligatoire.
-          </small>
 
-          <!-- Mot de Passe -->
-          <div class="input-group mb-4">
-            <input 
-              type="password" 
-              [(ngModel)]="credentials.password" 
-              name="password" 
-              placeholder="Mot de passe" 
-              class="form-control" 
-              required 
-              #password="ngModel" />
+          <!-- Mot de passe -->
+          <div class="form-group mb-3">
+            <input
+              type="password"
+              [(ngModel)]="credentials.password"
+              name="password"
+              placeholder="Mot de passe"
+              class="form-control"
+              required
+              #password="ngModel"
+            />
+            <small *ngIf="password.errors?.['required'] && password.touched" class="text-danger">
+              Le mot de passe est obligatoire.
+            </small>
           </div>
-          <small *ngIf="password.errors?.['required'] && password.touched" class="text-danger">
-            Le mot de passe est obligatoire.
-          </small>
 
-          <!-- Checkbox -->
-         <div class="form-group text-start mb-4">
-  <div class="checkbox checkbox-fill d-inline">
-    <input type="checkbox" id="rememberMe" [(ngModel)]="rememberMe" />
-    <label for="rememberMe" class="cr">Se souvenir de moi</label>
-  </div>
-</div>
-
+          <!-- Se souvenir de moi -->
+          <div class="remember-me mb-4">
+            <input type="checkbox" id="rememberMe" [(ngModel)]="rememberMe" name="rememberMe" />
+            <label for="rememberMe">Se souvenir de moi</label>
+          </div>
 
           <!-- Bouton Connexion -->
-          <button type="submit" class="btn btn-primary mb-4">Se connecter</button>
+          <button type="submit" class="btn-login">Se connecter</button>
         </form>
 
-        <!-- Liens Mot de Passe & Inscription -->
-        <p class="mb-2 text-muted">
+        <!-- Liens -->
+        <p class="text-muted mt-3">
           Mot de passe oublié ?
           <a [routerLink]="['/auth/reset-password']">Réinitialiser</a>
         </p>
-        <p class="mb-0 text-muted">
+        <p class="text-muted">
           Pas encore inscrit ?
           <a [routerLink]="['/auth/register']">S'inscrire</a>
         </p>

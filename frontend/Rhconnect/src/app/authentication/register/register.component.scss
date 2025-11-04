@@ -1,12 +1,125 @@
+/* --- Fond dynamique conservé --- */
 .auth-bg .r:nth-child(1) {
-  background: #FF3D3D; // 🔴 rouge
+  background: #ff3d3d; // 🔴 rouge
 }
 .auth-bg .r:nth-child(2) {
   background: #000000; // ⚫ noir
 }
 .auth-bg .r:nth-child(3) {
-  background: #A7D3F0; // 🔵 bleu clair
+  background: #a7d3f0; // 🔵 bleu clair
 }
 .auth-bg .r:nth-child(4) {
-  background: #EAEAEA; // ⚪ gris clair
+  background: #eaeaea; // ⚪ gris clair
+}
+
+/* --- Carte d'inscription moderne --- */
+.register-card {
+  z-index: 2;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 420px;
+  max-width: 90%;
+  margin: auto;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  animation: fadeIn 0.8s ease;
+  backdrop-filter: blur(6px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .logo {
+    width: 160px;
+    margin-bottom: 0.5rem;
+  }
+
+  .register-title {
+    color: #d32f2f;
+    font-weight: 600;
+    margin-bottom: 1.8rem;
+    font-size: 1.6rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      outline: none;
+      font-size: 14px;
+      background: #f9f9f9;
+      transition: all 0.3s ease;
+
+      &:focus {
+        border-color: #3f51ff;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(63, 81, 255, 0.15);
+      }
+    }
+
+    .text-danger {
+      font-size: 12px;
+      text-align: left;
+      display: block;
+      color: #d32f2f;
+      margin-top: 3px;
+    }
+  }
+
+  .btn-register {
+    width: 100%;
+    background: linear-gradient(90deg, #3f51ff, #5a55ff);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: linear-gradient(90deg, #3648e0, #4b47e0);
+      transform: scale(1.02);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  p {
+    font-size: 14px;
+    margin-top: 0.8rem;
+    color: #777;
+
+    a {
+      color: #3f51ff;
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+/* Animation d’apparition */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

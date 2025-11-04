@@ -27,28 +27,34 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from rest_framework.views import APIView
 from django.db import transaction
-from ml_models.ai_rag import evaluate_candidate
+import unicodedata
+from ml_models.ai_rag import evaluate_candidate, extract_text_any
 
 
 
-def years_to_level(years: int) -> str:
-    y = int(years or 0)
-    if y <= 0:  return 'aucune'
-    if y < 1:   return 'moins_1_an'
-    if y < 2:   return 'entre_1_2_ans'
-    if y < 5:   return 'entre_2_5_ans'
-    if y < 10:  return 'entre_5_10_ans'
-    return 'plus_10_ans'
+User = get_user_model()
 
+def _normalize(s: str) -> str:
+    """
+    Normalise une chaîne pour comparaison tolérante :
+    - enlève accents/diacritiques
+    - passe en minuscules
+    - supprime tout sauf [a-z0-9]
+    """
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKD", s)
+    s = s.encode("ascii", "ignore").decode("ascii")
+    s = s.lower()
+    s = re.sub(r"[^a-z0-9]+", "", s)
+    return s
 
-User = get_user_model()  # Pour s'assurer qu'on utilise bien le modèle User personnalisé
 
 
 @api_view(['POST'])
 def register_user(request):
     data = request.data
 
-    # Vérifier que tous les champs nécessaires sont fournis
     required_fields = ['email', 'password', 'nom', 'prenom']
     for field in required_fields:
         if field not in data or not data[field]:
@@ -59,29 +65,26 @@ def register_user(request):
     nom = data['nom']
     prenom = data['prenom']
 
-    # Vérifier si l'utilisateur existe déjà
     if User.objects.filter(username=email).exists():
         return Response({'message': 'Cet email est déjà utilisé.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # ✅ **Créer un nouvel utilisateur avec le rôle "candidat"**
     user = User.objects.create_user(
         username=email,
-        first_name=nom,
-        last_name=prenom,
+        last_name=nom,
+        first_name=prenom,
         email=email,
         password=password,
-        role='candidat'  # Le rôle est forcé à "candidat"
+        role='candidat'  
     )
 
-    # ✅ **Créer un profil Candidat lié à cet utilisateur**
     candidat = Candidat.objects.create(
         user=user,
-        numero_tel=data.get('numero_tel', ''),  # Champ optionnel
-        adresse=data.get('adresse', ''),  # Champ optionnel
-        cv=data.get('cv', None)  # Champ optionnel pour le CV
+        numero_tel=data.get('numero_tel', ''),  
+        adresse=data.get('adresse', ''),  
+        cv=data.get('cv', None)  
     )
 
-    # ✅ **Générer un token JWT après l'inscription**
+
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
 
@@ -91,10 +94,10 @@ def register_user(request):
         'refresh': str(refresh),
         'user': {
             'id': user.id,
-            'nom': user.first_name,
-            'prenom': user.last_name,
+            'nom': user.last_name,
+            'prenom': user.first_name,
             'email': user.email,
-            'role': user.role,  # ✅ Toujours "candidat"
+            'role': user.role,  
             'candidat_id': candidat.id,
             'numero_tel': candidat.numero_tel,
             'adresse': candidat.adresse,
@@ -109,15 +112,15 @@ def login_user(request):
     password = data.get('password')
 
     try:
-        user = User.objects.get(email=email)  # ✅ Find user by email
+        user = User.objects.get(email=email)  
     except User.DoesNotExist:
         return Response({'message': 'Email ou mot de passe incorrect.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # ✅ Authenticate using the actual username
+  
     user = authenticate(username=user.username, password=password)
 
     if user is not None:
-        # ✅ Generate JWT tokens
+    
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
@@ -128,8 +131,8 @@ def login_user(request):
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'nom': user.first_name,
-                'prenom': user.last_name,
+                'nom': user.last_name,
+                'prenom': user.first_name,
                 'email': user.email,
                 'role': user.role
             }
@@ -155,7 +158,7 @@ def request_password_reset(request):
                 fail_silently=False
             )
         except User.DoesNotExist:
-            pass  # Pour des raisons de sécurité, on ne signale pas si l'utilisateur n'existe pas
+            pass 
         return JsonResponse({'message': 'Si cet email existe, un lien de réinitialisation a été envoyé.'})
 
 @csrf_exempt
@@ -187,7 +190,7 @@ def liste_offres(request):
     if user and hasattr(user, 'role') and user.role == "recruteur":
         offres = OffreEmploi.objects.filter(recruteur=user)
     else:
-        offres = OffreEmploi.objects.all().order_by('-id')  # tout public
+        offres = OffreEmploi.objects.all().order_by('-id')  
 
     serializer = OffreEmploiSerializer(offres, many=True)
     return Response(serializer.data)
@@ -253,13 +256,9 @@ def _build_offer_description(offre) -> str:
 @parser_classes([MultiPartParser])
 @permission_classes([AllowAny])
 def upload_cv(request):
-
-
-
     tmp_path = None
 
     try:
-        # -------- 1) Entrées --------
         fichier_cv  = request.FILES.get('cv')
         candidat_id = request.data.get('candidat')
         offre_id    = request.data.get('offre')
@@ -270,113 +269,171 @@ def upload_cv(request):
         candidat = get_object_or_404(Candidat, id=candidat_id)
         offre    = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # Vérifier extension PDF
+        # --- Vérification du format PDF ---
         name = getattr(fichier_cv, "name", "") or "cv.pdf"
-        _, ext = os.path.splitext(name)
+        base, ext = os.path.splitext(name)
         if ext.lower() != ".pdf":
             return Response({"error": "Le CV doit être en PDF seulement."}, status=400)
 
-        # Sauvegarde temporaire du fichier pour extraction
+        # --- Sauvegarde temporaire du fichier ---
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             for chunk in fichier_cv.chunks():
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # -------- 2) Évaluation IA --------
-        offer_text = _build_offer_description(offre)
-        try:
-            rag_res = evaluate_candidate(offer_text, tmp_path)
-        except Exception as e:
-            return Response({"error": f"AI pipeline failed: {str(e)}"}, status=500)
+        # --- Vérification de cohérence Nom/Prénom ---
+        u = getattr(candidat, "user", None)
+        prenom_cand = (getattr(candidat, "prenom", "") or (u.first_name if u else "")).strip()
+        nom_cand    = (getattr(candidat, "nom", "")    or (u.last_name  if u else "")).strip()
 
-        if not isinstance(rag_res, dict):
-            return Response({"error": "Unexpected AI output type"}, status=502)
-        if "error" in rag_res:
-            return Response({"error": rag_res["error"]}, status=500)
+        n_first = _normalize(prenom_cand)
+        n_last  = _normalize(nom_cand)
+        if not n_first or not n_last:
+            return Response({"error": "Nom et/ou prénom du candidat introuvables pour la vérification."}, status=400)
 
-        decision   = str(rag_res.get("decision", "")).strip()
-        scores     = rag_res.get("match_scores", {}) or {}
-        overall    = int(scores.get("overall", 0) or 0)
-        exp_years  = float(rag_res.get("exp_years", 0.0) or 0.0)
+        n_file = _normalize(base)
+        filename_match = (n_first in n_file) and (n_last in n_file)
 
-        # Normalisation des champs IA
-        missing = rag_res.get("missing_requirements", []) or []
-        if not isinstance(missing, list):
-            missing = [str(missing)]
+        content_match = False
+        if not filename_match:
+            try:
+                pdf_text = extract_text_any(tmp_path)
+            except Exception as e:
+                print(f"[PDF][WARN] extract_text_any failed: {type(e).__name__}: {e}")
+                pdf_text = ""
+            n_text = _normalize(pdf_text)
+            if n_text:
+                content_match = ((n_first in n_text and n_last in n_text))
 
-        evidence = rag_res.get("evidence", {}) or {}
-        if not isinstance(evidence, dict):
-            evidence = {}
+        if not (filename_match or content_match):
+            return Response({
+                "error": (
+                    "Le nom/prénom dans le CV ne correspond pas au candidat. "
+                    "Vérifie que le PDF contient le nom complet et/ou renomme le fichier "
+                    "ex: Prenom_Nom_CV.pdf"
+                )
+            }, status=400)
 
-        strengths = (
-            rag_res.get("strengths")
-            or rag_res.get("matched_skills")
-            or evidence.get("skills")
-            or []
-        )
-        if not isinstance(strengths, list):
-            strengths = [str(strengths)]
-
-        # Aplatir evidence -> liste lisible
-        evidence_list = []
-        for key in ("skills", "education", "experience"):
-            items = evidence.get(key) or []
-            if isinstance(items, list):
-                for v in items[:6]:
-                    evidence_list.append(f"{key}: {v}")
-            elif items:
-                evidence_list.append(f"{key}: {items}")
-
-        notes = str(rag_res.get("notes", "") or "")
-
-                # après parsing rag_res
-        print(f"[AI] decision={decision} | overall={overall} | scores={scores}")
-        print("missing (top3):", (missing or [])[:3])
-        print("evidence sizes:", {k: len((evidence or {}).get(k) or []) for k in ("skills","education","experience")})
-        print("notes:", (notes[:200] if notes else "<vide>"))
-        
-
-        # -------- 3) Écritures DB atomiques --------
+        # --- Création de la candidature ---
         with transaction.atomic():
-            # MAJ candidat
             if hasattr(candidat, "cv"):
                 candidat.cv = fichier_cv
-            if hasattr(candidat, "niveau_experience"):
-                try:
-                    candidat.niveau_experience = years_to_level(int(exp_years))
-                except Exception:
-                    pass
             candidat.save()
 
-            # Création candidature avec champs IA persistés
             candidature = Candidature.objects.create(
                 candidat=candidat,
                 offre=offre,
                 statut='EN_ATTENTE',
-                label=decision,
-                ai_score=overall,
-                ai_notes=notes,
-                ai_strengths=strengths,
-                ai_missing=missing,
-                ai_evidence=evidence_list,
+                label='',
+                ai_score=None,
+                ai_notes="",
+                ai_strengths=[],
+                ai_missing=[],
+                ai_evidence=[],
             )
-            print(f"[DB] Candidature #{candidature.id} créée pour {candidat} – offre {offre}")
-            print(f"[DB] AI score={candidature.ai_score}, decision={candidature.label}")
-            print(f"[DB] strengths={len(candidature.ai_strengths or [])}, "
-            f"missing={len(candidature.ai_missing or [])}, "
-            f"evidence={len(candidature.ai_evidence or [])}, "
-            f"notes_len={len(candidature.ai_notes or '')}")
 
-      
-   
+        ai_status = "SKIPPED"
+        decision  = ""
+        scores    = {}
+        exp_years = 0.0
 
-        # -------- 4) Réponse --------
+        # --- Évaluation IA ---
+        try:
+            offer_text = _build_offer_description(offre)
+            rag_res = evaluate_candidate(offer_text, tmp_path)
+
+            if not isinstance(rag_res, dict):
+                raise ValueError("Unexpected AI output type")
+            if "error" in rag_res:
+                raise RuntimeError(rag_res["error"])
+
+            decision   = str(rag_res.get("decision", "")).strip()
+            scores     = rag_res.get("match_scores", {}) or {}
+
+            overall = int(scores.get("overall", 0) or 0)
+            exp_years = float(rag_res.get("exp_years", 0.0) or 0.0)
+
+            missing = rag_res.get("missing_requirements", []) or []
+            if not isinstance(missing, list):
+                missing = [str(missing)]
+
+            evidence = rag_res.get("evidence", {}) or {}
+            if not isinstance(evidence, dict):
+                evidence = {}
+
+            strengths = (
+                rag_res.get("strengths")
+                or rag_res.get("matched_skills")
+                or evidence.get("skills")
+                or []
+            )
+            if not isinstance(strengths, list):
+                strengths = [str(strengths)]
+
+            evidence_list = []
+            for key in ("skills", "education", "experience"):
+                items = evidence.get(key) or []
+                if isinstance(items, list):
+                    for v in items[:6]:
+                        evidence_list.append(f"{key}: {v}")
+                elif items:
+                    evidence_list.append(f"{key}: {items}")
+
+            notes = str(rag_res.get("notes", "") or "")
+
+            # --- Mise à jour IA dans la DB ---
+            with transaction.atomic():
+                candidature.label        = decision
+                candidature.ai_score     = overall
+                candidature.ai_notes     = notes
+                candidature.ai_strengths = strengths
+                candidature.ai_missing   = missing
+                candidature.ai_evidence  = evidence_list
+                candidature.save()
+
+            ai_status = "OK"
+
+            # =======================================================
+            # 🚀 Nouvelle logique : une seule candidature EN_ATTENTE
+            # =======================================================
+            try:
+                toutes = Candidature.objects.filter(candidat=candidat)
+                hires = toutes.filter(label__iexact='Hire').order_by('-ai_score')
+
+                en_attente = toutes.filter(statut='EN_ATTENTE')
+
+                if hires.exists():
+                    meilleure = hires.first()
+                    # ✅ la meilleure reste en attente pour validation du recruteur
+                    if meilleure.statut == 'EN_ATTENTE':
+                        meilleure.statut = 'EN_ATTENTE'
+                        meilleure.save(update_fields=['statut'])
+
+                    # ❌ les autres candidatures "Hire" → REJETÉES
+                    hires.exclude(id=meilleure.id).filter(statut='EN_ATTENTE').update(statut='REJETEE')
+
+                    # ❌ les autres non "Hire" → également REJETÉES
+                    toutes.exclude(id__in=hires.values_list('id', flat=True)).filter(statut='EN_ATTENTE').update(statut='REJETEE')
+                else:
+                    # S’il n’y a aucune "Hire" → toutes restent en attente
+                    pass
+
+            except Exception as e:
+                print(f"[AUTO-SELECTION][WARN] {type(e).__name__}: {e}")
+
+        except Exception as ia_err:
+            ai_status = "FAILED"
+            print(f"[AI][ERROR] {type(ia_err).__name__}: {ia_err}")
+
+        # --- Réponse finale ---
         data = CandidatureSerializer(candidature, context={'request': request}).data
-        # Optionnel: inclure quelques détails bruts IA
         data.update({
+            "message": "CV déposé avec succès",
+            "ai_status": ai_status,
             "rag_decision": decision,
             "rag_scores": scores,
             "exp_years": exp_years,
+            "dejapostule": True
         })
         return Response(data, status=201)
 
@@ -389,6 +446,8 @@ def upload_cv(request):
                 os.remove(tmp_path)
             except Exception:
                 pass
+
+
 
 
 @api_view(['GET'])
@@ -455,7 +514,6 @@ def candidat_profil(request):
 
         candidat.date_naissance = request.data.get('date_naissance')
         candidat.niveau_etude = request.data.get('niveau_etude')
-        # candidat.niveau_experience = request.data.get('niveau_experience')
         candidat.numero_tel = request.data.get('numero_tel')
         candidat.adresse = request.data.get('adresse')
         candidat.projects_count =request.data.get('projects_count')
@@ -506,7 +564,7 @@ def get_candidatures_recruteur(request):
     result = []
     for c in qs:
         u = c.candidat.user
-        full_name = (u.get_full_name().strip()  # first_name + last_name
+        full_name = (u.get_full_name().strip()
                      or u.username)
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
         result.append({
@@ -534,7 +592,7 @@ def get_candidatures_gestionnaire_rh(request):
     result = []
     for c in candidatures:
         u = c.candidat.user
-        full_name = (u.get_full_name().strip()  # first_name + last_name
+        full_name = (u.get_full_name().strip()
                      or u.username)
         cv_url = request.build_absolute_uri(c.candidat.cv.url) if c.candidat.cv else None
         result.append({
@@ -632,7 +690,7 @@ def ajouter_suivi_carriere(request):
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
     
-#espace Employé : le profil Employé + historique suivi carrière.
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def employe_profil_et_suivi(request):
@@ -655,7 +713,6 @@ def employe_profil_et_suivi(request):
         except Exception:
             return None
 
-    # ✅ Profil de l'employé
     profil = {
         'id': employe.id,
         'prenom': user.first_name,
@@ -671,7 +728,6 @@ def employe_profil_et_suivi(request):
         'date_embauche': employe.date_embauche,
     }   
 
-    # ✅ Suivi carrière
     suivis = employe.suivis.all().order_by('-date_changement').values(
         'ancien_poste', 'nouveau_poste', 'date_changement', 'est_promotion' , 'commentaire', 'notes', 'objectifs_plan'
     )
@@ -681,7 +737,7 @@ def employe_profil_et_suivi(request):
         'profil': profil,
         'suivi_carriere': list(suivis)
     })
-# modifier profile employe
+
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_employe_profile(request):
@@ -705,6 +761,7 @@ def update_employe_profile(request):
     cand.save()
 
     return Response({'message': 'Profil mis à jour.'}, status=200)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_avatar(request):

@@ -3,7 +3,6 @@ import re
 import json
 import uuid
 import logging
-from datetime import date
 from typing import List, Dict, Any, Optional
 
 import google.generativeai as genai
@@ -30,119 +29,14 @@ SCHEMA_EXPECTED = r"""RETOURNE UNIQUEMENT du JSON avec ce schéma :
   "notes": string
 }}"""
 
-#extracteur d'experiences
 
-_MONTHS = {
-    "jan": 1, "janv": 1, "janvier": 1, "january": 1,
-    "fev": 2, "févr": 2, "fevr": 2, "fevrier": 2, "février": 2, "feb": 2, "february": 2,
-    "mar": 3, "mars": 3, "march": 3,
-    "avr": 4, "avril": 4, "apr": 4, "april": 4,
-    "mai": 5, "may": 5,
-    "juin": 6, "june": 6,
-    "juil": 7, "juillet": 7, "jul": 7, "july": 7,
-    "aou": 8, "août": 8, "aout": 8, "aug": 8, "august": 8,
-    "sep": 9, "sept": 9, "septembre": 9, "september": 9,
-    "oct": 10, "octobre": 10, "october": 10,
-    "nov": 11, "novembre": 11, "november": 11,
-    "dec": 12, "déc": 12, "decembre": 12, "décembre": 12, "december": 12,
-}
-_PRESENT = {
-    "present", "now", "current", "today", "présent", "present.", "actuel",
-    "aujourd’hui", "aujourd'hui", "jusqu’à présent", "jusqu'a present"
-}
 
 _RX_MON_YEAR = re.compile(r"\b([A-Za-zéèêàùûîôç\.]{3,10})\s*\.?\s*(20\d{2}|19\d{2})\b", re.I)
 _RX_MM_YYYY  = re.compile(r"\b(0?[1-9]|1[0-2])[/\-](20\d{2}|19\d{2})\b")
 _RX_YYYY     = re.compile(r"\b(20\d{2}|19\d{2})\b")
 _RX_SPAN     = re.compile(r"\s*(?:-|–|—|to|au|jusqu(?:’|')?à|->|→)\s*", re.I)
 
-def years_to_level(years: int) -> str:
-    y = int(years or 0)
-    if y <= 0:  return 'aucune'
-    if y < 1:   return 'moins_1_an'
-    if y < 2:   return 'entre_1_2_ans'
-    if y < 5:   return 'entre_2_5_ans'
-    if y < 10:  return 'entre_5_10_ans'
-    return 'plus_10_ans'
 
-def _exp_debug(resume_text: str) -> Dict[str, Any]:
-    t = date.today()
-    raw = _find_spans(resume_text, t)
-    merged = _merge_intervals(raw)
-    total_months = sum(_months_between(s, e) for s, e in merged)
-    return {
-        "raw_spans": [(s.isoformat(), e.isoformat()) for s, e in raw],
-        "merged": [(s.isoformat(), e.isoformat()) for s, e in merged],
-        "total_months": total_months,
-        "years": round(total_months/12.0, 2),
-    }
-def _to_date_from_tokens(token: str, today: date) -> Optional[date]:
-    t = token.strip().lower().replace("’", "'").replace(".", "")
-    if t in _PRESENT:
-        return today
-    m = _RX_MON_YEAR.search(token)
-    if m:
-        mon_raw = m.group(1).lower().replace("’", "'").replace(".", "")
-        mon = _MONTHS.get(mon_raw)
-        if mon:
-            return date(int(m.group(2)), mon, 1)
-    m = _RX_MM_YYYY.search(token)
-    if m:
-        return date(int(m.group(2)), int(m.group(1)), 1)
-    m = _RX_YYYY.search(token)
-    if m:
-        return date(int(m.group(1)), 1, 1)
-    return None
-
-def _find_spans(text: str, today: date) -> List[tuple]:
-    spans = []
-    for line in text.splitlines():
-        if not any(s in line.lower() for s in [" - ", "–", " to ", " au ", "jusqu", "->", "→", "—"]):
-            continue
-        parts = _RX_SPAN.split(line)
-        if len(parts) < 2:
-            continue
-        for i in range(len(parts) - 1):
-            start = _to_date_from_tokens(parts[i], today)
-            end   = _to_date_from_tokens(parts[i + 1], today)
-            if start and end and end >= start:
-                spans.append((start, end))
-    return spans
-
-def _merge_intervals(intervals: List[tuple]) -> List[tuple]:
-    if not intervals:
-        return []
-    intervals.sort(key=lambda x: x[0])
-    merged = [intervals[0]]
-    for cur in intervals[1:]:
-        last_start, last_end = merged[-1]
-        if cur[0] <= last_end:
-            merged[-1] = (last_start, max(last_end, cur[1]))
-        else:
-            merged.append(cur)
-    return merged
-
-def _months_between(d1: date, d2: date) -> int:
-    return (d2.year - d1.year) * 12 + (d2.month - d1.month) + 1
-
-def estimate_experience_years(resume_text: str, today: Optional[date] = None) -> float:
-    if not resume_text or not resume_text.strip():
-        return 0.0
-    if today is None:
-        today = date.today()
-    spans = _find_spans(resume_text, today)
-    if not spans:
-        m_years = re.search(r"\b(\d{1,2})\s*(?:ans|years?)\b", resume_text, re.I)
-        m_month = re.search(r"\b(\d{1,2})\s*(?:mois|months?)\b", resume_text, re.I)
-        years = float(m_years.group(1)) if m_years else 0.0
-        months = float(m_month.group(1)) if m_month else 0.0
-        return round(years + months / 12.0, 2)
-    merged = _merge_intervals(spans)
-    total_months = sum(_months_between(s, e) for s, e in merged)
-    return round(total_months / 12.0, 2)
-
-
-#Api key + embeddings
 
 API_KEY = settings.GOOGLE_API_KEY
 if not API_KEY:
@@ -168,13 +62,13 @@ def extract_text_any(path: str) -> str:
 
 
 
-
 def make_llm(model: str = "gemini-2.0-flash", temperature: float = 0.0, max_output_tokens: int = 2048):
     return ChatGoogleGenerativeAI(
         model=model,
         temperature=temperature,
         max_output_tokens=max_output_tokens,
-        model_kwargs={"response_mime_type": "application/json"}
+        model_kwargs={"response_mime_type": "application/json",
+                      "language": "fr",}
     )
 
 def build_vectorstore_from_text(text: str, resume_id: str) -> Chroma:
@@ -191,8 +85,6 @@ def build_vectorstore_from_text(text: str, resume_id: str) -> Chroma:
         collection_name=f"resume-{resume_id}",
     )
 
-
-#selection sections
 
 SECTION_PATTERNS = [
     r"\bcomp[eé]tences?\b",
@@ -288,7 +180,6 @@ def extract_education_snippets(resume_text: str, resume_id: str) -> List[Documen
     return out[:3]
 
 
-#prompt
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu es un évaluateur d'embauche très strict.
@@ -310,6 +201,8 @@ RETOURNE UNIQUEMENT du JSON avec ce schéma :
 }}
 
 Exige des extraits du contexte dans evidence. N'invente rien.
+Les explications dans le champ "notes" doivent être rédigées uniquement en FRANÇAIS, 
+dans un style professionnel et clair.
 """),
     ("human", """OFFRE D'EMPLOI :
 {input}
@@ -319,97 +212,15 @@ CONTEXTE CV (extraits récupérés) :
 """),
 ])
 
-
-#y3awnounou bech nrodouu texte json
-
-def _strip_code_fences(s: str) -> str:
-    """Retire les blocs Markdown ``` ... ``` ou ```json ... ```."""
-    t = s.strip()
-    if t.startswith("```"):
-        nl = t.find("\n")
-        if nl != -1:
-            t = t[nl + 1:]
-        if t.endswith("```"):
-            t = t[:-3]
-    return t.strip()
-
-def _extract_first_json_object(s: str) -> Optional[str]:
-    """Extrait le premier objet JSON équilibré { ... } sans regex récursive (gère quotes/escapes)."""
-    in_str = False
-    esc = False
-    depth = 0
-    start = -1
-    for i, ch in enumerate(s):
-        if in_str:
-            if esc:
-                esc = False
-            elif ch == '\\':
-                esc = True
-            elif ch == '"':
-                in_str = False
-            continue
-        else:
-            if ch == '"':
-                in_str = True
-            elif ch == '{':
-                if depth == 0:
-                    start = i
-                depth += 1
-            elif ch == '}':
-                if depth > 0:
-                    depth -= 1
-                    if depth == 0 and start != -1:
-                        return s[start:i + 1]
-    return None
-
-def _lenient_json_load(raw: str) -> Dict[str, Any]:
-    """
-    1) enlève ```json ... ```
-    2) essaie json.loads direct
-    3) sinon, extrait le premier objet JSON équilibré et le parse
-    """
-    txt = _strip_code_fences(raw)
-    try:
-        return json.loads(txt)
-    except Exception:
-        pass
-    blk = _extract_first_json_object(txt)
-    if blk is not None:
-        return json.loads(blk)
-    raise ValueError("No valid JSON object found in model output")
-
-def _to_text(x) -> str:
-    """Force toute entrée en str (évite INVALID_PROMPT_INPUT)."""
-    if x is None:
-        return ""
-    if isinstance(x, bytes):
-        try:
-            return x.decode("utf-8", "ignore")
-        except Exception:
-            return x.decode(errors="ignore")
-    if isinstance(x, str):
-        return x
-    try:
-        return str(x)
-    except Exception:
-        return json.dumps(x, ensure_ascii=False)
-
-
-
-
 def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, Any]:
-    # 1) Extraction texte CV
+  
     resume_text = extract_text_any(resume_file_path)
-    dbg = _exp_debug(resume_text)
-    logger.info("EXP_DEBUG: %s", dbg)
     if not resume_text:
         return {"error": "Impossible d'extraire du texte du CV."}
 
     logger.info("evaluate_candidate: offer_len=%s, resume_path=%s", len(job_offer_text or ""), resume_file_path)
     logger.info("resume_text_len=%s", len(resume_text or ""))
 
-
-    exp_years = estimate_experience_years(resume_text)
 
 
     resume_id = str(uuid.uuid4())
@@ -508,7 +319,7 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
     logger.info("AI evidence (preview): %s", json.dumps(preview, ensure_ascii=False))
 
     logger.info("AI notes: %s", notes if notes else "<vide>")
-    out["exp_years"] = exp_years
+
 
     try:
         vs.delete(where={"resume_id": resume_id})
@@ -516,3 +327,86 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
         pass
 
     return out
+
+
+
+
+
+
+#y3awnounou bech nrodouu texte json
+
+def _strip_code_fences(s: str) -> str:
+    """Retire les blocs Markdown ``` ... ``` ou ```json ... ```."""
+    t = s.strip()
+    if t.startswith("```"):
+        nl = t.find("\n")
+        if nl != -1:
+            t = t[nl + 1:]
+        if t.endswith("```"):
+            t = t[:-3]
+    return t.strip()
+
+def _extract_first_json_object(s: str) -> Optional[str]:
+    """Extrait le premier objet JSON équilibré { ... } sans regex récursive (gère quotes/escapes)."""
+    in_str = False
+    esc = False
+    depth = 0
+    start = -1
+    for i, ch in enumerate(s):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == '\\':
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch == '{':
+                if depth == 0:
+                    start = i
+                depth += 1
+            elif ch == '}':
+                if depth > 0:
+                    depth -= 1
+                    if depth == 0 and start != -1:
+                        return s[start:i + 1]
+    return None
+
+def _lenient_json_load(raw: str) -> Dict[str, Any]:
+    """
+    1) enlève ```json ... ```
+    2) essaie json.loads direct
+    3) sinon, extrait le premier objet JSON équilibré et le parse
+    """
+    txt = _strip_code_fences(raw)
+    try:
+        return json.loads(txt)
+    except Exception:
+        pass
+    blk = _extract_first_json_object(txt)
+    if blk is not None:
+        return json.loads(blk)
+    raise ValueError("No valid JSON object found in model output")
+
+def _to_text(x) -> str:
+    """Force toute entrée en str (évite INVALID_PROMPT_INPUT)."""
+    if x is None:
+        return ""
+    if isinstance(x, bytes):
+        try:
+            return x.decode("utf-8", "ignore")
+        except Exception:
+            return x.decode(errors="ignore")
+    if isinstance(x, str):
+        return x
+    try:
+        return str(x)
+    except Exception:
+        return json.dumps(x, ensure_ascii=False)
+
+
+
+

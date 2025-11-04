@@ -206,18 +206,32 @@ onFileSelected(event: any) {
   }
   const offreId = this.selectedOffer.id;
 
-  this.uploadService.uploadCV(file, offreId, this.candidatId).subscribe({
-    next: () => {
-      this.toastr.success("✅ CV déposé avec succès !", "", {
-        positionClass: 'toast-top-center'
-      });
-    },
-    error: (err) => {
-      console.error("Erreur d'upload du CV :", err);
-      const msg = err.error?.error || "Erreur lors du dépôt du CV.";
-      this.toastr.error(msg, "❌", { positionClass: 'toast-top-center' });
+this.uploadService.uploadCV(file, offreId, this.candidatId).subscribe({
+  next: (res: any) => {
+    // ✅ Message de succès
+    this.toastr.success("✅ CV déposé avec succès !", "", {
+      positionClass: 'toast-top-center'
+    });
+
+    // ✅ Si l'API indique que l'offre est déjà postulée
+    if (res.dejapostule) {
+      // Si tu gères une liste d’offres dans un tableau, marque cette offre comme postulée
+      const offre = this.offres?.find(o => o.id === offreId);
+      if (offre) {
+        offre.dejapostule = true; // ✅ mise à jour locale sans refresh
+      }
+
+      // Ou si tu as juste une variable unique :
+      // this.dejaPostule = true;
     }
-  });
+  },
+  error: (err) => {
+    console.error("Erreur d'upload du CV :", err);
+    const msg = err.error?.error || "Erreur lors du dépôt du CV.";
+    this.toastr.error(msg, "❌", { positionClass: 'toast-top-center' });
+  }
+});
+
 }
 filterOffres() {
   const term = this.searchTerm.trim().toLowerCase();

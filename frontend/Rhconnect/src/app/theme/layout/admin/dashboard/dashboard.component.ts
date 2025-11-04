@@ -31,16 +31,19 @@ export class DashboardComponent implements OnInit {
   validatedThisMonth = 0;
   private pieChart: any;
   selectedScore: string = '';
+  showBestCandidates: boolean = false;
 
   constructor(private offreService: OffreService, private toastr:ToastrService,  private authService: AuthService,  private employeService: EmployeService,){}
   // life cycle event
    ngOnInit(): void {
     const userInfo = this.authService.getUserInfo();
     this.role = userInfo?.role || '';
-    this.pageSize = (this.role === 'gestionnaire_rh') ? 10 : 10;
-    if (this.role === 'gestionnaire_rh') {
-    this.selectedStatut = 'ACCEPTEE';
-  }
+    this.pageSize = (this.role === 'gestionnaire_rh') ? 10 : 6;
+    if (this.role === 'recruteur') {
+  this.selectedStatut = 'EN_ATTENTE';
+} else if (this.role === 'gestionnaire_rh') {
+  this.selectedStatut = 'ACCEPTEE';
+}
     const api$ = this.role === 'gestionnaire_rh'
       ? this.offreService.getCandidaturesGestionnaire()
       : this.offreService.getCandidatures();
@@ -239,22 +242,35 @@ private byNewestDesc = (a: any, b: any): number => {
 }
 
 get candidaturesFiltrees(): any[] {
-  let result = this.candidatures;
+  let result = [...this.candidatures];
+
   if (this.selectedOffre) result = result.filter(c => c.offre === this.selectedOffre);
   if (this.selectedStatut) result = result.filter(c => c.statut === this.selectedStatut);
-   if (this.selectedScore) {
+
+  if (this.selectedScore) {
     result = result.filter(c => {
       const score = this.parseScore(c.ai_score ?? c.score);
       if (!Number.isFinite(score)) return false;
-
       if (this.selectedScore === 'HIGH') return score > 70;
       if (this.selectedScore === 'MEDIUM') return score >= 50 && score <= 70;
       if (this.selectedScore === 'LOW') return score < 50;
       return true;
     });
   }
-  return result.slice().sort(this.byNewestDesc); // ← tri “plus récentes d’abord”
+
+  // ✅ Tri principal : si mode meilleurs candidats → par score décroissant
+  if (this.showBestCandidates) {
+    result = result
+      .filter(c => c.label === 'Hire')
+      .sort((a, b) => this.parseScore(b.ai_score ?? b.score) - this.parseScore(a.ai_score ?? a.score));
+  } else {
+    // Sinon tri par date (comme avant)
+    result = result.sort(this.byNewestDesc);
+  }
+
+  return result;
 }
+
 
 get candidaturesFiltreesPaged(): any[] {
   const arr = this.candidaturesFiltrees;
@@ -290,11 +306,11 @@ goPage(p: number | string): void {
   trackById(_i: number, c: any) { return c.id; }
 
 
-    getScoreClass(score: number): string {
-    if (score >= 70) return 'badge bg-success';
-    if (score < 70) return 'badge bg-warning text-dark';
-    return 'badge bg-danger';
-  }
+    getScoreClass(_score: any): string {
+  // Gris clair + texte gris foncé + léger bord
+  return 'badge badge-soft-gray';
+}
+
 confirmerEmbauche(id: number): void {
   this.offreService.confirmerEmbauche(id).subscribe({
     next: (res: any) => {
@@ -327,6 +343,42 @@ aiPreview(note?: string): string {
   const clean = note.replace(/\s+/g, ' ').trim();
   return clean.length > 120 ? clean.slice(0, 120) + '…' : clean;
 }
+filterBestCandidates(): void {
+  this.showBestCandidates = !this.showBestCandidates;
+
+  if (this.showBestCandidates) {
+    // ✅ On garde uniquement les candidatures "Hire" et "En attente"
+    this.candidatures = this.candidatures
+      .filter(c => c.label === 'Hire' && c.statut === 'EN_ATTENTE')
+      .sort((a, b) => (this.parseScore(b.ai_score ?? b.score) || 0) - (this.parseScore(a.ai_score ?? a.score) || 0))
+      .slice(0, 5);
+
+    this.toastr.info('Affichage des meilleurs candidats en attente de validation.');
+  } else {
+    // 🔁 On recharge toutes les candidatures
+    const api$ = this.role === 'recruteur'
+      ? this.offreService.getCandidaturesGestionnaire()
+      : this.offreService.getCandidatures();
+
+    api$.subscribe(data => {
+      this.candidatures = (data || []).sort(
+        (a: any, b: any) => (this.parseScore(b.ai_score ?? b.score) || 0) -
+                            (this.parseScore(a.ai_score ?? a.score) || 0)
+      );
+      this.toastr.info('Retour à la liste complète.');
+      this.initKpis();
+    });
+  }
+}
+
+getRankEmoji(index: number): string {
+  if (index === 0) return '🥇';
+  if (index === 1) return '🥈';
+  if (index === 2) return '🥉';
+  return '🏅'; 
+
+}
+
 
 
 }

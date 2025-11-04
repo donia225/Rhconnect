@@ -9,10 +9,10 @@
         <div class="form-group mb-4">
          <label for="titre">Titre</label>
           <input id="titre" name="titre" type="text" class="form-control modern-input"
-                 [(ngModel)]="offre.titre" required [pattern]="titrePattern" #titre="ngModel"
+                 [(ngModel)]="offre.titre" required #titre="ngModel"
                  [ngClass]="{'is-invalid': titre.invalid && (titre.dirty || titre.touched)}" />
           <div class="invalid-msg" *ngIf="titre.errors?.['required'] && (titre.dirty || titre.touched)">Requis.</div>
-          <div class="invalid-msg" *ngIf="titre.errors?.['pattern'] && (titre.dirty || titre.touched)">Chiffres non autorisés.</div>
+         
         </div>
 
         <div class="form-group mb-4">

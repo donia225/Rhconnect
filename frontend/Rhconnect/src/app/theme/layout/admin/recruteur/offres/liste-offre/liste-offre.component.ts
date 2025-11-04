@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { OffreService } from 'src/app/services/offre/offre.service';
 import { SharedModule } from 'src/app/theme/shared/shared.module';
 import { RouterModule } from '@angular/router'; 
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-liste-offre',
@@ -16,7 +17,7 @@ export class ListeOffreComponent implements OnInit {
   currentPage = 1;
   pageSize = 5;
 
-  constructor(private offreService: OffreService) {}
+  constructor(private offreService: OffreService, private toastr: ToastrService) {}
 
  ngOnInit(): void {
   this.offreService.getMesOffres().subscribe({
@@ -79,11 +80,15 @@ export class ListeOffreComponent implements OnInit {
         // recaler la page si la liste a rétréci
         const maxPage = Math.max(1, Math.ceil(this.offres.length / this.pageSize));
         if (this.currentPage > maxPage) this.currentPage = maxPage;
-        alert('Offre supprimée avec succès.');
-      },
-      error: () => alert('Erreur lors de la suppression.')
-    });
-  }
+         this.toastr.success('Offre supprimée avec succès', 'Suppression');
+    },
+    error: (err) => {
+      console.error(err);
+     
+      this.toastr.error('Erreur lors de la suppression', 'Erreur');
+    }
+  });
+}
   ouvrirModal(offre: any): void {
   this.selectedOffre = offre;
   this.modalVisible = true;

@@ -17,7 +17,7 @@
           <li class="nav-item user-menu" *ngIf="isLoggedIn && user" [class.open]="dropdownOpen">
             <a href="#" class="nav-link user-toggle" (click)="toggleDropdown($event)">
               <span class="avatar"><i class="bi bi-person-circle"></i></span>
-              <span class="user-name">{{ user?.prenom }} {{ user?.nom }}</span>
+              <span class="user-name">{{ user?.nom }} {{ user?.prenom }}</span>
               <i class="bi bi-chevron-down ms-1"></i>
             </a>
             <div class="user-dropdown" *ngIf="dropdownOpen">

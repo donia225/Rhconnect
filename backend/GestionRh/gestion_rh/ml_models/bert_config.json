@@ -1,1 +1,0 @@
-{"hf_model_name": "bert-base-uncased", "max_length": 128, "feature_schema": "[emb_skills|emb_desc|cos_sim(skills,desc)|num_scaled(Years,Projects,EduRank)]"}

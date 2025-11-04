@@ -1,91 +1,118 @@
 <div class="auth-wrapper">
   <div class="auth-content">
+    <!-- Fond dynamique conservé -->
     <div class="auth-bg">
       <span class="r"></span>
       <span class="r s"></span>
       <span class="r s"></span>
       <span class="r"></span>
     </div>
-    <div class="card">
-      <div class="card-body text-center">
-        <div class="mb-4">
-          <i class="feather icon-user-plus auth-icon"></i>
-        </div>
-        <h3 class="mb-4">Inscription</h3>
 
+    <!-- Carte d'inscription modernisée -->
+    <div class="register-card">
+      <div class="card-body text-center">
+        <!-- Logo -->
+        <div class="mb-3">
+          <img src="assets/images/rh.png" alt="HRConnect Logo" class="logo" />
+        </div>
+
+        <!-- Titre -->
+        <h3 class="register-title">Inscription</h3>
+
+        <!-- Formulaire -->
         <form #registerForm="ngForm" (ngSubmit)="register()" novalidate>
           <!-- Nom -->
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" [(ngModel)]="user.nom" name="nom"
-              required pattern="^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$"
-              placeholder="Nom" #nom="ngModel">
+          <div class="form-group mb-3">
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="user.nom"
+              name="nom"
+              required
+              pattern="^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$"
+              placeholder="Nom"
+              #nom="ngModel"
+            />
+            <small *ngIf="nom?.errors?.['required'] && nom?.touched" class="text-danger">
+              Le nom est obligatoire.
+            </small>
+            <small *ngIf="nom?.errors?.['pattern'] && nom?.touched" class="text-danger">
+              Le nom ne doit contenir que des lettres.
+            </small>
           </div>
-          <small *ngIf="nom?.errors?.['required'] && nom?.touched" class="text-danger">
-            Le nom est obligatoire.
-          </small>
-          <small *ngIf="nom?.errors?.['pattern'] && nom?.touched" class="text-danger">
-            Le nom ne doit contenir que des lettres.
-          </small>
-        
-          <!-- Prénom -->
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" [(ngModel)]="user.prenom" name="prenom"
-              required pattern="^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$"
-              placeholder="Prénom" #prenom="ngModel">
-          </div>
-          <small *ngIf="prenom?.errors?.['required'] && prenom?.touched" class="text-danger">
-            Le prénom est obligatoire.
-          </small>
-          <small *ngIf="prenom?.errors?.['pattern'] && prenom?.touched" class="text-danger">
-            Le prénom ne doit contenir que des lettres.
-          </small>
-       
-        <!-- Email -->
-       <div class="input-group mb-3">
-      <input 
-      type="email" 
-      class="form-control" 
-      [(ngModel)]="user.email" 
-      name="email"
-      required 
-      placeholder="Email" 
-      pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-      #email="ngModel">
-      </div>
-      <small *ngIf="email?.errors?.['required'] && email?.touched" class="text-danger">
-      L'email est obligatoire.
-    </small>
-    <small *ngIf="email?.errors?.['pattern'] && email?.touched" class="text-danger">
-    Veuillez entrer une adresse email valide.
-    </small>
 
-            <!-- Mot de passe -->
-            <div class="input-group mb-4">
-              <input type="password" class="form-control" [(ngModel)]="user.password" name="password"
-                pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
-                required placeholder="Mot de passe" #password="ngModel">
-            </div>
-            
-            <!-- Error for empty password field -->
+          <!-- Prénom -->
+          <div class="form-group mb-3">
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="user.prenom"
+              name="prenom"
+              required
+              pattern="^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$"
+              placeholder="Prénom"
+              #prenom="ngModel"
+            />
+            <small *ngIf="prenom?.errors?.['required'] && prenom?.touched" class="text-danger">
+              Le prénom est obligatoire.
+            </small>
+            <small *ngIf="prenom?.errors?.['pattern'] && prenom?.touched" class="text-danger">
+              Le prénom ne doit contenir que des lettres.
+            </small>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group mb-3">
+            <input
+              type="email"
+              class="form-control"
+              [(ngModel)]="user.email"
+              name="email"
+              required
+              placeholder="E-mail"
+              pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+              #email="ngModel"
+            />
+            <small *ngIf="email?.errors?.['required'] && email?.touched" class="text-danger">
+              L'email est obligatoire.
+            </small>
+            <small *ngIf="email?.errors?.['pattern'] && email?.touched" class="text-danger">
+              Veuillez entrer une adresse email valide.
+            </small>
+          </div>
+
+          <!-- Mot de passe -->
+          <div class="form-group mb-3">
+            <input
+              type="password"
+              class="form-control"
+              [(ngModel)]="user.password"
+              name="password"
+              required
+              placeholder="Mot de passe"
+              pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+              #password="ngModel"
+            />
             <small *ngIf="password?.errors?.['required'] && password?.touched" class="text-danger">
               Le mot de passe est obligatoire.
             </small>
-            
-            <!-- Error for invalid password format -->
             <small *ngIf="password?.errors?.['pattern'] && password?.touched" class="text-danger">
               Le mot de passe doit contenir au moins 8 caractères, incluant une lettre, un chiffre et un caractère spécial.
             </small>
-            
-                
-          <!-- Submit Button -->
-          <button type="submit" class="btn btn-primary shadow-2 mb-4" [disabled]="registerForm.invalid">
+          </div>
+
+          <!-- Bouton -->
+          <button
+            type="submit"
+            class="btn-register"
+            [disabled]="registerForm.invalid"
+          >
             Accepter et s'inscrire
           </button>
         </form>
-        
-        
 
-        <p class="mb-0 text-muted">
+        <!-- Lien vers login -->
+        <p class="text-muted mt-3">
           Déjà inscrit(e) ?
           <a [routerLink]="['/auth/login']">S’identifier</a>
         </p>

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 import { EmployeService } from 'src/app/services/employe/employe.service';
 
 type PlanRow = { libelle: string; delai: string | null; evaluation_fin_cycle: string };
@@ -51,6 +52,27 @@ export class EmployeListComponent implements OnInit {
     apprentissage: 'Apprentissage',
     fiabilite: 'Fiabilité'
   };
+  DEPARTEMENT_OPTIONS = [
+  { value: 'AGENCE', label: 'Agence' },
+  { value: 'FINANCE', label: 'Finance' },
+  { value: 'COMPTABILITE', label: 'Comptabilité' },
+  { value: 'CREDIT', label: 'Crédit' },
+  { value: 'RISQUE', label: 'Gestion des risques' },
+  { value: 'CONFORMITE', label: 'Conformité' },
+  { value: 'RH', label: 'Ressources humaines' },
+  { value: 'INFORMATIQUE', label: 'Informatique / IT' },
+  { value: 'MARKETING', label: 'Marketing' },
+  { value: 'COMMERCIAL', label: 'Commercial / Développement' },
+  { value: 'AUDIT', label: 'Audit interne' },
+  { value: 'JURIDIQUE', label: 'Juridique' },
+  { value: 'OPERATION', label: 'Opérations bancaires' },
+  { value: 'TREASORERIE', label: 'Trésorerie' },
+  { value: 'STRATEGIE', label: 'Stratégie et planification' },
+  { value: 'SERVICE_CLIENT', label: 'Service client' },
+  { value: 'INVESTISSEMENT', label: 'Banque d’investissement' },
+  { value: 'INTERNATIONAL', label: 'Commerce international' },
+];
+
 
   suiviForm: {
     ancien_poste: string;
@@ -62,7 +84,7 @@ export class EmployeListComponent implements OnInit {
     objectifs_plan: PlanRow[];
   } = this.blankForm();
 
-  constructor(private employeService: EmployeService) {}
+  constructor(private employeService: EmployeService, private toastr: ToastrService) {}
 
   ngOnInit() {
     const saved = JSON.parse(localStorage.getItem('addLocked') || '[]') as number[];
@@ -84,18 +106,25 @@ export class EmployeListComponent implements OnInit {
 
   // ---------- Filters ----------
   applyFilters() {
-    const q = this.searchTerm.trim().toLowerCase();
-    const dept = this.selectedDept;
+  const q = this.searchTerm.trim().toLowerCase();
+  const dept = this.selectedDept; // ex: "RH", "FINANCE"
 
-    this.filteredEmployes = this.employes.filter((e) => {
-      const name = `${e?.user?.first_name || ''} ${e?.user?.last_name || ''}`.toLowerCase();
-      const poste = (e?.poste_actuel || '').toLowerCase();
-      const dpt = (e?.departement || '');
-      const matchText = !q || name.includes(q) || poste.includes(q) || dpt.toLowerCase().includes(q);
-      const matchDept = !dept || dpt === dept;
-      return matchText && matchDept;
-    });
-  }
+  this.filteredEmployes = this.employes.filter((e) => {
+    const name = `${e?.user?.first_name || ''} ${e?.user?.last_name || ''}`.toLowerCase();
+    const poste = (e?.poste_actuel || '').toLowerCase();
+    const dptValue = (e?.departement || '').toUpperCase(); // ex: "RH"
+    const dptLabel = (e?.departement_label || '').toLowerCase(); // ex: "ressources humaines"
+
+    const matchText =
+      !q || name.includes(q) || poste.includes(q) || dptLabel.includes(q);
+
+    // ✅ compare la valeur du département (clé)
+    const matchDept = !dept || dptValue === dept;
+
+    return matchText && matchDept;
+  });
+}
+
 
   // ---------- Data ----------
   loadEmployes() {
@@ -242,7 +271,8 @@ export class EmployeListComponent implements OnInit {
 
     this.employeService.ajouterSuivi(payload).subscribe({
       next: () => {
-        alert('Suivi ajouté avec succès.');
+     
+      this.toastr.success('Suivi ajouté avec succès', 'Ajout réussi');
         if (this.changerPosteVisible && this.suiviForm.nouveau_poste?.trim()) {
           const nv = this.suiviForm.nouveau_poste.trim();
           this.employeService.updateEmploye(this.selectedEmploye.id, { poste_actuel: nv }).subscribe({
@@ -254,12 +284,19 @@ export class EmployeListComponent implements OnInit {
         this.saveProfilEmployeSiChange();
         this.selectEmploye(this.selectedEmploye);
       },
-      error: () => alert('Erreur lors de l’ajout.')
-    });
-  }
+      error: (err) => {
+      console.error(err);
+  
+      this.toastr.error('Erreur lors de l’ajout du suivi', 'Erreur');
+    }
+  });
+}
 
   modifierSuivi() {
-    if (!this.editingSuiviId) { alert('Aucun suivi sélectionné.'); return; }
+    if (!this.editingSuiviId) {
+    this.toastr.warning('Aucun suivi sélectionné', 'Attention');
+    return;
+  }
 
     const notes: Record<string, number> = {};
     Object.keys(this.suiviForm.notes || {}).forEach((k) => {
@@ -284,8 +321,9 @@ export class EmployeListComponent implements OnInit {
     }
 
     this.employeService.updateSuivi(this.editingSuiviId, payload).subscribe({
-      next: () => {
-        alert('Suivi mis à jour avec succès.');
+       next: () => {
+     
+      this.toastr.success('Suivi mis à jour avec succès', 'Modification');
         if (this.changerPosteVisible && this.suiviForm.nouveau_poste?.trim()) {
           const nv = this.suiviForm.nouveau_poste.trim();
           this.employeService.updateEmploye(this.selectedEmploye.id, { poste_actuel: nv }).subscribe({
@@ -295,9 +333,13 @@ export class EmployeListComponent implements OnInit {
         this.saveProfilEmployeSiChange();
         this.selectEmploye(this.selectedEmploye);
       },
-      error: () => alert('Erreur lors de la mise à jour du suivi.')
-    });
-  }
+        error: (err) => {
+      console.error(err);
+    
+      this.toastr.error('Erreur lors de la mise à jour du suivi', 'Erreur');
+    }
+  });
+}
 
   private saveProfilEmployeSiChange() {
     const patch: any = {};
@@ -305,8 +347,14 @@ export class EmployeListComponent implements OnInit {
     if ((this.selectedEmploye.poste_actuel || '') !== this.initialPoste) patch.poste_actuel = this.selectedEmploye.poste_actuel || '';
     if (Object.keys(patch).length === 0) return;
     this.employeService.updateEmploye(this.selectedEmploye.id, patch).subscribe({
-      next: () => this.loadEmployes(),
-      error: (e) => console.error('Maj employé échouée', e)
-    });
-  }
+       next: () => {
+      this.toastr.success('Profil employé mis à jour avec succès', 'Mise à jour');
+      this.loadEmployes(); // recharge la liste
+    },
+    error: (e) => {
+      console.error('Mise à jour du profil échouée', e);
+      this.toastr.error('Erreur lors de la mise à jour du profil', 'Erreur');
+    }
+  });
+}
 }

@@ -28,10 +28,13 @@
       />
     </div>
 
-    <select class="form-select filter" [(ngModel)]="selectedDept" (change)="applyFilters()">
-      <option value="">Tous les départements</option>
-      <option *ngFor="let d of deptOptions" [value]="d">{{ d }}</option>
-    </select>
+   <select class="form-select filter" [(ngModel)]="selectedDept" (change)="applyFilters()">
+  <option value="">Tous les départements</option>
+  <option *ngFor="let d of DEPARTEMENT_OPTIONS" [value]="d.value">
+    {{ d.label }}
+  </option>
+</select>
+
   </div>
 </header>
 
@@ -52,7 +55,7 @@
           <div class="sub">
             <i class="bi bi-briefcase me-1"></i> {{ emp.poste_actuel || '—' }}
             <span class="dot">•</span>
-            <i class="bi bi-building me-1"></i> {{ emp.departement || '—' }}
+            <i class="bi bi-building me-1"></i> {{ emp.departement_label || '—' }}
           </div>
         </div>
       </div>
@@ -118,13 +121,19 @@
         <!-- ✅ un seul modal-body + *ngIf -->
         <div class="modal-body" *ngIf="selectedEmploye as emp">
           <!-- Profil (éditable) -->
-          <div class="mb-3">
-            <label>Département :</label>
-            <input type="text" class="form-control"
-                   [ngModel]="emp.departement"
-                   (ngModelChange)="emp.departement = $event"
-                   name="departement">
-          </div>
+         <div class="mb-3">
+  <label>Département :</label>
+  <select class="form-select"
+          [(ngModel)]="emp.departement"
+          name="departement">
+    <option value="">-- Sélectionner un département --</option>
+    <option *ngFor="let d of DEPARTEMENT_OPTIONS" [value]="d.value">
+      {{ d.label }}
+    </option>
+  </select>
+</div>
+
+
 
           <div class="mb-3">
             <label>Poste actuel :</label>

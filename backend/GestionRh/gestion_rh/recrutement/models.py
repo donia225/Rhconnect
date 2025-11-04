@@ -27,7 +27,7 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} - {self.role}"
 
-# Modèle Candidat
+
 class Candidat(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='candidat_profile')
     numero_tel = models.CharField(max_length=8, blank=True, null=True)
@@ -135,10 +135,36 @@ class Candidature(models.Model):
         return f"{self.candidat.user.username} - {self.offre.titre}"
     
 class Employe(models.Model):
+    DEPARTEMENT_CHOICES = [
+        ('AGENCE', 'Agence'),
+        ('FINANCE', 'Finance'),
+        ('COMPTABILITE', 'Comptabilité'),
+        ('CREDIT', 'Crédit'),
+        ('RISQUE', 'Gestion des risques'),
+        ('CONFORMITE', 'Conformité'),
+        ('RH', 'Ressources humaines'),
+        ('INFORMATIQUE', 'Informatique / IT'),
+        ('MARKETING', 'Marketing'),
+        ('COMMERCIAL', 'Commercial / Développement'),
+        ('AUDIT', 'Audit interne'),
+        ('JURIDIQUE', 'Juridique'),
+        ('OPERATION', 'Opérations bancaires'),
+        ('TREASORERIE', 'Trésorerie'),
+        ('STRATEGIE', 'Stratégie et planification'),
+        ('SERVICE_CLIENT', 'Service client'),
+        ('INVESTISSEMENT', 'Banque d’investissement'),
+        ('INTERNATIONAL', 'Commerce international'),
+        ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employe_profile')
     poste_actuel = models.CharField(max_length=255)
     date_embauche = models.DateField()
-    departement = models.CharField(max_length=100, blank=True, null=True)
+    departement = models.CharField(
+        max_length=100,
+        choices=DEPARTEMENT_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Département"
+    )
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.poste_actuel}"

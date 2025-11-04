@@ -157,10 +157,51 @@
   .ai-cell { white-space: nowrap; }
 .ai-offcanvas { width: min(560px, 92vw); }
 .ai-section { margin-bottom: 1rem; }
-.badge.bg-success-subtle { background:#e9f7ef; color:#1e7e34; }
-.badge.bg-danger-subtle  { background:#fdecea; color:#b02a37; }
+.badge.bg-success-subtle { background:#e9f7ef; color:#737774; }
+.badge.bg-danger-subtle  { background:#fdecea; color:#737774; }
 
 }
+.badge-soft-gray{
+  background-color: #f2f4f7;   /* gris très clair */
+  color: #495057;              /* gris foncé lisible */
+  border: 1px solid #e5e7eb;   /* fin liseré */
+  font-weight: 600;
+  border-radius: 9999px;       /* pilule (optionnel) */
+  padding: 0.4rem 0.6rem;
+}
+
+.toggle-btn.active {
+  background-color: #198754;
+  color: #fff;
+  border-color: #198754;
+}
+.rank-badge {
+  font-weight: 600;
+  border-radius: 50px;
+  padding: 0.4rem 0.8rem;
+  color: #fff;
+}
+
+.rank-gold {
+  background: linear-gradient(135deg, #FFD700, #FFB700);
+}
+.rank-silver {
+  background: linear-gradient(135deg, #C0C0C0, #A9A9A9);
+}
+.rank-bronze {
+  background: linear-gradient(135deg, #CD7F32, #A0522D);
+}
+.rank-default {
+  background: #6c757d;
+}
+.rank-emoji {
+  font-size: 1.3rem;
+  text-align: center;
+  display: inline-block;
+  width: 2.5rem;
+}
+
+
 
 
 

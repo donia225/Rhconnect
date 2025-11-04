@@ -69,10 +69,10 @@
         class="filter-select"
         [(ngModel)]="selectedStatut"
         (ngModelChange)="onStatutChange()">
-  <option value="">Tous les statuts</option>
   <option value="EN_ATTENTE">En attente</option>
   <option value="ACCEPTEE">Acceptée</option>
   <option value="REJETEE">Rejetée</option>
+   <option value="">Tous les statuts</option>
 </select>
 <!-- Filtre par score -->
 <select class="filter-select"
@@ -83,6 +83,13 @@
   <option value="MEDIUM">50–70% (moyens)</option>
   <option value="LOW"> < 50% (faibles)</option>
 </select>
+
+ <!-- ✅ Nouveau bouton : Meilleurs candidats -->
+      <button class="btn btn-outline-success btn-sm toggle-btn"
+              [class.active]="showBestCandidates"
+              (click)="filterBestCandidates()">
+        ⭐ Meilleurs candidats
+      </button>
 
 
 <button class="btn btn-outline-primary btn-sm reset-btn" (click)="resetFiltres()">
@@ -98,6 +105,7 @@
         <table class="table table-bordered text-center">
           <thead>
             <tr>
+              <th *ngIf="showBestCandidates">Rang</th>
               <th>Candidat</th>
               <th>Offre</th>
               <th *ngIf="role !== 'gestionnaire_rh'">CV</th>
@@ -109,10 +117,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of candidaturesFiltreesPaged; trackBy: trackById">
-              <td>{{ c.candidat }}</td>
-              <td>{{ c.offre }}</td>
-          
+            <tr *ngFor="let c of candidaturesFiltreesPaged; let i = index; trackBy: trackById">
+ <td *ngIf="showBestCandidates">
+  <span class="rank-emoji">{{ getRankEmoji(i) }}</span>
+</td>
+
+    <td>{{ c.candidat }}</td>
+    <td>{{ c.offre }}</td>
 
               <td *ngIf="role !== 'gestionnaire_rh'">
                 <a *ngIf="c.cv_link" [href]="c.cv_link" target="_blank" class="btn btn-outline-secondary btn-sm">📄 Voir CV</a>

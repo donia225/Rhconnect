@@ -1,6 +1,6 @@
 <app-card class="pull-up elevated-card" cardTitle="Ajout d'une offre" [options]="false">
   <form (ngSubmit)="onSubmit(offreForm)" #offreForm="ngForm" class="offer-form">
-    <h5 class="form-title">Ajout d'une offre</h5>
+    <h5 class="form-title">Publier une offre</h5>
     <hr />
 
     <div class="row gy-4">
@@ -10,10 +10,10 @@
         <div class="form-group mb-4">
           <label for="titre">Titre</label>
           <input id="titre" name="titre" type="text" class="form-control modern-input"
-                 [(ngModel)]="offre.titre" required [pattern]="titrePattern" #titre="ngModel"
+                 [(ngModel)]="offre.titre" required  #titre="ngModel"
                  [ngClass]="{'is-invalid': titre.invalid && (titre.dirty || titre.touched)}" />
           <div class="invalid-msg" *ngIf="titre.errors?.['required'] && (titre.dirty || titre.touched)">Requis.</div>
-          <div class="invalid-msg" *ngIf="titre.errors?.['pattern'] && (titre.dirty || titre.touched)">Chiffres non autorisés.</div>
+       
         </div>
 
         <!-- Description -->
