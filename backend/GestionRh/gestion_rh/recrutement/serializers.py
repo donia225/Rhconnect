@@ -67,12 +67,7 @@ class OffreEmploiSerializer(serializers.ModelSerializer):
                     
     def get_nb_candidatures(self, obj):
         return obj.candidatures.count()
-    # def validate_titre(self, v):
-    #     if not re.fullmatch(TITLE_RE, (v or '').strip()):
-    #         raise serializers.ValidationError(
-    #             "Le titre ne doit contenir que des lettres/espaces/ponctuation simple (pas de chiffres)."
-    #         )
-    #     return v.strip()
+
     def validate_langues(self, v):
         # "Français, Anglais, Arabe" -> contrôle max 3
         parts = [s.strip() for s in re.split(r'[;,]', v or '') if s.strip()]

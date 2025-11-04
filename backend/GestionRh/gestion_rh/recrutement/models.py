@@ -67,6 +67,7 @@ class NiveauEtude(models.TextChoices):
     INGENIEUR  = 'ingenieur',  "Diplôme d'ingénieur (Bac+5)"
     MBA        = 'mba',        'MBA / Mastère spécialisé'
     DOCTORAT   = 'doctorat',   'Doctorat'
+    
 class OffreEmploi(models.Model):
     titre = models.CharField(max_length=100)
     description = models.TextField()

@@ -181,34 +181,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'gestion_rh.wsgi.application'
 
 
-# CLOUD_SQL_CONN_NAME = os.environ.get('CLOUD_SQL_CONNECTION_NAME')
-# if CLOUD_SQL_CONN_NAME:
-#     # 1. Utilisation du socket Unix (méthode préférée sur Cloud Run)
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.postgresql',
-#             'NAME': 'rhdb_data', # Le nom de la BD que vous avez créé
-#             'USER': os.environ.get('DATABASE_USER'),
-#             'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
-            
-#             # Utilisation du chemin du socket Unix pour Cloud Run
-#             'HOST': '/cloudsql/{}'.format(CLOUD_SQL_CONN_NAME), 
-#             'PORT': '5432',
-#         }
-#     }
-# else:
-#     # 2. Configuration locale de secours (pour le développement local)
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.postgresql',
-#             'NAME': 'rhdb', 
-#             'USER': 'postgres',
-#             'PASSWORD': 'admin',  # Remplace par ton mot de passe PostgreSQL
-#             'HOST': 'localhost',
-#             'PORT': '5432',
-#         }
-#     }
-
 
 DATABASES = {
     'default': {

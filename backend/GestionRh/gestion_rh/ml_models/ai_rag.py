@@ -37,7 +37,7 @@ _RX_YYYY     = re.compile(r"\b(20\d{2}|19\d{2})\b")
 _RX_SPAN     = re.compile(r"\s*(?:-|–|—|to|au|jusqu(?:’|')?à|->|→)\s*", re.I)
 
 
-
+#changer l'api key dans .env
 API_KEY = settings.GOOGLE_API_KEY
 if not API_KEY:
     raise RuntimeError("GOOGLE_API_KEY manquante (.env)")
@@ -61,7 +61,7 @@ def extract_text_any(path: str) -> str:
     raise ValueError("Formats supportés: .pdf")
 
 
-
+#changer la version de gemini
 def make_llm(model: str = "gemini-2.0-flash", temperature: float = 0.0, max_output_tokens: int = 2048):
     return ChatGoogleGenerativeAI(
         model=model,
@@ -333,7 +333,7 @@ def evaluate_candidate(job_offer_text: str, resume_file_path: str) -> Dict[str, 
 
 
 
-#y3awnounou bech nrodouu texte json
+
 
 def _strip_code_fences(s: str) -> str:
     """Retire les blocs Markdown ``` ... ``` ou ```json ... ```."""
