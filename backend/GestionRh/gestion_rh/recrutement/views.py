@@ -28,7 +28,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from django.db import transaction
 import unicodedata
-from ml_models.ai_rag import evaluate_candidate, extract_text_any
+
 
 
 
@@ -252,200 +252,201 @@ def _build_offer_description(offre) -> str:
     out = "\n".join(parts).strip()
     return out or "Offre sans détails fournis."
 
-@api_view(['POST'])
-@parser_classes([MultiPartParser])
-@permission_classes([AllowAny])
-def upload_cv(request):
-    tmp_path = None
+# """ @api_view(['POST'])
+# @parser_classes([MultiPartParser])
+# @permission_classes([AllowAny])
+# from ml_models.ai_rag import evaluate_candidate, extract_text_any
+# def upload_cv(request):
+#     tmp_path = None
 
-    try:
-        fichier_cv  = request.FILES.get('cv')
-        candidat_id = request.data.get('candidat')
-        offre_id    = request.data.get('offre')
+#     try:
+#         fichier_cv  = request.FILES.get('cv')
+#         candidat_id = request.data.get('candidat')
+#         offre_id    = request.data.get('offre')
 
-        if not fichier_cv or not candidat_id or not offre_id:
-            return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
+#         if not fichier_cv or not candidat_id or not offre_id:
+#             return Response({"error": "Champs requis manquants (cv, candidat, offre)."}, status=400)
 
-        candidat = get_object_or_404(Candidat, id=candidat_id)
-        offre    = get_object_or_404(OffreEmploi, id=offre_id)
+#         candidat = get_object_or_404(Candidat, id=candidat_id)
+#         offre    = get_object_or_404(OffreEmploi, id=offre_id)
 
-        # --- Vérification du format PDF ---
-        name = getattr(fichier_cv, "name", "") or "cv.pdf"
-        base, ext = os.path.splitext(name)
-        if ext.lower() != ".pdf":
-            return Response({"error": "Le CV doit être en PDF seulement."}, status=400)
+#         # --- Vérification du format PDF ---
+#         name = getattr(fichier_cv, "name", "") or "cv.pdf"
+#         base, ext = os.path.splitext(name)
+#         if ext.lower() != ".pdf":
+#             return Response({"error": "Le CV doit être en PDF seulement."}, status=400)
 
-        # --- Sauvegarde temporaire du fichier ---
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            for chunk in fichier_cv.chunks():
-                tmp.write(chunk)
-            tmp_path = tmp.name
+#         # --- Sauvegarde temporaire du fichier ---
+#         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+#             for chunk in fichier_cv.chunks():
+#                 tmp.write(chunk)
+#             tmp_path = tmp.name
 
-        # --- Vérification de cohérence Nom/Prénom ---
-        u = getattr(candidat, "user", None)
-        prenom_cand = (getattr(candidat, "prenom", "") or (u.first_name if u else "")).strip()
-        nom_cand    = (getattr(candidat, "nom", "")    or (u.last_name  if u else "")).strip()
+#         # --- Vérification de cohérence Nom/Prénom ---
+#         u = getattr(candidat, "user", None)
+#         prenom_cand = (getattr(candidat, "prenom", "") or (u.first_name if u else "")).strip()
+#         nom_cand    = (getattr(candidat, "nom", "")    or (u.last_name  if u else "")).strip()
 
-        n_first = _normalize(prenom_cand)
-        n_last  = _normalize(nom_cand)
-        if not n_first or not n_last:
-            return Response({"error": "Nom et/ou prénom du candidat introuvables pour la vérification."}, status=400)
+#         n_first = _normalize(prenom_cand)
+#         n_last  = _normalize(nom_cand)
+#         if not n_first or not n_last:
+#             return Response({"error": "Nom et/ou prénom du candidat introuvables pour la vérification."}, status=400)
 
-        n_file = _normalize(base)
-        filename_match = (n_first in n_file) and (n_last in n_file)
+#         n_file = _normalize(base)
+#         filename_match = (n_first in n_file) and (n_last in n_file)
 
-        content_match = False
-        if not filename_match:
-            try:
-                pdf_text = extract_text_any(tmp_path)
-            except Exception as e:
-                print(f"[PDF][WARN] extract_text_any failed: {type(e).__name__}: {e}")
-                pdf_text = ""
-            n_text = _normalize(pdf_text)
-            if n_text:
-                content_match = ((n_first in n_text and n_last in n_text))
+#         content_match = False
+#         if not filename_match:
+#             try:
+#                 pdf_text = extract_text_any(tmp_path)
+#             except Exception as e:
+#                 print(f"[PDF][WARN] extract_text_any failed: {type(e).__name__}: {e}")
+#                 pdf_text = ""
+#             n_text = _normalize(pdf_text)
+#             if n_text:
+#                 content_match = ((n_first in n_text and n_last in n_text))
 
-        if not (filename_match or content_match):
-            return Response({
-                "error": (
-                    "Le nom/prénom dans le CV ne correspond pas au candidat. "
-                    "Vérifie que le PDF contient le nom complet et/ou renomme le fichier "
-                    "ex: Prenom_Nom_CV.pdf"
-                )
-            }, status=400)
+#         if not (filename_match or content_match):
+#             return Response({
+#                 "error": (
+#                     "Le nom/prénom dans le CV ne correspond pas au candidat. "
+#                     "Vérifie que le PDF contient le nom complet et/ou renomme le fichier "
+#                     "ex: Prenom_Nom_CV.pdf"
+#                 )
+#             }, status=400)
 
-        # --- Création de la candidature ---
-        with transaction.atomic():
-            if hasattr(candidat, "cv"):
-                candidat.cv = fichier_cv
-            candidat.save()
+#         # --- Création de la candidature ---
+#         with transaction.atomic():
+#             if hasattr(candidat, "cv"):
+#                 candidat.cv = fichier_cv
+#             candidat.save()
 
-            candidature = Candidature.objects.create(
-                candidat=candidat,
-                offre=offre,
-                statut='EN_ATTENTE',
-                label='',
-                ai_score=None,
-                ai_notes="",
-                ai_strengths=[],
-                ai_missing=[],
-                ai_evidence=[],
-            )
+#             candidature = Candidature.objects.create(
+#                 candidat=candidat,
+#                 offre=offre,
+#                 statut='EN_ATTENTE',
+#                 label='',
+#                 ai_score=None,
+#                 ai_notes="",
+#                 ai_strengths=[],
+#                 ai_missing=[],
+#                 ai_evidence=[],
+#             )
 
-        ai_status = "SKIPPED"
-        decision  = ""
-        scores    = {}
-        exp_years = 0.0
+#         ai_status = "SKIPPED"
+#         decision  = ""
+#         scores    = {}
+#         exp_years = 0.0
 
-        # --- Évaluation IA ---
-        try:
-            offer_text = _build_offer_description(offre)
-            rag_res = evaluate_candidate(offer_text, tmp_path)
+#         # --- Évaluation IA ---
+#         try:
+#             offer_text = _build_offer_description(offre)
+#             rag_res = evaluate_candidate(offer_text, tmp_path)
 
-            if not isinstance(rag_res, dict):
-                raise ValueError("Unexpected AI output type")
-            if "error" in rag_res:
-                raise RuntimeError(rag_res["error"])
+#             if not isinstance(rag_res, dict):
+#                 raise ValueError("Unexpected AI output type")
+#             if "error" in rag_res:
+#                 raise RuntimeError(rag_res["error"])
 
-            decision   = str(rag_res.get("decision", "")).strip()
-            scores     = rag_res.get("match_scores", {}) or {}
+#             decision   = str(rag_res.get("decision", "")).strip()
+#             scores     = rag_res.get("match_scores", {}) or {}
 
-            overall = int(scores.get("overall", 0) or 0)
-            exp_years = float(rag_res.get("exp_years", 0.0) or 0.0)
+#             overall = int(scores.get("overall", 0) or 0)
+#             exp_years = float(rag_res.get("exp_years", 0.0) or 0.0)
 
-            missing = rag_res.get("missing_requirements", []) or []
-            if not isinstance(missing, list):
-                missing = [str(missing)]
+#             missing = rag_res.get("missing_requirements", []) or []
+#             if not isinstance(missing, list):
+#                 missing = [str(missing)]
 
-            evidence = rag_res.get("evidence", {}) or {}
-            if not isinstance(evidence, dict):
-                evidence = {}
+#             evidence = rag_res.get("evidence", {}) or {}
+#             if not isinstance(evidence, dict):
+#                 evidence = {}
 
-            strengths = (
-                rag_res.get("strengths")
-                or rag_res.get("matched_skills")
-                or evidence.get("skills")
-                or []
-            )
-            if not isinstance(strengths, list):
-                strengths = [str(strengths)]
+#             strengths = (
+#                 rag_res.get("strengths")
+#                 or rag_res.get("matched_skills")
+#                 or evidence.get("skills")
+#                 or []
+#             )
+#             if not isinstance(strengths, list):
+#                 strengths = [str(strengths)]
 
-            evidence_list = []
-            for key in ("skills", "education", "experience"):
-                items = evidence.get(key) or []
-                if isinstance(items, list):
-                    for v in items[:6]:
-                        evidence_list.append(f"{key}: {v}")
-                elif items:
-                    evidence_list.append(f"{key}: {items}")
+#             evidence_list = []
+#             for key in ("skills", "education", "experience"):
+#                 items = evidence.get(key) or []
+#                 if isinstance(items, list):
+#                     for v in items[:6]:
+#                         evidence_list.append(f"{key}: {v}")
+#                 elif items:
+#                     evidence_list.append(f"{key}: {items}")
 
-            notes = str(rag_res.get("notes", "") or "")
+#             notes = str(rag_res.get("notes", "") or "")
 
-            # --- Mise à jour IA dans la DB ---
-            with transaction.atomic():
-                candidature.label        = decision
-                candidature.ai_score     = overall
-                candidature.ai_notes     = notes
-                candidature.ai_strengths = strengths
-                candidature.ai_missing   = missing
-                candidature.ai_evidence  = evidence_list
-                candidature.save()
+#             # --- Mise à jour IA dans la DB ---
+#             with transaction.atomic():
+#                 candidature.label        = decision
+#                 candidature.ai_score     = overall
+#                 candidature.ai_notes     = notes
+#                 candidature.ai_strengths = strengths
+#                 candidature.ai_missing   = missing
+#                 candidature.ai_evidence  = evidence_list
+#                 candidature.save()
 
-            ai_status = "OK"
+#             ai_status = "OK"
 
-            # =======================================================
-            # 🚀 Nouvelle logique : une seule candidature EN_ATTENTE
-            # =======================================================
-            try:
-                toutes = Candidature.objects.filter(candidat=candidat)
-                hires = toutes.filter(label__iexact='Hire').order_by('-ai_score')
+#             # =======================================================
+#             # 🚀 Nouvelle logique : une seule candidature EN_ATTENTE
+#             # =======================================================
+#             try:
+#                 toutes = Candidature.objects.filter(candidat=candidat)
+#                 hires = toutes.filter(label__iexact='Hire').order_by('-ai_score')
 
-                en_attente = toutes.filter(statut='EN_ATTENTE')
+#                 en_attente = toutes.filter(statut='EN_ATTENTE')
 
-                if hires.exists():
-                    meilleure = hires.first()
-                    # ✅ la meilleure reste en attente pour validation du recruteur
-                    if meilleure.statut == 'EN_ATTENTE':
-                        meilleure.statut = 'EN_ATTENTE'
-                        meilleure.save(update_fields=['statut'])
+#                 if hires.exists():
+#                     meilleure = hires.first()
+#                     # ✅ la meilleure reste en attente pour validation du recruteur
+#                     if meilleure.statut == 'EN_ATTENTE':
+#                         meilleure.statut = 'EN_ATTENTE'
+#                         meilleure.save(update_fields=['statut'])
 
-                    # ❌ les autres candidatures "Hire" → REJETÉES
-                    hires.exclude(id=meilleure.id).filter(statut='EN_ATTENTE').update(statut='REJETEE')
+#                     # ❌ les autres candidatures "Hire" → REJETÉES
+#                     hires.exclude(id=meilleure.id).filter(statut='EN_ATTENTE').update(statut='REJETEE')
 
-                    # ❌ les autres non "Hire" → également REJETÉES
-                    toutes.exclude(id__in=hires.values_list('id', flat=True)).filter(statut='EN_ATTENTE').update(statut='REJETEE')
-                else:
-                    # S’il n’y a aucune "Hire" → toutes restent en attente
-                    pass
+#                     # ❌ les autres non "Hire" → également REJETÉES
+#                     toutes.exclude(id__in=hires.values_list('id', flat=True)).filter(statut='EN_ATTENTE').update(statut='REJETEE')
+#                 else:
+#                     # S’il n’y a aucune "Hire" → toutes restent en attente
+#                     pass
 
-            except Exception as e:
-                print(f"[AUTO-SELECTION][WARN] {type(e).__name__}: {e}")
+#             except Exception as e:
+#                 print(f"[AUTO-SELECTION][WARN] {type(e).__name__}: {e}")
 
-        except Exception as ia_err:
-            ai_status = "FAILED"
-            print(f"[AI][ERROR] {type(ia_err).__name__}: {ia_err}")
+#         except Exception as ia_err:
+#             ai_status = "FAILED"
+#             print(f"[AI][ERROR] {type(ia_err).__name__}: {ia_err}")
 
-        # --- Réponse finale ---
-        data = CandidatureSerializer(candidature, context={'request': request}).data
-        data.update({
-            "message": "CV déposé avec succès",
-            "ai_status": ai_status,
-            "rag_decision": decision,
-            "rag_scores": scores,
-            "exp_years": exp_years,
-            "dejapostule": True
-        })
-        return Response(data, status=201)
+#         # --- Réponse finale ---
+#         data = CandidatureSerializer(candidature, context={'request': request}).data
+#         data.update({
+#             "message": "CV déposé avec succès",
+#             "ai_status": ai_status,
+#             "rag_decision": decision,
+#             "rag_scores": scores,
+#             "exp_years": exp_years,
+#             "dejapostule": True
+#         })
+#         return Response(data, status=201)
 
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+#     except Exception as e:
+#         return Response({"error": str(e)}, status=500)
 
-    finally:
-        if tmp_path:
-            try:
-                os.remove(tmp_path)
-            except Exception:
-                pass
+#     finally:
+#         if tmp_path:
+#             try:
+#                 os.remove(tmp_path)
+#             except Exception:
+#                 pass """
 
 
 
