@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from .views import OffresDuRecruteurAPIView, ajouter_offre, ajouter_suivi_carriere, candidat_profil,deja_postule, confirmer_embauche, employe_profil_et_suivi, get_candidat_id, get_candidatures_by_candidat, get_candidatures_gestionnaire_rh, get_suivis_employe, list_candidats, liste_offres, login_user, mes_candidatures, modifier_offre, register_user, request_password_reset, reset_password, supprimer_offre, update_employe_profile, update_statut_candidature, upload_avatar, upload_cv, get_candidatures_recruteur
+from .views import OffresDuRecruteurAPIView, ajouter_offre, ajouter_suivi_carriere, candidat_profil,deja_postule, confirmer_embauche, employe_profil_et_suivi, get_candidat_id, get_candidatures_by_candidat, get_candidatures_gestionnaire_rh, get_suivis_employe, list_candidats, liste_offres, login_user, mes_candidatures, modifier_offre, register_user, request_password_reset, reset_password, supprimer_offre, update_employe_profile, update_statut_candidature, upload_avatar, get_candidatures_recruteur
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -25,7 +25,6 @@ urlpatterns = [
     path('ajouter/', ajouter_offre, name='ajouter_offre'),
     path('offres/<int:id>/', supprimer_offre, name='supprimer_offre'),
     path('offres/modifier/<int:id>/', modifier_offre, name='modifier_offre'),
-    path('upload-cv/', upload_cv, name='upload_cv'),
     path('candidatures/dejapostule/<int:offre_id>/', deja_postule, name='dejapostule'),
     path('candidats/', list_candidats, name='list_candidats'),
     path('get-candidat-id/', get_candidat_id, name='get_candidat_id'),
