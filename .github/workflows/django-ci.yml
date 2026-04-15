@@ -1,1 +1,31 @@
+name: Django CI
 
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/GestionRh/gestion_rh/requirements.txt
+
+      - name: Lancer les tests
+        working-directory: backend/GestionRh/gestion_rh
+        run: |
+          python manage.py test
