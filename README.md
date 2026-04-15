@@ -1,7 +1,6 @@
 📘 Structure du Frontend RHConnect
 
-Le frontend du projet RHConnect est développé avec Angular et repose sur le thème Datta Able pour l’interface d’administration.
-L’application est organisée selon les différents rôles utilisateurs et leurs interfaces correspondantes.
+Le frontend du projet RHConnect est développé avec Angular et repose sur le thème Datta Able pour l’interface d’administration. L’application est organisée selon les différents rôles utilisateurs et leurs interfaces correspondantes.
 
 🎨 Structure principale
 
