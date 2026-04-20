@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { MescandidaturesComponent } from './mescandidatures.component';
 
@@ -8,9 +10,12 @@ describe('MescandidaturesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MescandidaturesComponent]
-    })
-    .compileComponents();
+      imports: [MescandidaturesComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting()
+      ]
+    }).compileComponents();
 
     fixture = TestBed.createComponent(MescandidaturesComponent);
     component = fixture.componentInstance;

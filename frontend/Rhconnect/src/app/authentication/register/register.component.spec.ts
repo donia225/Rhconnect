@@ -1,4 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ActivatedRoute } from '@angular/router';
+import { of } from 'rxjs';
 
 import { RegisterComponent } from './register.component';
 
@@ -8,9 +12,20 @@ describe('RegisterComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RegisterComponent]
-    })
-    .compileComponents();
+      imports: [RegisterComponent],
+      providers: [
+  provideHttpClient(),
+  provideHttpClientTesting(),
+  {
+    provide: ActivatedRoute,
+    useValue: {
+      snapshot: { paramMap: { get: () => null } },
+      params: of({}),
+      queryParams: of({})
+    }
+  }
+]
+    }).compileComponents();
 
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;

@@ -4,7 +4,7 @@ import localeFr from '@angular/common/locales/fr';
 import { Routes, RouterModule } from '@angular/router';
 import { AdminComponent } from './theme/layout/admin/admin.component';
 import { AccueilComponent } from './theme/layout/accueil/accueil.component';
-import LoginComponent from './authentication/login/login.component';
+import  LoginComponent  from './authentication/login/login.component';
 import { RegisterComponent } from './authentication/register/register.component';
 import { AuthGuard } from './services/auth/auth.guard';
 import { DashboardComponent } from './theme/layout/admin/dashboard/dashboard.component';
